@@ -24,13 +24,32 @@ describe("Scheduler", () => {
     it.effect("should return the scheduled function's ID", () =>
       E.gen(function* () {
         const id = mockGenericId("_scheduled_functions", "scheduled-function-id")
+        const runAfterMock = vi.fn().mockResolvedValue(id)
         const scheduler = mockScheduler({
-          runAfter: vi.fn().mockResolvedValue(id),
+          runAfter: runAfterMock,
         })
-        const actual = yield* scheduler.runAfter(1000, mockFunctionReference<"action", "public">())
+        const funcRef = mockFunctionReference<"action", "public">()
+
+        const actual = yield* scheduler.runAfter(1000, funcRef)
 
         expectTypeOf(actual).toEqualTypeOf<GenericId<"_scheduled_functions">>()
         expect(actual).toBe(id)
+        expect(runAfterMock).toHaveBeenCalledWith(1000, funcRef)
+      }),
+    )
+
+    it.effect("should pass arguments to the scheduled function", () =>
+      E.gen(function* () {
+        const id = mockGenericId("_scheduled_functions", "scheduled-function-id")
+        const runAfterMock = vi.fn().mockResolvedValue(id)
+        const scheduler = mockScheduler({
+          runAfter: runAfterMock,
+        })
+        const funcRef = mockFunctionReference<"mutation", "internal", {arg: string}>()
+
+        yield* scheduler.runAfter(1000, funcRef, {arg: "test-value"})
+
+        expect(runAfterMock).toHaveBeenCalledWith(1000, funcRef, {arg: "test-value"})
       }),
     )
   })
@@ -57,16 +76,33 @@ describe("Scheduler", () => {
     it.effect("should return the scheduled function's ID", () =>
       E.gen(function* () {
         const id = mockGenericId("_scheduled_functions", "scheduled-function-id")
+        const runAtMock = vi.fn().mockResolvedValue(id)
         const scheduler = mockScheduler({
-          runAt: vi.fn().mockResolvedValue(id),
+          runAt: runAtMock,
         })
-        const actual = yield* scheduler.runAt(
-          Date.now(),
-          mockFunctionReference<"action", "public">(),
-        )
+        const funcRef = mockFunctionReference<"action", "public">()
+        const timestamp = new Date()
+
+        const actual = yield* scheduler.runAt(timestamp, funcRef)
 
         expectTypeOf(actual).toEqualTypeOf<GenericId<"_scheduled_functions">>()
         expect(actual).toBe(id)
+        expect(runAtMock).toHaveBeenCalledWith(timestamp, funcRef)
+      }),
+    )
+
+    it.effect("should pass arguments to the scheduled function", () =>
+      E.gen(function* () {
+        const id = mockGenericId("_scheduled_functions", "scheduled-function-id")
+        const runAtMock = vi.fn().mockResolvedValue(id)
+        const scheduler = mockScheduler({
+          runAt: runAtMock,
+        })
+        const funcRef = mockFunctionReference<"mutation", "internal", {arg: string}>()
+
+        yield* scheduler.runAt(Date.now(), funcRef, {arg: "test-value"})
+
+        expect(runAtMock).toHaveBeenCalledWith(expect.any(Number), funcRef, {arg: "test-value"})
       }),
     )
   })
@@ -81,14 +117,17 @@ describe("Scheduler", () => {
 
     it.effect("should complete successfully", () =>
       E.gen(function* () {
+        const cancelMock = vi.fn().mockResolvedValue(undefined)
         const scheduler = mockScheduler({
-          cancel: vi.fn().mockResolvedValue(undefined),
+          cancel: cancelMock,
         })
         const id = mockGenericId("_scheduled_functions", "scheduled-function-id")
+
         const actual = yield* scheduler.cancel(id)
 
         expectTypeOf(actual).toEqualTypeOf<void>()
         expect(actual).toBeUndefined()
+        expect(cancelMock).toHaveBeenCalledWith(id)
       }),
     )
   })
