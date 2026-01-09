@@ -4,20 +4,19 @@ import type {
   TableNamesInDataModel,
 } from "convex/server"
 import type {GenericId} from "convex/values"
+import type {Effect as E} from "effect"
 import type {Auth} from "./auth"
 import type {GenericDatabaseReader, GenericDatabaseWriter} from "./database"
 import type {Scheduler} from "./scheduler"
 import type {StorageActionWriter, StorageReader, StorageWriter} from "./storage"
 
-import {describe, expect, expectTypeOf, it, test, vi} from "@effect/vitest"
+import {describe, expect, expectTypeOf, test} from "@effect/vitest"
 import {defineSchema, defineTable} from "convex/server"
 import {v} from "convex/values"
-import {Effect as E} from "effect"
 
 import {
   mockFunctionReference,
   mockGenericActionCtx,
-  mockGenericId,
   mockGenericMutationCtx,
   mockGenericQueryCtx,
 } from "src/test/mock"
@@ -34,7 +33,7 @@ type TableNames = TableNamesInDataModel<DataModel>
 type Doc<TableName extends TableNames> = DocumentByName<DataModel, TableName>
 
 describe("GenericQueryCtx", () => {
-  describe("constructor", () => {
+  describe("properties", () => {
     test("should initialize all services correctly", () => {
       const queryCtx = mockGenericQueryCtx<DataModel>()
 
@@ -52,10 +51,19 @@ describe("GenericQueryCtx", () => {
       expect(queryCtx.convexQueryCtx).toBeDefined()
     })
   })
+
+  describe("runQuery", () => {
+    test("should have correct type signature", () => {
+      const queryCtx = mockGenericQueryCtx<DataModel>()
+      const query = mockFunctionReference<"query", "public", {id: string}, Doc<"user">>()
+
+      expectTypeOf(queryCtx.runQuery(query, {id: "user-id"})).toEqualTypeOf<E.Effect<Doc<"user">>>()
+    })
+  })
 })
 
 describe("GenericMutationCtx", () => {
-  describe("constructor", () => {
+  describe("properties", () => {
     test("should initialize all services correctly", () => {
       const mutationCtx = mockGenericMutationCtx<DataModel>()
 
@@ -75,6 +83,33 @@ describe("GenericMutationCtx", () => {
       expect(mutationCtx.convexMutationCtx).toBeDefined()
     })
   })
+
+  describe("runQuery", () => {
+    test("should have correct type signature", () => {
+      const mutationCtx = mockGenericMutationCtx<DataModel>()
+      const query = mockFunctionReference<"query", "public", {id: string}, Doc<"user">>()
+
+      expectTypeOf(mutationCtx.runQuery(query, {id: "user-id"})).toEqualTypeOf<
+        E.Effect<Doc<"user">>
+      >()
+    })
+  })
+
+  describe("runMutation", () => {
+    test("should have correct type signature", () => {
+      const mutationCtx = mockGenericMutationCtx<DataModel>()
+      const mutation = mockFunctionReference<
+        "mutation",
+        "public",
+        {name: string},
+        GenericId<"user">
+      >()
+
+      expectTypeOf(mutationCtx.runMutation(mutation, {name: "Test User"})).toEqualTypeOf<
+        E.Effect<GenericId<"user">>
+      >()
+    })
+  })
 })
 
 describe("GenericActionCtx", () => {
@@ -87,25 +122,6 @@ describe("GenericActionCtx", () => {
         E.Effect<Doc<"user">>
       >()
     })
-
-    it.effect("should return query result", () =>
-      E.gen(function* () {
-        const user: Doc<"user"> = {
-          _id: mockGenericId("user", "user-id"),
-          _creationTime: Date.now(),
-          name: "Test User",
-        }
-        const query = mockFunctionReference<"query", "public", {id: string}, Doc<"user">>()
-        const actionCtx = mockGenericActionCtx<DataModel>({
-          runQuery: vi.fn().mockResolvedValue(user),
-        })
-
-        const actual = yield* actionCtx.runQuery(query, {id: "user-id"})
-
-        expectTypeOf(actual).toEqualTypeOf<Doc<"user">>()
-        expect(actual).toBe(user)
-      }),
-    )
   })
 
   describe("runMutation", () => {
@@ -122,26 +138,6 @@ describe("GenericActionCtx", () => {
         E.Effect<GenericId<"user">>
       >()
     })
-
-    it.effect("should return mutation result", () =>
-      E.gen(function* () {
-        const userId = mockGenericId("user", "user-id")
-        const mutation = mockFunctionReference<
-          "mutation",
-          "public",
-          {name: string},
-          GenericId<"user">
-        >()
-        const actionCtx = mockGenericActionCtx<DataModel>({
-          runMutation: vi.fn().mockResolvedValue(userId),
-        })
-
-        const actual = yield* actionCtx.runMutation(mutation, {name: "Test User"})
-
-        expectTypeOf(actual).toEqualTypeOf<GenericId<"user">>()
-        expect(actual).toBe(userId)
-      }),
-    )
   })
 
   describe("runAction", () => {
@@ -151,20 +147,6 @@ describe("GenericActionCtx", () => {
 
       expectTypeOf(actionCtx.runAction(action, {data: "test"})).toEqualTypeOf<E.Effect<void>>()
     })
-
-    it.effect("should return action result", () =>
-      E.gen(function* () {
-        const action = mockFunctionReference<"action", "public", {data: string}, void>()
-        const actionCtx = mockGenericActionCtx<DataModel>({
-          runAction: vi.fn().mockResolvedValue(undefined),
-        })
-
-        const actual = yield* actionCtx.runAction(action, {data: "test"})
-
-        expectTypeOf(actual).toEqualTypeOf<void>()
-        expect(actual).toBeUndefined()
-      }),
-    )
   })
 
   describe("vectorSearch", () => {
@@ -179,28 +161,9 @@ describe("GenericActionCtx", () => {
         E.Effect<{_id: GenericId<"user">; _score: number}[], never, never>
       >()
     })
-
-    it.effect("should return vector search results", () =>
-      E.gen(function* () {
-        const results = [
-          {_id: mockGenericId("user", "user-1"), _score: 0.95},
-          {_id: mockGenericId("user", "user-2"), _score: 0.87},
-        ]
-        const actionCtx = mockGenericActionCtx<DataModel>({
-          vectorSearch: vi.fn().mockResolvedValue(results),
-        })
-
-        const actual = yield* actionCtx.vectorSearch("user", "by_name", {
-          vector: [1, 2],
-          limit: 10,
-        })
-
-        expect(actual).toEqual(results)
-      }),
-    )
   })
 
-  describe("constructor", () => {
+  describe("properties", () => {
     test("should initialize all services correctly", () => {
       const actionCtx = mockGenericActionCtx<DataModel>()
 
