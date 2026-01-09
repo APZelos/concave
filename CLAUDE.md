@@ -40,20 +40,23 @@ pnpm format                         # Format code with prettier
 ### Key Patterns
 
 **Effect Handler Pattern:**
+
 ```typescript
 const handler = E.fn(function* (args) {
-  const {db} = yield* QueryCtx  // Dependency injection via Context
+  const {db} = yield* QueryCtx // Dependency injection via Context
   const doc = yield* db.get(id)
   return doc
 })
 ```
 
 **Context Injection:**
+
 - `createQueryCtx<DataModel>()`, `createMutationCtx<DataModel>()`, `createActionCtx<DataModel>()` create Context tags
 - Services provided via `E.provideService()` at boundaries
 - Access inside handlers with `yield* ContextTag`
 
 **Database Operations:**
+
 - All operations return `Effect<T, E, never>` with typed errors
 - `db.get(id)` returns `Effect<Doc | null>`, use Option helpers
 - Query building: `db.query(table).withIndex(...).filter(...).collect()`
@@ -70,6 +73,7 @@ const handler = E.fn(function* (args) {
 ## Testing
 
 Uses `@effect/vitest` with edge-runtime environment:
+
 - `test()` for type signature validation with `expectTypeOf()`
 - `it.effect()` for Effect-based tests using `E.gen()` generators
 - Test files alongside source: `module.test.ts`
@@ -80,6 +84,7 @@ Uses `@effect/vitest` with edge-runtime environment:
 ## Important Constraints
 
 See AGENTS.md for detailed Convex-specific restrictions. Key points:
+
 - Convex functions cannot return Effect types (must be JSON-serializable)
 - Use `E.runPromise()` at Convex function boundaries
 - Queries are read-only; only mutations/actions can write
