@@ -28,11 +28,13 @@ import type {
   SchemaDefinition,
 } from "convex/server"
 import type {GenericId} from "convex/values"
+import type {GenericStreamItem} from "../helpers/server/stream"
 
 import {vi} from "@effect/vitest"
 
 import {
   Auth,
+  createQueryCtx,
   GenericActionCtx,
   GenericDatabaseReader,
   GenericDatabaseWriter,
@@ -46,6 +48,7 @@ import {
   StorageReader,
   StorageWriter,
 } from "@server"
+import {QueryStream, StreamQueryInitializer} from "../helpers/server/stream"
 
 export class MockNotImplementedError extends Error {
   constructor() {
@@ -328,8 +331,6 @@ export function mockGenericActionCtx<DataModel extends GenericDataModel>(
 
 // Stream mocks for convex-helpers/server/stream
 
-type GenericStreamItem = NonNullable<unknown>
-
 function createBaseConvexQueryStreamMock<T extends GenericStreamItem>(): ConvexQueryStream<T> {
   const baseMock = {
     paginate: vi.fn().mockRejectedValue(new MockNotImplementedError()),
@@ -423,4 +424,28 @@ export function mockConvexStreamQuery<
     ...streamQueryMock,
     ...mock,
   } as unknown as ConvexStreamQuery<Schema, TableName, IndexName>
+}
+
+export function mockQueryStream<
+  DataModel extends GenericDataModel,
+  T extends GenericStreamItem,
+  SError = never,
+>(mock: Partial<ConvexQueryStream<T>> = {}): QueryStream<DataModel, T, SError> {
+  const QueryCtx = createQueryCtx<DataModel>()
+  const queryCtx = mockGenericQueryCtx<DataModel>()
+  const convexStream = mockConvexQueryStream<T>(mock)
+  return new QueryStream(QueryCtx, queryCtx, convexStream)
+}
+
+export function mockStreamQueryInitializer<
+  Schema extends SchemaDefinition<any, boolean>,
+  TableName extends string,
+>(
+  mock: Partial<ConvexStreamQueryInitializer<Schema, TableName>> = {},
+): StreamQueryInitializer<Schema, TableName> {
+  const QueryCtx = createQueryCtx<GenericDataModel>()
+  const queryCtx = mockGenericQueryCtx<GenericDataModel>()
+  const convexStream = mockConvexStreamQueryInitializer<Schema, TableName>(mock)
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+  return new StreamQueryInitializer(QueryCtx as any, queryCtx as any, convexStream)
 }

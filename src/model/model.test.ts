@@ -1,10 +1,20 @@
 import type {
   DataModelFromSchemaDefinition,
   DocumentByName,
+  NamedTableInfo,
   TableNamesInDataModel,
 } from "convex/server"
 import type {GenericId} from "convex/values"
-import type {GenericMutationCtx, GenericQueryCtx} from "../server"
+import type {QueryStream, StreamQuery, StreamQueryInitializer} from "../helpers/server/stream"
+import type {
+  DocNotUniqueError,
+  GenericMutationCtx,
+  GenericQueryCtx,
+  OrderedQuery,
+  Query,
+  QueryInitializer,
+  SPaginationResult,
+} from "../server"
 
 import {describe, expect, expectTypeOf, it, test, vi} from "@effect/vitest"
 import {defineSchema, defineTable} from "convex/server"
@@ -17,6 +27,11 @@ import {
   mockGenericId,
   mockGenericMutationCtx,
   mockGenericQueryCtx,
+  mockOrderedQuery,
+  mockQuery,
+  mockQueryInitializer,
+  mockQueryStream,
+  mockStreamQueryInitializer,
 } from "src/test/mock"
 import {createMutationCtx, createQueryCtx, DocNotFoundError, InvalidDocIdError} from "../server"
 import {createModelFunction} from "./model"
@@ -32,6 +47,7 @@ const schema = defineSchema({
 
 type DataModel = DataModelFromSchemaDefinition<typeof schema>
 type TableNames = TableNamesInDataModel<DataModel>
+type TableInfo<TableName extends TableNames> = NamedTableInfo<DataModel, TableName>
 type Id<TableName extends TableNames> = GenericId<TableName>
 type Doc<TableName extends TableNames> = DocumentByName<DataModel, TableName>
 
@@ -42,6 +58,8 @@ const {model} = createModelFunction({schema, QueryCtx, MutationCtx})
 
 describe("model", () => {
   const User = model("user", S.Struct({name: S.String, age: S.Number.pipe(S.positive())}))
+  type UserDocument = S.Schema.Type<typeof User.Document>
+
   const doc: Doc<"user"> = {
     _id: mockGenericId("user", "user-id"),
     _creationTime: Date.now(),
@@ -180,7 +198,7 @@ describe("model", () => {
       const actual = User.getById(mockGenericId("user", "user-id"))
 
       expectTypeOf(actual).toEqualTypeOf<
-        E.Effect<S.Schema.Type<typeof User.Document>, DocNotFoundError, GenericQueryCtx<DataModel>>
+        E.Effect<UserDocument, DocNotFoundError, GenericQueryCtx<DataModel>>
       >()
     })
 
@@ -241,7 +259,7 @@ describe("model", () => {
       const actual = User.getByIdNullable(mockGenericId("user", "user-id"))
 
       expectTypeOf(actual).toEqualTypeOf<
-        E.Effect<S.Schema.Type<typeof User.Document> | null, never, GenericQueryCtx<DataModel>>
+        E.Effect<UserDocument | null, never, GenericQueryCtx<DataModel>>
       >()
     })
 
@@ -302,11 +320,7 @@ describe("model", () => {
       const actual = User.getByIdOption(mockGenericId("user", "user-id"))
 
       expectTypeOf(actual).toEqualTypeOf<
-        E.Effect<
-          Option.Option<S.Schema.Type<typeof User.Document>>,
-          never,
-          GenericQueryCtx<DataModel>
-        >
+        E.Effect<Option.Option<UserDocument>, never, GenericQueryCtx<DataModel>>
       >()
     })
 
@@ -402,7 +416,7 @@ describe("model", () => {
 
       expectTypeOf(actual).toEqualTypeOf<
         E.Effect<
-          S.Schema.Type<typeof User.Document>,
+          UserDocument,
           ParseResult.ParseError,
           GenericQueryCtx<DataModel> | GenericMutationCtx<DataModel>
         >
@@ -539,7 +553,7 @@ describe("model", () => {
 
       expectTypeOf(actual).toEqualTypeOf<
         E.Effect<
-          S.Schema.Type<typeof User.Document>,
+          UserDocument,
           ParseResult.ParseError,
           GenericQueryCtx<DataModel> | GenericMutationCtx<DataModel>
         >
@@ -680,7 +694,7 @@ describe("model", () => {
 
       expectTypeOf(actual).toEqualTypeOf<
         E.Effect<
-          S.Schema.Type<typeof User.Document>,
+          UserDocument,
           ParseResult.ParseError,
           GenericQueryCtx<DataModel> | GenericMutationCtx<DataModel>
         >
@@ -805,5 +819,362 @@ describe("model", () => {
         ),
       ),
     )
+  })
+
+  describe("query", () => {
+    test("should have correct type signature", () => {
+      const actual = User.query
+
+      expectTypeOf(actual).toEqualTypeOf<
+        E.Effect<QueryInitializer<TableInfo<"user">>, never, GenericQueryCtx<DataModel>>
+      >()
+    })
+  })
+
+  describe("stream", () => {
+    test("should have correct type signature", () => {
+      const actual = User.stream
+
+      expectTypeOf(actual).toEqualTypeOf<
+        E.Effect<StreamQueryInitializer<typeof schema, "user">, never, GenericQueryCtx<DataModel>>
+      >()
+    })
+  })
+
+  describe("fullTableScan", () => {
+    test("should have correct type signature", () => {
+      const queryInitializer = mockQueryInitializer<TableInfo<"user">>()
+      const actual = User.fullTableScan(queryInitializer)
+
+      expectTypeOf(actual).toEqualTypeOf<Query<TableInfo<"user">>>()
+    })
+  })
+
+  describe("withIndex", () => {
+    test("should have correct type signature", () => {
+      const queryInitializer = mockQueryInitializer<TableInfo<"user">>()
+      const actual = User.withIndex("by_age")(queryInitializer)
+
+      expectTypeOf(actual).toEqualTypeOf<Query<TableInfo<"user">>>()
+    })
+
+    test("should have correct type signature with index range", () => {
+      const queryInitializer = mockQueryInitializer<TableInfo<"user">>()
+      const actual = User.withIndex("by_age", (q) => q.eq("age", 22))(queryInitializer)
+
+      expectTypeOf(actual).toEqualTypeOf<Query<TableInfo<"user">>>()
+    })
+  })
+
+  describe("withStreamIndex", () => {
+    test("should have correct type signature", () => {
+      const streamQueryInitializer = mockStreamQueryInitializer<typeof schema, "user">()
+      const actual = User.withStreamIndex("by_age")(streamQueryInitializer)
+
+      expectTypeOf(actual).toEqualTypeOf<StreamQuery<typeof schema, "user", "by_age">>()
+    })
+  })
+
+  describe("withSearchIndex", () => {
+    test("should have correct type signature", () => {
+      const queryInitializer = mockQueryInitializer<TableInfo<"user">>()
+      const actual = User.withSearchIndex("by_name", (q) => q.search("name", "Joe"))(
+        queryInitializer,
+      )
+
+      expectTypeOf(actual).toEqualTypeOf<OrderedQuery<TableInfo<"user">>>()
+    })
+  })
+
+  describe("filter", () => {
+    test("should have correct type signature", () => {
+      const orderedQuery = mockOrderedQuery<TableInfo<"user">>()
+      const actual = User.filter((q) => q.eq(q.field("age"), 22))(orderedQuery)
+
+      expectTypeOf(actual).toEqualTypeOf<OrderedQuery<TableInfo<"user">>>()
+    })
+
+    test("should have correct type signature with Query", () => {
+      const query = mockQuery<TableInfo<"user">>()
+      const actual = User.filter((q) => q.eq(q.field("age"), 22))(query)
+
+      expectTypeOf(actual).toEqualTypeOf<Query<TableInfo<"user">>>()
+    })
+  })
+
+  describe("order", () => {
+    test("should have correct type signature with asc", () => {
+      const queryInitializer = mockQueryInitializer<TableInfo<"user">>()
+      const actual = User.order("asc")(queryInitializer)
+
+      expectTypeOf(actual).toEqualTypeOf<OrderedQuery<TableInfo<"user">>>()
+    })
+
+    test("should have correct type signature with desc", () => {
+      const queryInitializer = mockQueryInitializer<TableInfo<"user">>()
+      const actual = User.order("desc")(queryInitializer)
+
+      expectTypeOf(actual).toEqualTypeOf<OrderedQuery<TableInfo<"user">>>()
+    })
+  })
+
+  describe("collect", () => {
+    test("should have correct type signature", () => {
+      const orderedQuery = mockOrderedQuery<TableInfo<"user">>()
+      const actual = User.collect(orderedQuery)
+
+      expectTypeOf(actual).toEqualTypeOf<E.Effect<readonly UserDocument[], never, never>>()
+    })
+
+    it.effect("should return decoded documents", () =>
+      E.gen(function* () {
+        const orderedQuery = mockOrderedQuery<TableInfo<"user">>({
+          collect: vi.fn().mockResolvedValue([doc]),
+        })
+
+        const actual = yield* User.collect(orderedQuery)
+
+        expect(actual).toEqual([doc])
+      }),
+    )
+
+    it.effect("should return empty array when no documents", () =>
+      E.gen(function* () {
+        const orderedQuery = mockOrderedQuery<TableInfo<"user">>({
+          collect: vi.fn().mockResolvedValue([]),
+        })
+
+        const actual = yield* User.collect(orderedQuery)
+
+        expect(actual).toEqual([])
+      }),
+    )
+  })
+
+  describe("take", () => {
+    test("should have correct type signature", () => {
+      const orderedQuery = mockOrderedQuery<TableInfo<"user">>()
+      const actual = User.take(5)(orderedQuery)
+
+      expectTypeOf(actual).toEqualTypeOf<E.Effect<readonly UserDocument[], never, never>>()
+    })
+
+    it.effect("should return decoded documents", () =>
+      E.gen(function* () {
+        const orderedQuery = mockOrderedQuery<TableInfo<"user">>({
+          take: vi.fn().mockResolvedValue([doc]),
+        })
+
+        const actual = yield* User.take(5)(orderedQuery)
+
+        expect(actual).toEqual([doc])
+      }),
+    )
+  })
+
+  describe("first", () => {
+    test("should have correct type signature", () => {
+      const orderedQuery = mockOrderedQuery<TableInfo<"user">>()
+      const actual = User.first(orderedQuery)
+
+      expectTypeOf(actual).toEqualTypeOf<E.Effect<Option.Option<UserDocument>, never, never>>()
+    })
+
+    it.effect("should return Some(doc) when document exists", () =>
+      E.gen(function* () {
+        const orderedQuery = mockOrderedQuery<TableInfo<"user">>({
+          first: vi.fn().mockResolvedValue(doc),
+        })
+
+        const actual = yield* User.first(orderedQuery)
+
+        expect(actual).toEqual(Option.some(doc))
+      }),
+    )
+
+    it.effect("should return None when no document exists", () =>
+      E.gen(function* () {
+        const orderedQuery = mockOrderedQuery<TableInfo<"user">>({
+          first: vi.fn().mockResolvedValue(null),
+        })
+
+        const actual = yield* User.first(orderedQuery)
+
+        expect(actual).toEqual(Option.none())
+      }),
+    )
+  })
+
+  describe("unique", () => {
+    test("should have correct type signature", () => {
+      const orderedQuery = mockOrderedQuery<TableInfo<"user">>()
+      const actual = User.unique(orderedQuery)
+
+      expectTypeOf(actual).toEqualTypeOf<
+        E.Effect<Option.Option<UserDocument>, DocNotUniqueError, never>
+      >()
+    })
+
+    it.effect("should return Some(doc) when exactly one document exists", () =>
+      E.gen(function* () {
+        // unique() calls take(2) internally, so we mock take
+        const orderedQuery = mockOrderedQuery<TableInfo<"user">>({
+          take: vi.fn().mockResolvedValue([doc]),
+        })
+
+        const actual = yield* User.unique(orderedQuery)
+
+        expect(actual).toEqual(Option.some(doc))
+      }),
+    )
+
+    it.effect("should return None when no document exists", () =>
+      E.gen(function* () {
+        // unique() calls take(2) internally, so we mock take
+        const orderedQuery = mockOrderedQuery<TableInfo<"user">>({
+          take: vi.fn().mockResolvedValue([]),
+        })
+
+        const actual = yield* User.unique(orderedQuery)
+
+        expect(actual).toEqual(Option.none())
+      }),
+    )
+  })
+
+  describe("paginate", () => {
+    test("should have correct type signature", () => {
+      const orderedQuery = mockOrderedQuery<TableInfo<"user">>()
+      const actual = User.paginate({numItems: 10, cursor: null})(orderedQuery)
+
+      type ExpectedPaginationResult = S.Schema.Type<
+        ReturnType<typeof SPaginationResult<typeof User.Document>>
+      >
+      expectTypeOf(actual).toEqualTypeOf<E.Effect<ExpectedPaginationResult, never, never>>()
+    })
+
+    it.effect("should return decoded pagination result", () =>
+      E.gen(function* () {
+        const paginationResult = {
+          page: [doc],
+          isDone: false,
+          continueCursor: "cursor-123",
+        }
+        const orderedQuery = mockOrderedQuery<TableInfo<"user">>({
+          paginate: vi.fn().mockResolvedValue(paginationResult),
+        })
+
+        const actual = yield* User.paginate({numItems: 10, cursor: null})(orderedQuery)
+
+        expect(actual.page).toEqual([doc])
+        expect(actual.isDone).toBe(false)
+        expect(actual.continueCursor).toBe("cursor-123")
+      }),
+    )
+  })
+
+  describe("collectStream", () => {
+    test("should have correct type signature", () => {
+      const queryStream = mockQueryStream<DataModel, Doc<"user">>()
+
+      const actual = User.collectStream(queryStream)
+
+      expectTypeOf(actual).toEqualTypeOf<E.Effect<readonly UserDocument[], never, never>>()
+    })
+  })
+
+  describe("takeFromStream", () => {
+    test("should have correct type signature", () => {
+      const queryStream = mockQueryStream<DataModel, Doc<"user">>()
+
+      const actual = User.takeFromStream(5)(queryStream)
+
+      expectTypeOf(actual).toEqualTypeOf<E.Effect<readonly UserDocument[], never, never>>()
+    })
+  })
+
+  describe("firstFromStream", () => {
+    test("should have correct type signature", () => {
+      const queryStream = mockQueryStream<DataModel, Doc<"user">>()
+
+      const actual = User.firstFromStream(queryStream)
+
+      expectTypeOf(actual).toEqualTypeOf<E.Effect<Option.Option<UserDocument>, never, never>>()
+    })
+  })
+
+  describe("uniqueFromStream", () => {
+    test("should have correct type signature", () => {
+      const queryStream = mockQueryStream<DataModel, Doc<"user">>()
+
+      const actual = User.uniqueFromStream(queryStream)
+
+      expectTypeOf(actual).toEqualTypeOf<
+        E.Effect<Option.Option<UserDocument>, DocNotUniqueError, never>
+      >()
+    })
+  })
+
+  describe("paginateStream", () => {
+    test("should have correct type signature", () => {
+      const queryStream = mockQueryStream<DataModel, Doc<"user">>()
+
+      const actual = User.paginateStream({numItems: 10, cursor: null})(queryStream)
+
+      type ExpectedPaginationResult = S.Schema.Type<
+        ReturnType<typeof SPaginationResult<typeof User.Document>>
+      >
+      expectTypeOf(actual).toEqualTypeOf<E.Effect<ExpectedPaginationResult, never, never>>()
+    })
+  })
+
+  describe("orderStream", () => {
+    test("should have correct type signature", () => {
+      // orderStream returns a function that takes StreamQueryInitializer and returns QueryStream
+      const orderFn = User.orderStream("asc")
+
+      expectTypeOf(orderFn).toBeFunction()
+    })
+  })
+
+  describe("filterStreamWith", () => {
+    test("should have correct type signature", () => {
+      const queryStream = mockQueryStream<DataModel, Doc<"user">>()
+
+      const actual = User.filterStreamWith(() => E.succeed(true))(queryStream)
+
+      expectTypeOf(actual).toEqualTypeOf<QueryStream<DataModel, Doc<"user">, never>>()
+    })
+  })
+
+  describe("mapStream", () => {
+    test("should have correct type signature", () => {
+      const queryStream = mockQueryStream<DataModel, Doc<"user">>()
+
+      const actual = User.mapStream((doc) => E.succeed({mapped: doc.name}))(queryStream)
+
+      expectTypeOf(actual).toEqualTypeOf<QueryStream<DataModel, {mapped: string}, never>>()
+    })
+  })
+
+  describe("flatMapStream", () => {
+    test("should have correct type signature", () => {
+      const queryStream = mockQueryStream<DataModel, Doc<"user">>()
+      const innerStream = mockQueryStream<DataModel, {nested: string}>()
+
+      const actual = User.flatMapStream(() => E.succeed(innerStream), ["nested"])(queryStream)
+
+      expectTypeOf(actual).toEqualTypeOf<QueryStream<DataModel, {nested: string}, never>>()
+    })
+  })
+
+  describe("distinctStream", () => {
+    test("should have correct type signature", () => {
+      const queryStream = mockQueryStream<DataModel, Doc<"user">>()
+
+      const actual = User.distinctStream(["name"])(queryStream)
+
+      expectTypeOf(actual).toEqualTypeOf<QueryStream<DataModel, Doc<"user">, never>>()
+    })
   })
 })
