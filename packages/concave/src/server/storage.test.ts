@@ -3,13 +3,13 @@ import type {GenericId} from "convex/values"
 import {describe, expect, expectTypeOf, it, test, vi} from "@effect/vitest"
 import {Effect as E} from "effect"
 
-import {FileNotFoundError} from "./error"
 import {
   mockGenericId,
   mockStorageActionWriter,
   mockStorageReader,
   mockStorageWriter,
-} from "./testing"
+} from "../testing"
+import {FileNotFoundError} from "./error"
 
 describe("StorageReader", () => {
   describe("getUrl", () => {

@@ -14,13 +14,13 @@ import {describe, expect, expectTypeOf, test} from "@effect/vitest"
 import {defineSchema, defineTable} from "convex/server"
 import {v} from "convex/values"
 
-import {createActionCtx, createMutationCtx, createQueryCtx, HttpActionCtx} from "./context"
 import {
   mockFunctionReference,
   mockGenericActionCtx,
   mockGenericMutationCtx,
   mockGenericQueryCtx,
-} from "./testing"
+} from "../testing"
+import {createActionCtx, createMutationCtx, createQueryCtx, HttpActionCtx} from "./context"
 
 const _schema = defineSchema({
   user: defineTable({

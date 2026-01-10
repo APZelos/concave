@@ -18,7 +18,7 @@ import {
   mockGenericDatabaseWriter,
   mockGenericId,
   mockQueryInitializer,
-} from "./testing"
+} from "../testing"
 
 const _schema = defineSchema({
   user: defineTable({

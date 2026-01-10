@@ -3,7 +3,7 @@ import type {Effect as E} from "effect"
 
 import {describe, expectTypeOf, test, vi} from "@effect/vitest"
 
-import {mockAuth} from "./testing"
+import {mockAuth} from "../testing"
 
 describe("Auth", () => {
   describe("getUserIdentity", () => {

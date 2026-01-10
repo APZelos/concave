@@ -3,7 +3,7 @@ import type {GenericId} from "convex/values"
 import {describe, expect, expectTypeOf, it, test, vi} from "@effect/vitest"
 import {Effect as E} from "effect"
 
-import {mockFunctionReference, mockGenericId, mockScheduler} from "./testing"
+import {mockFunctionReference, mockGenericId, mockScheduler} from "../testing"
 
 describe("Scheduler", () => {
   describe("runAfter", () => {

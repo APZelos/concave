@@ -12,8 +12,8 @@ import {defineSchema, defineTable} from "convex/server"
 import {v} from "convex/values"
 import {Effect as E} from "effect"
 
+import {mockGenericId, mockOrderedQuery, mockQuery, mockQueryInitializer} from "../testing"
 import {DocNotUniqueError} from "./error"
-import {mockGenericId, mockOrderedQuery, mockQuery, mockQueryInitializer} from "./testing"
 
 const _schema = defineSchema({
   user: defineTable({
