@@ -4,7 +4,17 @@ import {defineConfig} from "eslint/config"
 import tseslint from "typescript-eslint"
 
 export default defineConfig(
-  {ignores: ["**/dist/**", "**/node_modules/**", "src/test/convex/_generated", "test/convex/_generated", "**/vitest.config.ts", "**/tsup.config.ts", "vitest.workspace.ts"]},
+  {
+    ignores: [
+      "**/dist/**",
+      "**/node_modules/**",
+      "src/test/convex/_generated",
+      "test/convex/_generated",
+      "**/vitest.config.ts",
+      "**/tsup.config.ts",
+      "vitest.workspace.ts",
+    ],
+  },
   {
     extends: [
       js.configs.recommended,
