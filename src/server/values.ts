@@ -71,9 +71,16 @@ function mapAstToValidator(
       validator = v.any()
       break
     case "Union": {
-      const memberValidators: AnyValidator[] = ast.types.map((memberAst) =>
-        mapAstToValidator(memberAst, action),
-      )
+      // Flatten nested unions (e.g., S.NullOr(S.Literal("a", "b")) creates Union(Union(a, b), null))
+      // to produce v.union(v.literal("a"), v.literal("b"), v.null()) instead of nested unions.
+      //
+      // Note: The inferred TypeScript type may have different member ordering than the runtime
+      // validator due to how UnionToTuple processes TypeScript unions (often placing null first).
+      // The VALUE types match, but internal tuple order may differ. Use toStrictEqual() for
+      // runtime verification instead of expectTypeOf() for complex union cases.
+      const memberValidators: AnyValidator[] = ast.types
+        .map((memberAst) => mapAstToValidator(memberAst, action))
+        .flatMap((validator) => (validator.kind === "union" ? validator.members : [validator]))
       validator = v.union(...memberValidators)
       break
     }

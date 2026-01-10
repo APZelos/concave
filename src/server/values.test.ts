@@ -1,8 +1,14 @@
 import {describe, expect, expectTypeOf, test} from "@effect/vitest"
 import {v} from "convex/values"
-import {ParseResult, Schema as S} from "effect"
+import {Option, ParseResult, Schema as S, SchemaAST} from "effect"
 
-import {mapDecodedSchemaToValidator, mapEncodedSchemaToValidator, SDocId} from "./values"
+import {
+  ConvexTableName,
+  mapDecodedSchemaToValidator,
+  mapEncodedSchemaToValidator,
+  SDocId,
+  SPaginationResult,
+} from "./values"
 
 describe("mapDecodedSchemaToValidator", () => {
   test("Schema.Any", () => {
@@ -98,6 +104,14 @@ describe("mapDecodedSchemaToValidator", () => {
     const expected = v.union(v.string(), v.number())
 
     expectTypeOf(actual).toEqualTypeOf(expected)
+    expect(actual).toStrictEqual(expected)
+  })
+
+  test("should flatten nested unions", () => {
+    const actual = mapDecodedSchemaToValidator(S.NullOr(S.Literal("a", "b")))
+    const expected = v.union(v.literal("a"), v.literal("b"), v.null())
+
+    // See mapDecodedSchemaToValidator JSDoc for union ordering limitation
     expect(actual).toStrictEqual(expected)
   })
 
@@ -402,5 +416,78 @@ describe("mapEncodedSchemaToValidator", () => {
 
     expectTypeOf(actual).toEqualTypeOf(expected)
     expect(actual).toStrictEqual(expected)
+  })
+})
+
+describe("SPaginationResult", () => {
+  test("should create pagination result schema with correct structure", () => {
+    const actual = mapDecodedSchemaToValidator(SPaginationResult(S.String))
+    const expected = v.object({
+      page: v.array(v.string()),
+      isDone: v.boolean(),
+      continueCursor: v.string(),
+      splitCursor: v.optional(v.union(v.string(), v.null())),
+      pageStatus: v.optional(
+        v.union(v.literal("SplitRecommended"), v.literal("SplitRequired"), v.null()),
+      ),
+    })
+
+    // See mapDecodedSchemaToValidator JSDoc for union ordering limitation
+    expect(actual).toStrictEqual(expected)
+  })
+
+  test("should work with complex element schemas", () => {
+    const actual = mapDecodedSchemaToValidator(
+      SPaginationResult(S.Struct({id: S.Number, name: S.String})),
+    )
+    const expected = v.object({
+      page: v.array(v.object({id: v.number(), name: v.string()})),
+      isDone: v.boolean(),
+      continueCursor: v.string(),
+      splitCursor: v.optional(v.union(v.string(), v.null())),
+      pageStatus: v.optional(
+        v.union(v.literal("SplitRecommended"), v.literal("SplitRequired"), v.null()),
+      ),
+    })
+
+    // See mapDecodedSchemaToValidator JSDoc for union ordering limitation
+    expect(actual).toStrictEqual(expected)
+  })
+})
+
+describe("SDocId", () => {
+  test("should attach table name annotation", () => {
+    const schema = SDocId("user")
+    const annotation = SchemaAST.getAnnotation<string>(ConvexTableName)(schema.ast)
+
+    expect(Option.isSome(annotation)).toBe(true)
+    expect(Option.getOrNull(annotation)).toBe("user")
+  })
+})
+
+describe("error cases", () => {
+  test("should throw for optional tuple elements", () => {
+    const schema = S.Tuple(S.String, S.optionalElement(S.Number))
+
+    expect(() => mapDecodedSchemaToValidator(schema)).toThrow(
+      "Convex doesn't suuport optional elements for tuples",
+    )
+  })
+
+  test("should throw for empty tuple schema", () => {
+    const schema = S.Tuple()
+
+    expect(() => mapDecodedSchemaToValidator(schema)).toThrow(
+      "Array/Tuple schemas require at least one element schema",
+    )
+  })
+
+  // Note: Non-string record keys are already rejected by Effect Schema itself,
+  // so we can't test that error path in mapDecodedSchemaToValidator
+
+  test("should throw for unsupported schema types", () => {
+    const schema = S.SymbolFromSelf
+
+    expect(() => mapDecodedSchemaToValidator(schema)).toThrow("Unsupported schema")
   })
 })
