@@ -1,6 +1,6 @@
 {
   "name": "@apzelos/concave-internal",
-  "version": "0.0.1",
+  "version": "1.0.0-alpha.1",
   "private": true,
   "type": "module",
   "sideEffects": false,
@@ -26,6 +26,7 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
+    "lint": "eslint src",
     "clean": "rm -rf dist"
   },
   "devDependencies": {
