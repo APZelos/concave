@@ -20,7 +20,7 @@
     "!**/*.test.*"
   ],
   "scripts": {
-    "build": "tsup && tsc --emitDeclarationOnly --declaration --outDir dist",
+    "build": "tsup",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
