@@ -21,16 +21,16 @@ importers:
         specifier: ^4.7.0
         version: 4.7.0(prettier@3.7.4)
       convex:
-        specifier: ^1.27.0
+        specifier: ^1.31.0
         version: 1.31.3
       convex-helpers:
-        specifier: ^0.1.104
+        specifier: ^0.1.109
         version: 0.1.109(@standard-schema/spec@1.1.0)(convex@1.31.3)(typescript@5.9.3)
       convex-test:
         specifier: ^0.0.38
         version: 0.0.38(convex@1.31.3)
       effect:
-        specifier: ^3.17.13
+        specifier: ^3.19.0
         version: 3.19.14
       eslint:
         specifier: ^9.35.0
