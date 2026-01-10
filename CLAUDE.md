@@ -4,38 +4,54 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Concave** is an npm library (`@apzelos/concave`) that integrates the Effect functional programming library with Convex backend services. It provides type-safe, composable abstractions over Convex's database operations, auth, storage, and scheduling using Effect's functional programming paradigm.
+**Concave** is a monorepo containing npm packages that integrate the Effect functional programming library with Convex backend services. It provides type-safe, composable abstractions over Convex's database operations, auth, storage, and scheduling using Effect's functional programming paradigm.
+
+### Packages
+
+- **`@apzelos/concave`** - Core Effect wrappers for Convex services
+- **`@apzelos/concave-helpers`** - Stream query helpers and filter utilities (requires `convex-helpers`)
+- **`@apzelos/concave-model`** - Schema-based model generation
+- **`@apzelos/concave-internal`** - Private shared utilities (bundled into consuming packages)
 
 ## Build/Test/Lint Commands
 
 ```bash
 pnpm test                           # Run tests with vitest (watch mode)
-pnpm test -- --run                  # Run tests once
-pnpm test -- src/server/auth.test.ts  # Run single test file
-pnpm build                          # Build with tsup
-pnpm typecheck                      # Type check with tsc
-pnpm lint                           # Lint with eslint
+pnpm test:run                       # Run tests once
+pnpm build                          # Build all packages with turbo
+pnpm typecheck                      # Type check all packages
+pnpm lint                           # Lint all packages
 pnpm checks                         # Run typecheck, lint, and prettier check
 pnpm format                         # Format code with prettier
+pnpm changeset                      # Create a changeset for versioning
+pnpm version-packages              # Version packages based on changesets
+pnpm release                        # Build and publish packages
 ```
 
 ## Architecture
 
-### Core Module Structure
+### Package Structure
 
-- **`src/server/`** - Core Effect wrappers for Convex services
-  - `context.ts` - QueryCtx, MutationCtx, ActionCtx classes and factory functions
-  - `database.ts` - GenericDatabaseReader/Writer wrapping Convex database operations
-  - `query.ts` - QueryInitializer, OrderedQuery, Query for building queries
-  - `server.ts` - `createServerFunctions()` factory for Effect-based handlers
-  - `error.ts` - Typed errors (DocNotFoundError, DocNotUniqueError, etc.)
-  - `values.ts` - Schema/validator bridge between Effect Schema and Convex
+- **`packages/concave/`** - Core Effect wrappers for Convex services
+  - `src/context.ts` - QueryCtx, MutationCtx, ActionCtx classes and factory functions
+  - `src/database.ts` - GenericDatabaseReader/Writer wrapping Convex database operations
+  - `src/query.ts` - QueryInitializer, OrderedQuery, Query for building queries
+  - `src/server.ts` - `createServerFunctions()` factory for Effect-based handlers
+  - `src/error.ts` - Typed errors (DocNotFoundError, DocNotUniqueError, etc.)
+  - `src/values.ts` - Schema/validator bridge between Effect Schema and Convex
+  - `src/testing/` - Core mock utilities
 
-- **`src/model/`** - Schema-based model generation with `createModelFunction()`
+- **`packages/helpers/`** - Stream and filter utilities
+  - `src/server/stream.ts` - Stream query helpers
+  - `src/server/filter.ts` - Filter utilities
+  - `src/testing/` - Stream mock utilities
 
-- **`src/helpers/server/`** - Stream query helpers (stream.ts) and filter utilities
+- **`packages/model/`** - Schema-based model generation
+  - `src/model.ts` - `createModelFunction()` and related types
 
-- **`src/lib/types/`** - Advanced TypeScript utilities (IsAny, IsUnion, SafeUnion, etc.)
+- **`packages/internal/`** - Private shared utilities (not published)
+  - `src/types/` - Advanced TypeScript utilities (IsAny, IsUnion, SafeUnion, etc.)
+  - `src/option.ts` - Option helpers
 
 ### Key Patterns
 
@@ -77,7 +93,10 @@ Uses `@effect/vitest` with edge-runtime environment:
 - `test()` for type signature validation with `expectTypeOf()`
 - `it.effect()` for Effect-based tests using `E.gen()` generators
 - Test files alongside source: `module.test.ts`
-- Mock utilities in `src/test/mock.ts`
+- Mock utilities layered by package:
+  - `@apzelos/concave/testing` - Core mocks (contexts, database)
+  - `@apzelos/concave-helpers/testing` - Re-exports core + stream mocks
+  - `@apzelos/concave-model/testing` - Re-exports all mocks
 
 **For writing tests, use the skill at `.claude/skills/test.md`** - it contains comprehensive patterns for test structure, mocking, Effect testing, error testing with `E.flip`, and context injection with `E.provideService()`.
 

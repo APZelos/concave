@@ -1,0 +1,67 @@
+{
+  "name": "@apzelos/concave-helpers",
+  "version": "0.0.1",
+  "description": "Stream and filter helpers for Concave",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./server": {
+      "types": "./dist/server/index.d.ts",
+      "import": "./dist/server/index.js"
+    },
+    "./server/filter": {
+      "types": "./dist/server/filter.d.ts",
+      "import": "./dist/server/filter.js"
+    },
+    "./server/stream": {
+      "types": "./dist/server/stream.d.ts",
+      "import": "./dist/server/stream.js"
+    },
+    "./testing": {
+      "types": "./dist/testing/index.d.ts",
+      "import": "./dist/testing/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "!**/*.test.*"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "convex",
+    "effect",
+    "stream",
+    "helpers"
+  ],
+  "author": "apzelos",
+  "license": "ISC",
+  "dependencies": {
+    "@apzelos/concave": "workspace:*",
+    "@apzelos/concave-internal": "workspace:*"
+  },
+  "peerDependencies": {
+    "convex": "^1.31.0",
+    "convex-helpers": "^0.1.109",
+    "effect": "^3.19.0",
+    "typescript": "^5.9.0"
+  },
+  "devDependencies": {
+    "@effect/vitest": "^0.25.0",
+    "convex": "^1.31.0",
+    "convex-helpers": "^0.1.109",
+    "effect": "^3.19.0",
+    "typescript": "^5.9.0",
+    "vitest": "^3.0.0"
+  }
+}
