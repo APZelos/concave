@@ -66,6 +66,9 @@ importers:
       convex:
         specifier: ^1.31.0
         version: 1.31.3
+      convex-helpers:
+        specifier: ^0.1.109
+        version: 0.1.109(@standard-schema/spec@1.1.0)(convex@1.31.3)(typescript@5.9.3)
       effect:
         specifier: ^3.19.0
         version: 3.19.14

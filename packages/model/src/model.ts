@@ -147,16 +147,18 @@ export function createModelFunction<Schema extends SchemaDefinition<any, boolean
     const DocumentPaginationResult = SPaginationResult(Document)
     type DocumentPaginationResult = S.Schema.Type<typeof DocumentPaginationResult>
 
-    const normalizeId = E.fn(function* (docId: string) {
-      const {db} = yield* QueryCtx
-      return yield* pipe(
-        db.normalizeId(tableName, docId),
-        E.map(Option.fromNullable),
-        E.flatMap(OptionSucceedOrFail(() => new InvalidDocIdError({tableName, value: docId}))),
-      )
-    }) as (
+    const normalizeId: (
       docId: string,
-    ) => E.Effect<GenericId<TableName>, InvalidDocIdError, GenericQueryCtx<DataModel>>
+    ) => E.Effect<GenericId<TableName>, InvalidDocIdError, GenericQueryCtx<DataModel>> = E.fn(
+      function* (docId: string) {
+        const {db} = yield* QueryCtx
+        return yield* pipe(
+          db.normalizeId(tableName, docId),
+          E.map(Option.fromNullable),
+          E.flatMap(OptionSucceedOrFail(() => new InvalidDocIdError({tableName, value: docId}))),
+        )
+      },
+    )
 
     const normalizeIdNullable: (
       docId: string,
@@ -351,7 +353,11 @@ export function createModelFunction<Schema extends SchemaDefinition<any, boolean
       return pipe(q.unique(), E.map(Option.fromNullable), E.map(Option.map(S.decodeSync(Document))))
     }
 
-    const getById = E.fn(function* (docId: GenericId<TableName>) {
+    const getById: (
+      docId: GenericId<TableName>,
+    ) => E.Effect<Document, DocNotFoundError, GenericQueryCtx<DataModel>> = E.fn(function* (
+      docId: GenericId<TableName>,
+    ) {
       const {db} = yield* QueryCtx
       return yield* pipe(
         db.get(docId),
@@ -359,9 +365,7 @@ export function createModelFunction<Schema extends SchemaDefinition<any, boolean
         E.flatMap(OptionSucceedOrFail(() => new DocNotFoundError({tableName, metadata: {docId}}))),
         E.map(S.decodeSync(Document)),
       )
-    }) as (
-      docId: GenericId<TableName>,
-    ) => E.Effect<Document, DocNotFoundError, GenericQueryCtx<DataModel>>
+    })
 
     const getByIdNullable: (
       docId: GenericId<TableName>,
