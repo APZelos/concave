@@ -470,7 +470,7 @@ describe("error cases", () => {
     const schema = S.Tuple(S.String, S.optionalElement(S.Number))
 
     expect(() => mapDecodedSchemaToValidator(schema)).toThrow(
-      "Convex doesn't suuport optional elements for tuples",
+      "Convex doesn't support optional elements for tuples",
     )
   })
 

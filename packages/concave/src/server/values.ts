@@ -144,7 +144,7 @@ function mapAstTupleTypeToVArray(
   const validators: AnyValidator[] = []
   for (const element of ast.elements) {
     if (element.isOptional) {
-      throw new Error("Convex doesn't suuport optional elements for tuples")
+      throw new Error("Convex doesn't support optional elements for tuples")
     }
 
     validators.push(mapAstToValidator(element.type, action))
