@@ -4,7 +4,7 @@ import {Effect as E, Schema as S} from "effect"
 
 import {internal} from "../_generated/api"
 import {SDocId} from "../../../src/server/values"
-import {internalQuery, mutation, MutationCtx, query, QueryCtx} from "../concave"
+import {mutation, MutationCtx, query, QueryCtx} from "../concave"
 
 export const getPost = query({
   args: {

@@ -10,8 +10,8 @@ import type {
   RegisteredQuery,
 } from "convex/server"
 import type {GenericId} from "convex/values"
-import type {Brand} from "effect"
-import type {MutationCtxTag, QueryCtxTag} from "./context"
+import type {Brand, Context, ParseResult} from "effect"
+import type {ActionCtxTag, MutationCtxTag, QueryCtxTag} from "./context"
 
 import {
   httpActionGeneric,
@@ -26,6 +26,42 @@ import {GenericActionCtx, GenericMutationCtx, GenericQueryCtx, HttpActionCtx} fr
 import {mapDecodedSchemaToValidator, mapEncodedSchemaToValidator} from "./values"
 
 /**
+ * Decode args using Effect-based schema validation.
+ * Returns Effect that fails with ParseError instead of throwing synchronously.
+ *
+ * Note: We accept Schema.All to handle schemas with unknown context (like S.Struct),
+ * but we know at runtime these are pure data validation schemas without service requirements.
+ */
+function decodeArgs(
+  schema: S.Schema.All | undefined,
+  args: unknown,
+): E.Effect<unknown, ParseResult.ParseError, never> {
+  if (!schema) {
+    return E.succeed(undefined)
+  }
+  // Cast is safe: data validation schemas don't have service requirements at runtime
+  return S.decodeUnknown(schema as S.Schema<unknown, unknown, never>)(args)
+}
+
+/**
+ * Decode return value using Effect-based schema validation.
+ * Returns Effect that fails with ParseError instead of throwing synchronously.
+ *
+ * Note: We accept Schema.All to handle schemas with unknown context (like S.Struct),
+ * but we know at runtime these are pure data validation schemas without service requirements.
+ */
+function decodeReturn(
+  schema: S.Schema.All | undefined,
+  result: unknown,
+): E.Effect<unknown, ParseResult.ParseError, never> {
+  if (!schema) {
+    return E.succeed(result)
+  }
+  // Cast is safe: data validation schemas don't have service requirements at runtime
+  return S.decodeUnknown(schema as S.Schema<unknown, unknown, never>)(result)
+}
+
+/**
  * Configuration arguments for creating Effect-based Convex functions.
  *
  * This interface defines the Context tags required to create typed
@@ -36,6 +72,11 @@ export interface CreateServerFunctionsArgs<DataModel extends GenericDataModel> {
   QueryCtx: QueryCtxTag<DataModel>
   /** Context tag for mutation operations */
   MutationCtx: MutationCtxTag<DataModel>
+  /**
+   * Optional context tag for action operations.
+   * If provided, this will be used for httpAction instead of the global HttpActionCtx.
+   */
+  ActionCtx?: ActionCtxTag<DataModel>
 }
 
 /**
@@ -67,6 +108,7 @@ export interface CreateServerFunctionsArgs<DataModel extends GenericDataModel> {
 export function createServerFunctions<DataModel extends GenericDataModel>({
   QueryCtx,
   MutationCtx,
+  ActionCtx,
 }: CreateServerFunctionsArgs<DataModel>) {
   /**
    * Define a query in this Convex app's public API.
@@ -78,6 +120,7 @@ export function createServerFunctions<DataModel extends GenericDataModel>({
    * @returns The wrapped query. Include this as an `export` to name it and make it accessible.
    */
   const query: EffectQueryBuilder<DataModel, "public"> = (fn: any) => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const {args: fields, handler = fn, returns: ReturnsSchema} = fn
     const ArgsSchema = fields ? S.Struct(fields as S.Struct.Fields) : undefined
     return queryGeneric({
@@ -86,18 +129,11 @@ export function createServerFunctions<DataModel extends GenericDataModel>({
       handler: async (convexQueryCtx: ConvexGenericQueryCtx<DataModel>, ...handlerArgs) =>
         E.runPromise(
           pipe(
-            handler(
-              ArgsSchema ?
-                S.decodeSync(ArgsSchema as any as S.Schema<any>)(handlerArgs[0])
-              : undefined,
-            ),
-            E.map((result) => {
-              if (ReturnsSchema) {
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-                return S.decodeSync(ReturnsSchema as S.Schema<any>)(result)
-              }
-              return result
-            }),
+            decodeArgs(ArgsSchema, handlerArgs[0]),
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call
+            E.flatMap((decodedArgs) => handler(decodedArgs)),
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+            E.flatMap((result) => decodeReturn(ReturnsSchema, result)),
             E.tapError((error) => Console.error("Unhandled error:", error)),
             E.tapDefect((defect) => Console.error("Unexpected error:", defect)),
             E.provideService(QueryCtx, new GenericQueryCtx<DataModel>(convexQueryCtx)),
@@ -116,6 +152,7 @@ export function createServerFunctions<DataModel extends GenericDataModel>({
    * @returns The wrapped query. Include this as an `export` to name it and make it accessible.
    */
   const internalQuery: EffectQueryBuilder<DataModel, "internal"> = (fn: any) => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const {args: fields, handler = fn, returns: ReturnsSchema} = fn
     const ArgsSchema = fields ? S.Struct(fields as S.Struct.Fields) : undefined
     return internalQueryGeneric({
@@ -124,18 +161,11 @@ export function createServerFunctions<DataModel extends GenericDataModel>({
       handler: async (convexQueryCtx: ConvexGenericQueryCtx<DataModel>, ...handlerArgs) =>
         E.runPromise(
           pipe(
-            handler(
-              ArgsSchema ?
-                S.decodeSync(ArgsSchema as any as S.Schema<any>)(handlerArgs[0])
-              : undefined,
-            ),
-            E.map((result) => {
-              if (ReturnsSchema) {
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-                return S.decodeSync(ReturnsSchema as S.Schema<any>)(result)
-              }
-              return result
-            }),
+            decodeArgs(ArgsSchema, handlerArgs[0]),
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call
+            E.flatMap((decodedArgs) => handler(decodedArgs)),
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+            E.flatMap((result) => decodeReturn(ReturnsSchema, result)),
             E.tapError((error) => Console.error("Unhandled error:", error)),
             E.tapDefect((defect) => Console.error("Unexpected error:", defect)),
             E.provideService(QueryCtx, new GenericQueryCtx<DataModel>(convexQueryCtx)),
@@ -154,26 +184,20 @@ export function createServerFunctions<DataModel extends GenericDataModel>({
    * @returns The wrapped mutation. Include this as an `export` to name it and make it accessible.
    */
   const mutation: EffectMutationBuilder<DataModel, "public"> = (fn: any) => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const {args: fields, handler = fn, returns: ReturnsSchema} = fn
     const ArgsSchema = fields ? S.Struct(fields as S.Struct.Fields) : undefined
     return mutationGeneric({
       args: ArgsSchema ? mapEncodedSchemaToValidator(ArgsSchema) : undefined,
-      returns: ReturnsSchema ? mapEncodedSchemaToValidator(ReturnsSchema) : undefined,
+      returns: ReturnsSchema ? mapDecodedSchemaToValidator(ReturnsSchema) : undefined,
       handler: async (convexMutationCtx: ConvexGenericMutationCtx<DataModel>, ...handlerArgs) =>
         E.runPromise(
           pipe(
-            handler(
-              ArgsSchema ?
-                S.decodeSync(ArgsSchema as any as S.Schema<any>)(handlerArgs[0])
-              : undefined,
-            ),
-            E.map((result) => {
-              if (ReturnsSchema) {
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-                return S.decodeSync(ReturnsSchema as S.Schema<any>)(result)
-              }
-              return result
-            }),
+            decodeArgs(ArgsSchema, handlerArgs[0]),
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call
+            E.flatMap((decodedArgs) => handler(decodedArgs)),
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+            E.flatMap((result) => decodeReturn(ReturnsSchema, result)),
             E.tapError((error) => Console.error("Unhandled error:", error)),
             E.tapDefect((defect) => Console.error("Unexpected error:", defect)),
             E.provideService(QueryCtx, new GenericQueryCtx<DataModel>(convexMutationCtx)),
@@ -193,26 +217,20 @@ export function createServerFunctions<DataModel extends GenericDataModel>({
    * @returns The wrapped mutation. Include this as an `export` to name it and make it accessible.
    */
   const internalMutation: EffectMutationBuilder<DataModel, "internal"> = (fn: any) => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const {args: fields, handler = fn, returns: ReturnsSchema} = fn
     const ArgsSchema = fields ? S.Struct(fields as S.Struct.Fields) : undefined
     return internalMutationGeneric({
       args: ArgsSchema ? mapEncodedSchemaToValidator(ArgsSchema) : undefined,
-      returns: ReturnsSchema ? mapEncodedSchemaToValidator(ReturnsSchema) : undefined,
+      returns: ReturnsSchema ? mapDecodedSchemaToValidator(ReturnsSchema) : undefined,
       handler: async (convexMutationCtx: ConvexGenericMutationCtx<DataModel>, ...handlerArgs) =>
         E.runPromise(
           pipe(
-            handler(
-              ArgsSchema ?
-                S.decodeSync(ArgsSchema as any as S.Schema<any>)(handlerArgs[0])
-              : undefined,
-            ),
-            E.map((result) => {
-              if (ReturnsSchema) {
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-                return S.decodeSync(ReturnsSchema as S.Schema<any>)(result)
-              }
-              return result
-            }),
+            decodeArgs(ArgsSchema, handlerArgs[0]),
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call
+            E.flatMap((decodedArgs) => handler(decodedArgs)),
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+            E.flatMap((result) => decodeReturn(ReturnsSchema, result)),
             E.tapError((error) => Console.error("Unhandled error:", error)),
             E.tapDefect((defect) => Console.error("Unexpected error:", defect)),
             E.provideService(QueryCtx, new GenericQueryCtx<DataModel>(convexMutationCtx)),
@@ -233,12 +251,18 @@ export function createServerFunctions<DataModel extends GenericDataModel>({
    *
    * The handler returns an Effect that can be composed using functional combinators.
    *
-   * @param func - The function handler that returns an Effect<Response>. Access services through `yield* HttpActionCtx`.
+   * @param func - The function handler that returns an Effect<Response>. Access services through `yield* HttpActionCtx` or your custom ActionCtx.
    * @returns The wrapped function. Import this function from `convex/http.js` and route it to hook it up.
    */
   function httpAction<TError = never>(
     func: (request: Request) => E.Effect<Response, TError, GenericActionCtx<GenericDataModel>>,
   ): PublicHttpAction {
+    // Use provided ActionCtx or fall back to global HttpActionCtx
+    // Note: We cast to GenericDataModel for compatibility with httpActionGeneric
+    const actionCtxTag = (ActionCtx ?? HttpActionCtx) as Context.Tag<
+      GenericActionCtx<GenericDataModel>,
+      GenericActionCtx<GenericDataModel>
+    >
     return httpActionGeneric(
       async (convexActionCtx: ConvexGenericActionCtx<GenericDataModel>, request: Request) => {
         const ctx = new GenericActionCtx(convexActionCtx)
@@ -246,7 +270,7 @@ export function createServerFunctions<DataModel extends GenericDataModel>({
           func(request),
           E.tapError((error) => Console.error("Unhandled error:", error)),
           E.tapDefect((defect) => Console.error("Unexpected error:", defect)),
-          E.provideService(HttpActionCtx, ctx),
+          E.provideService(actionCtxTag, ctx),
           E.runPromise,
         )
       },
