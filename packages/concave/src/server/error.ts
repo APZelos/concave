@@ -1,5 +1,12 @@
 import {Data} from "effect"
 
+export class ConvexError extends Data.TaggedError("ConvexError")<{
+  message?: string
+  payload?: Record<string, any>
+  metadata?: Record<string, any>
+  cause?: unknown
+}> {}
+
 /**
  * Error thrown when a document is not found in the database.
  *

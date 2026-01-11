@@ -69,6 +69,9 @@ importers:
       convex-helpers:
         specifier: ^0.1.109
         version: 0.1.109(@standard-schema/spec@1.1.0)(convex@1.31.3)(typescript@5.9.3)
+      convex-test:
+        specifier: ^0.0.35
+        version: 0.0.35(convex@1.31.3)
       effect:
         specifier: ^3.19.0
         version: 3.19.14
@@ -1053,6 +1056,11 @@ packages:
         optional: true
       zod:
         optional: true
+
+  convex-test@0.0.35:
+    resolution: {integrity: sha512-nvhlElyoxrLvLKruVs2qyndHAza8sEAYSWIGGO1K99HAQAnEl1w3zUZJfOafq7t1r688tsf7MsJFjX8IQbH0Dg==}
+    peerDependencies:
+      convex: ^1.16.4
 
   convex@1.31.3:
     resolution: {integrity: sha512-SkpLjhFFnml2xKB4vNOaZ+MtqyhVmDdk5AIF2m8rW8Z7nZsMtuO1Tpn2BnDHCysZkZPJj9xopnsF5RtAINQ0Eg==}
@@ -2741,6 +2749,10 @@ snapshots:
     optionalDependencies:
       '@standard-schema/spec': 1.1.0
       typescript: 5.9.3
+
+  convex-test@0.0.35(convex@1.31.3):
+    dependencies:
+      convex: 1.31.3
 
   convex@1.31.3:
     dependencies:

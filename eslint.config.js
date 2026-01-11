@@ -13,6 +13,7 @@ export default defineConfig(
       "**/vitest.config.ts",
       "**/tsup.config.ts",
       "vitest.workspace.ts",
+      "packages/concave/test/convex/_generated/**",
     ],
   },
   {
