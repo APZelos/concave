@@ -7,9 +7,9 @@ import {SDocId} from "../../../src/server/values"
 import {mutation, MutationCtx, query, QueryCtx} from "../concave"
 
 export const getPost = query({
-  args: {
+  args: S.Struct({
     id: SDocId("posts"),
-  },
+  }),
   handler: E.fn(function* (args) {
     const {db} = yield* QueryCtx
     return yield* db.get(args.id)
@@ -17,9 +17,9 @@ export const getPost = query({
 })
 
 export const listPostsByAuthor = query({
-  args: {
+  args: S.Struct({
     authorId: SDocId("users"),
-  },
+  }),
   handler: E.fn(function* (args) {
     const {db} = yield* QueryCtx
     return yield* db
@@ -29,21 +29,22 @@ export const listPostsByAuthor = query({
   }),
 })
 
-export const listPublishedPosts = query(
-  E.fn(function* () {
+export const listPublishedPosts = query({
+  args: S.Struct({}),
+  handler: E.fn(function* () {
     const {db} = yield* QueryCtx
     return yield* db
       .query("posts")
       .withIndex("by_status", (q) => q.eq("status", "published"))
       .collect()
   }),
-)
+})
 
 export const listPostsByAuthorAndStatus = query({
-  args: {
+  args: S.Struct({
     authorId: SDocId("users"),
     status: S.Literal("draft", "published"),
-  },
+  }),
   handler: E.fn(function* (args) {
     const {db} = yield* QueryCtx
     return yield* db
@@ -56,9 +57,9 @@ export const listPostsByAuthorAndStatus = query({
 })
 
 export const searchPosts = query({
-  args: {
+  args: S.Struct({
     searchQuery: S.String,
-  },
+  }),
   handler: E.fn(function* (args) {
     const {db} = yield* QueryCtx
     return yield* db
@@ -69,10 +70,10 @@ export const searchPosts = query({
 })
 
 export const searchPostsWithFilters = query({
-  args: {
+  args: S.Struct({
     searchQuery: S.String,
     status: S.optional(S.Literal("draft", "published")),
-  },
+  }),
   handler: E.fn(function* (args) {
     const {db} = yield* QueryCtx
     let query = db
@@ -88,9 +89,9 @@ export const searchPostsWithFilters = query({
 })
 
 export const getPostWithAuthor = query({
-  args: {
+  args: S.Struct({
     id: SDocId("posts"),
-  },
+  }),
   handler: E.fn(function* (args) {
     const ctx = yield* QueryCtx
     const post = yield* ctx.db.get(args.id)
@@ -107,11 +108,11 @@ export const getPostWithAuthor = query({
 })
 
 export const createPost = mutation({
-  args: {
+  args: S.Struct({
     authorId: SDocId("users"),
     title: S.String,
     content: S.String,
-  },
+  }),
   handler: E.fn(function* (args) {
     const {db} = yield* MutationCtx
     return yield* db.insert("posts", {
@@ -124,9 +125,9 @@ export const createPost = mutation({
 })
 
 export const publishPost = mutation({
-  args: {
+  args: S.Struct({
     id: SDocId("posts"),
-  },
+  }),
   handler: E.fn(function* (args) {
     const {db} = yield* MutationCtx
     yield* db.patch(args.id, {
@@ -137,11 +138,11 @@ export const publishPost = mutation({
 })
 
 export const updatePost = mutation({
-  args: {
+  args: S.Struct({
     id: SDocId("posts"),
     title: S.optional(S.String),
     content: S.optional(S.String),
-  },
+  }),
   handler: E.fn(function* (args) {
     const {db} = yield* MutationCtx
     const {id, ...updates} = args

@@ -15,5 +15,6 @@ export const {query, internalQuery, mutation, internalMutation, httpAction} = cr
   {
     QueryCtx,
     MutationCtx,
+    ActionCtx,
   },
 )

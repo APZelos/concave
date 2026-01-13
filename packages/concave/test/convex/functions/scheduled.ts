@@ -7,11 +7,11 @@ import {SDocId} from "../../../src/server/values"
 import {internalMutation, mutation, MutationCtx} from "../concave"
 
 export const scheduleTask = mutation({
-  args: {
+  args: S.Struct({
     delayMs: S.Number,
     type: S.String,
     data: S.Any,
-  },
+  }),
   handler: E.fn(function* (args) {
     const {db, scheduler} = yield* MutationCtx
 
@@ -36,11 +36,11 @@ export const scheduleTask = mutation({
 })
 
 export const scheduleTaskAt = mutation({
-  args: {
+  args: S.Struct({
     timestamp: S.Number,
     type: S.String,
     data: S.Any,
-  },
+  }),
   handler: E.fn(function* (args) {
     const {db, scheduler} = yield* MutationCtx
 
@@ -65,9 +65,9 @@ export const scheduleTaskAt = mutation({
 })
 
 export const cancelTask = mutation({
-  args: {
+  args: S.Struct({
     taskId: SDocId("scheduledTasks"),
-  },
+  }),
   handler: E.fn(function* (args) {
     const {db, scheduler} = yield* MutationCtx
     const task = yield* db.get(args.taskId)
@@ -80,9 +80,9 @@ export const cancelTask = mutation({
 })
 
 export const processTask = internalMutation({
-  args: {
+  args: S.Struct({
     taskId: SDocId("scheduledTasks"),
-  },
+  }),
   handler: E.fn(function* (args) {
     const {db} = yield* MutationCtx
     const task = yield* db.get(args.taskId)
@@ -94,9 +94,9 @@ export const processTask = internalMutation({
 })
 
 export const getTask = internalMutation({
-  args: {
+  args: S.Struct({
     taskId: SDocId("scheduledTasks"),
-  },
+  }),
   handler: E.fn(function* (args) {
     const {db} = yield* MutationCtx
     return yield* db.get(args.taskId)

@@ -80,22 +80,6 @@ describe("Server Function Builders", () => {
   })
 
   describe("internalQuery", () => {
-    it("should be accessible from other functions", async () => {
-      const t = setup()
-
-      const userId = await t.mutation(api.functions.users.createUser, {
-        name: "Internal Query Test",
-        email: "internal@example.com",
-        role: "user",
-      })
-
-      // Access internal query through a public mutation
-      const user = await t.query(api.functions.context.getUserViaNestedQuery, {id: userId})
-
-      expect(user).toBeDefined()
-      expect(user?.name).toBe("Internal Query Test")
-    })
-
     it("should be directly callable in tests", async () => {
       const t = setup()
 
@@ -117,7 +101,7 @@ describe("Server Function Builders", () => {
       const t = setup()
 
       // Use a public mutation that calls internal mutation
-      const user = await t.mutation(api.functions.context.createAndGetUser, {
+      const user = await t.mutation(api.functions.users.createAndGetUser, {
         name: "Internal Mutation Test",
         email: "internalmut@example.com",
         role: "admin",

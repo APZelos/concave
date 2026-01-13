@@ -1,103 +1,51 @@
-import type {EmptyObject} from "@apzelos/concave-internal/types"
 import type {
   GenericActionCtx as ConvexGenericActionCtx,
   GenericMutationCtx as ConvexGenericMutationCtx,
   GenericQueryCtx as ConvexGenericQueryCtx,
+  DefaultFunctionArgs,
   FunctionVisibility,
   GenericDataModel,
   PublicHttpAction,
+  RegisteredAction,
   RegisteredMutation,
   RegisteredQuery,
 } from "convex/server"
 import type {GenericId} from "convex/values"
-import type {Brand, Context, ParseResult} from "effect"
+import type {Brand} from "effect"
 import type {ActionCtxTag, MutationCtxTag, QueryCtxTag} from "./context"
 
 import {
+  actionGeneric,
   httpActionGeneric,
+  internalActionGeneric,
   internalMutationGeneric,
   internalQueryGeneric,
   mutationGeneric,
   queryGeneric,
 } from "convex/server"
-import {Console, Effect as E, pipe, Schema as S} from "effect"
+import {Effect as E, pipe, Schema as S} from "effect"
 
 import {GenericActionCtx, GenericMutationCtx, GenericQueryCtx, HttpActionCtx} from "./context"
-import {mapDecodedSchemaToValidator, mapEncodedSchemaToValidator} from "./values"
-
-/**
- * Decode args using Effect-based schema validation.
- * Returns Effect that fails with ParseError instead of throwing synchronously.
- *
- * Note: We accept Schema.All to handle schemas with unknown context (like S.Struct),
- * but we know at runtime these are pure data validation schemas without service requirements.
- */
-function decodeArgs(
-  schema: S.Schema.All | undefined,
-  args: unknown,
-): E.Effect<unknown, ParseResult.ParseError, never> {
-  if (!schema) {
-    return E.succeed(undefined)
-  }
-  // Cast is safe: data validation schemas don't have service requirements at runtime
-  return S.decodeUnknown(schema as S.Schema<unknown, unknown, never>)(args)
-}
-
-/**
- * Decode return value using Effect-based schema validation.
- * Returns Effect that fails with ParseError instead of throwing synchronously.
- *
- * Note: We accept Schema.All to handle schemas with unknown context (like S.Struct),
- * but we know at runtime these are pure data validation schemas without service requirements.
- */
-function decodeReturn(
-  schema: S.Schema.All | undefined,
-  result: unknown,
-): E.Effect<unknown, ParseResult.ParseError, never> {
-  if (!schema) {
-    return E.succeed(result)
-  }
-  // Cast is safe: data validation schemas don't have service requirements at runtime
-  return S.decodeUnknown(schema as S.Schema<unknown, unknown, never>)(result)
-}
-
-/**
- * Configuration arguments for creating Effect-based Convex functions.
- *
- * This interface defines the Context tags required to create typed
- * Convex functions with Effect-based handlers.
- */
-export interface CreateServerFunctionsArgs<DataModel extends GenericDataModel> {
-  /** Context tag for query operations */
-  QueryCtx: QueryCtxTag<DataModel>
-  /** Context tag for mutation operations */
-  MutationCtx: MutationCtxTag<DataModel>
-  /**
-   * Optional context tag for action operations.
-   * If provided, this will be used for httpAction instead of the global HttpActionCtx.
-   */
-  ActionCtx?: ActionCtxTag<DataModel>
-}
+import {mapAstToValidator} from "./values"
 
 /**
  * Create a set of Effect-based Convex function builders.
  *
- * This function returns an object containing query, mutation, and HTTP action
+ * This function returns an object containing query, mutation, action, and HTTP action
  * builders that work with Effect handlers instead of Promise-based handlers.
  *
  * @param args - Configuration containing the Context tags for dependency injection
- * @returns An object with Effect-based function builders: query, internalQuery,
- * mutation, internalMutation, and httpAction
+ * @returns An object with Effect-based function builders
  *
  * @example
  * ```typescript
  * const QueryCtx = createQueryCtx<DataModel>()
  * const MutationCtx = createMutationCtx<DataModel>()
  *
- * const {query, mutation} = createFunctions({QueryCtx, MutationCtx})
+ * const {query, mutation} = createServerFunctions({QueryCtx, MutationCtx})
  *
  * export const getUser = query({
- *   args: {id: v.id("users")},
+ *   args: S.Struct({id: SDocId("users")}),
  *   handler: E.fn(function* (args) {
  *     const {db} = yield* QueryCtx
  *     return yield* db.get(args.id)
@@ -109,138 +57,28 @@ export function createServerFunctions<DataModel extends GenericDataModel>({
   QueryCtx,
   MutationCtx,
   ActionCtx,
-}: CreateServerFunctionsArgs<DataModel>) {
-  /**
-   * Define a query in this Convex app's public API.
-   *
-   * This function will be allowed to read your Convex database and will be accessible from the client.
-   * The handler returns an Effect that can be composed using functional combinators.
-   *
-   * @param func - The query function handler that returns an Effect. Access services through `yield* QueryCtx`.
-   * @returns The wrapped query. Include this as an `export` to name it and make it accessible.
-   */
-  const query: EffectQueryBuilder<DataModel, "public"> = (fn: any) => {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const {args: fields, handler = fn, returns: ReturnsSchema} = fn
-    const ArgsSchema = fields ? S.Struct(fields as S.Struct.Fields) : undefined
-    return queryGeneric({
-      args: ArgsSchema ? mapEncodedSchemaToValidator(ArgsSchema) : undefined,
-      returns: ReturnsSchema ? mapDecodedSchemaToValidator(ReturnsSchema) : undefined,
-      handler: async (convexQueryCtx: ConvexGenericQueryCtx<DataModel>, ...handlerArgs) =>
-        E.runPromise(
-          pipe(
-            decodeArgs(ArgsSchema, handlerArgs[0]),
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call
-            E.flatMap((decodedArgs) => handler(decodedArgs)),
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-            E.flatMap((result) => decodeReturn(ReturnsSchema, result)),
-            E.tapError((error) => Console.error("Unhandled error:", error)),
-            E.tapDefect((defect) => Console.error("Unexpected error:", defect)),
-            E.provideService(QueryCtx, new GenericQueryCtx<DataModel>(convexQueryCtx)),
-          ) as E.Effect<unknown, unknown, never>,
-        ),
-    })
-  }
+}: {
+  QueryCtx: QueryCtxTag<DataModel>
+  MutationCtx: MutationCtxTag<DataModel>
+  ActionCtx: ActionCtxTag<DataModel>
+}) {
+  const query: QueryBuilder<"public", DataModel> = (query) =>
+    queryGeneric(createQueryHandler(QueryCtx, query))
 
-  /**
-   * Define a query that is only accessible from other Convex functions (but not from the client).
-   *
-   * This function will be allowed to read from your Convex database. It will not be accessible from the client.
-   * The handler returns an Effect that can be composed using functional combinators.
-   *
-   * @param func - The query function handler that returns an Effect. Access services through `yield* QueryCtx`.
-   * @returns The wrapped query. Include this as an `export` to name it and make it accessible.
-   */
-  const internalQuery: EffectQueryBuilder<DataModel, "internal"> = (fn: any) => {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const {args: fields, handler = fn, returns: ReturnsSchema} = fn
-    const ArgsSchema = fields ? S.Struct(fields as S.Struct.Fields) : undefined
-    return internalQueryGeneric({
-      args: ArgsSchema ? mapEncodedSchemaToValidator(ArgsSchema) : undefined,
-      returns: ReturnsSchema ? mapDecodedSchemaToValidator(ReturnsSchema) : undefined,
-      handler: async (convexQueryCtx: ConvexGenericQueryCtx<DataModel>, ...handlerArgs) =>
-        E.runPromise(
-          pipe(
-            decodeArgs(ArgsSchema, handlerArgs[0]),
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call
-            E.flatMap((decodedArgs) => handler(decodedArgs)),
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-            E.flatMap((result) => decodeReturn(ReturnsSchema, result)),
-            E.tapError((error) => Console.error("Unhandled error:", error)),
-            E.tapDefect((defect) => Console.error("Unexpected error:", defect)),
-            E.provideService(QueryCtx, new GenericQueryCtx<DataModel>(convexQueryCtx)),
-          ) as E.Effect<unknown, unknown, never>,
-        ),
-    })
-  }
+  const internalQuery: QueryBuilder<"internal", DataModel> = (query) =>
+    internalQueryGeneric(createQueryHandler(QueryCtx, query))
 
-  /**
-   * Define a mutation in this Convex app's public API.
-   *
-   * This function will be allowed to modify your Convex database and will be accessible from the client.
-   * The handler returns an Effect that can be composed using functional combinators.
-   *
-   * @param func - The mutation function handler that returns an Effect. Access services through `yield* MutationCtx`.
-   * @returns The wrapped mutation. Include this as an `export` to name it and make it accessible.
-   */
-  const mutation: EffectMutationBuilder<DataModel, "public"> = (fn: any) => {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const {args: fields, handler = fn, returns: ReturnsSchema} = fn
-    const ArgsSchema = fields ? S.Struct(fields as S.Struct.Fields) : undefined
-    return mutationGeneric({
-      args: ArgsSchema ? mapEncodedSchemaToValidator(ArgsSchema) : undefined,
-      returns: ReturnsSchema ? mapDecodedSchemaToValidator(ReturnsSchema) : undefined,
-      handler: async (convexMutationCtx: ConvexGenericMutationCtx<DataModel>, ...handlerArgs) =>
-        E.runPromise(
-          pipe(
-            decodeArgs(ArgsSchema, handlerArgs[0]),
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call
-            E.flatMap((decodedArgs) => handler(decodedArgs)),
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-            E.flatMap((result) => decodeReturn(ReturnsSchema, result)),
-            E.tapError((error) => Console.error("Unhandled error:", error)),
-            E.tapDefect((defect) => Console.error("Unexpected error:", defect)),
-            E.provideService(QueryCtx, new GenericQueryCtx<DataModel>(convexMutationCtx)),
-            E.provideService(MutationCtx, new GenericMutationCtx<DataModel>(convexMutationCtx)),
-          ) as E.Effect<unknown, unknown, never>,
-        ),
-    })
-  }
+  const mutation: MutationBuilder<"public", DataModel> = (mutation) =>
+    mutationGeneric(createMutationHandler(QueryCtx, MutationCtx, mutation))
 
-  /**
-   * Define a mutation that is only accessible from other Convex functions (but not from the client).
-   *
-   * This function will be allowed to modify your Convex database. It will not be accessible from the client.
-   * The handler returns an Effect that can be composed using functional combinators.
-   *
-   * @param func - The mutation function handler that returns an Effect. Access services through `yield* MutationCtx`.
-   * @returns The wrapped mutation. Include this as an `export` to name it and make it accessible.
-   */
-  const internalMutation: EffectMutationBuilder<DataModel, "internal"> = (fn: any) => {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const {args: fields, handler = fn, returns: ReturnsSchema} = fn
-    const ArgsSchema = fields ? S.Struct(fields as S.Struct.Fields) : undefined
-    return internalMutationGeneric({
-      args: ArgsSchema ? mapEncodedSchemaToValidator(ArgsSchema) : undefined,
-      returns: ReturnsSchema ? mapDecodedSchemaToValidator(ReturnsSchema) : undefined,
-      handler: async (convexMutationCtx: ConvexGenericMutationCtx<DataModel>, ...handlerArgs) =>
-        E.runPromise(
-          pipe(
-            decodeArgs(ArgsSchema, handlerArgs[0]),
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call
-            E.flatMap((decodedArgs) => handler(decodedArgs)),
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-            E.flatMap((result) => decodeReturn(ReturnsSchema, result)),
-            E.tapError((error) => Console.error("Unhandled error:", error)),
-            E.tapDefect((defect) => Console.error("Unexpected error:", defect)),
-            E.provideService(QueryCtx, new GenericQueryCtx<DataModel>(convexMutationCtx)),
-            E.provideService(MutationCtx, new GenericMutationCtx<DataModel>(convexMutationCtx)),
-          ) as E.Effect<unknown, unknown, never>,
-        ),
-    })
-  }
+  const internalMutation: MutationBuilder<"internal", DataModel> = (mutation) =>
+    internalMutationGeneric(createMutationHandler(QueryCtx, MutationCtx, mutation))
 
-  // TODO: revisit actions when a solution circular dependency has been found
+  const action: ActionBuilder<"public", DataModel> = (action) =>
+    actionGeneric(createActionHandler(ActionCtx, action))
+
+  const internalAction: ActionBuilder<"internal", DataModel> = (action) =>
+    internalActionGeneric(createActionHandler(ActionCtx, action))
 
   /**
    * Define an HTTP action.
@@ -257,187 +95,218 @@ export function createServerFunctions<DataModel extends GenericDataModel>({
   function httpAction<TError = never>(
     func: (request: Request) => E.Effect<Response, TError, GenericActionCtx<GenericDataModel>>,
   ): PublicHttpAction {
-    // Use provided ActionCtx or fall back to global HttpActionCtx
-    // Note: We cast to GenericDataModel for compatibility with httpActionGeneric
-    const actionCtxTag = (ActionCtx ?? HttpActionCtx) as Context.Tag<
-      GenericActionCtx<GenericDataModel>,
-      GenericActionCtx<GenericDataModel>
-    >
     return httpActionGeneric(
-      async (convexActionCtx: ConvexGenericActionCtx<GenericDataModel>, request: Request) => {
-        const ctx = new GenericActionCtx(convexActionCtx)
+      async (ctx: ConvexGenericActionCtx<GenericDataModel>, request: Request) => {
         return pipe(
           func(request),
-          E.tapError((error) => Console.error("Unhandled error:", error)),
-          E.tapDefect((defect) => Console.error("Unexpected error:", defect)),
-          E.provideService(actionCtxTag, ctx),
+          E.provideService(HttpActionCtx, new GenericActionCtx<GenericDataModel>(ctx)),
           E.runPromise,
         )
       },
     )
   }
 
-  return {query, internalQuery, mutation, internalMutation, httpAction}
+  return {query, internalQuery, mutation, internalMutation, action, internalAction, httpAction}
 }
 
-export type EffectQueryBuilder<
+function createQueryHandler<
   DataModel extends GenericDataModel,
-  Visibility extends FunctionVisibility,
-> = <
-  ArgStructFields extends S.Struct.Fields | void = void,
-  ReturnValueInput = any,
-  ReturnValueOutput = ReturnValueInput,
+  SchemaArgs,
+  Args extends DefaultFunctionArgs,
+  SchemaReturns,
+  Returns = never,
+  TError = never,
+>(
+  QueryCtx: QueryCtxTag<DataModel>,
+  {
+    args,
+    returns,
+    handler,
+  }: {
+    args: S.Schema<SchemaArgs, Args>
+    returns?: S.Schema<Returns, SchemaReturns>
+    handler: (
+      args: SchemaArgs,
+    ) => E.Effect<SchemaReturns | Returns, TError, GenericQueryCtx<DataModel>>
+  },
+) {
+  return {
+    args: mapAstToValidator(args.ast, "encode"),
+    returns: returns ? mapAstToValidator(returns.ast, "encode") : undefined,
+    handler: async (ctx: ConvexGenericQueryCtx<DataModel>, convexArgs: Args) =>
+      pipe(
+        convexArgs,
+        S.decodeUnknown(args),
+        E.orDie,
+        E.andThen((decodedArgs) =>
+          handler(decodedArgs).pipe(
+            E.provideService(QueryCtx, new GenericQueryCtx<DataModel>(ctx)),
+          ),
+        ),
+        E.andThen((result) => (returns ? S.decodeUnknown(returns)(result) : E.succeed(result))),
+        E.orDie,
+        E.runPromise,
+      ),
+  }
+}
+
+function createMutationHandler<
+  DataModel extends GenericDataModel,
+  SchemaArgs,
+  Args extends DefaultFunctionArgs,
+  SchemaReturns,
+  Returns = never,
+  TError = never,
+>(
+  QueryCtx: QueryCtxTag<DataModel>,
+  MutationCtx: MutationCtxTag<DataModel>,
+  {
+    args,
+    returns,
+    handler,
+  }: {
+    args: S.Schema<SchemaArgs, Args>
+    returns?: S.Schema<Returns, SchemaReturns>
+    handler: (
+      args: SchemaArgs,
+    ) => E.Effect<
+      SchemaReturns | Returns,
+      TError,
+      GenericQueryCtx<DataModel> | GenericMutationCtx<DataModel>
+    >
+  },
+) {
+  return {
+    args: mapAstToValidator(args.ast, "encode"),
+    returns: returns ? mapAstToValidator(returns.ast, "encode") : undefined,
+    handler: async (ctx: ConvexGenericMutationCtx<DataModel>, convexArgs: Args) =>
+      pipe(
+        convexArgs,
+        S.decodeUnknown(args),
+        E.orDie,
+        E.andThen((decodedArgs) =>
+          handler(decodedArgs).pipe(
+            E.provideService(QueryCtx, new GenericQueryCtx<DataModel>(ctx)),
+            E.provideService(MutationCtx, new GenericMutationCtx<DataModel>(ctx)),
+          ),
+        ),
+        E.andThen((result) => (returns ? S.decodeUnknown(returns)(result) : E.succeed(result))),
+        E.orDie,
+        E.runPromise,
+      ),
+  }
+}
+
+function createActionHandler<
+  DataModel extends GenericDataModel,
+  SchemaArgs,
+  Args extends DefaultFunctionArgs,
+  SchemaReturns,
+  Returns = never,
+  TError = never,
+>(
+  ActionCtx: ActionCtxTag<DataModel>,
+  {
+    args,
+    returns,
+    handler,
+  }: {
+    args: S.Schema<SchemaArgs, Args>
+    returns?: S.Schema<Returns, SchemaReturns>
+    handler: (
+      args: SchemaArgs,
+    ) => E.Effect<SchemaReturns | Returns, TError, GenericActionCtx<DataModel>>
+  },
+) {
+  return {
+    args: mapAstToValidator(args.ast, "encode"),
+    returns: returns ? mapAstToValidator(returns.ast, "encode") : undefined,
+    handler: async (ctx: ConvexGenericActionCtx<DataModel>, convexArgs: Args) =>
+      pipe(
+        convexArgs,
+        S.decodeUnknown(args),
+        E.orDie,
+        E.andThen((decodedArgs) =>
+          handler(decodedArgs).pipe(
+            E.provideService(ActionCtx, new GenericActionCtx<DataModel>(ctx)),
+          ),
+        ),
+        E.andThen((result) => (returns ? S.decodeUnknown(returns)(result) : E.succeed(result))),
+        E.orDie,
+        E.runPromise,
+      ),
+  }
+}
+
+type QueryBuilder<Visibility extends FunctionVisibility, DataModel extends GenericDataModel> = <
+  SchemaArgs,
+  Args extends DefaultFunctionArgs,
+  SchemaReturns,
+  Returns = never,
   TError = never,
 >(
   query:
     | {
-        /**
-         * Argument schema.
-         *
-         * Examples:
-         *
-         * ```
-         * args: {}
-         * args: { input: Schema.optional(Schema.Number) }
-         * args: { message: Schema.String, author: SDocId("authors") }
-         * args: { messages: Schema.Array(Schema.String) }
-         * ```
-         */
-        args?: ArgStructFields
-
-        /**
-         * The return value schema.
-         *
-         * Examples:
-         *
-         * ```
-         * returns: Schema.Null
-         * returns: Schema.String
-         * returns: { message: Schema.String, author: SDocId("authors") }
-         * returns: Schema.Array(Schema.String)
-         * ```
-         */
-        returns?: S.Schema<ReturnValueOutput, ReturnValueInput>
-
-        /**
-         * The implementation of this function.
-         *
-         * This is a function that takes in the appropriate context and arguments
-         * and produces some result.
-         *
-         * @param args - The arguments object for this function. This will match
-         * the type defined by the argument schema if provided.
-         * @returns
-         */
-        handler: (
-          args: ArgStructFields extends S.Struct.Fields ? S.Schema.Type<S.Struct<ArgStructFields>>
-          : void,
-        ) => E.Effect<ReturnValueInput, TError, GenericQueryCtx<DataModel>>
+        args: S.Schema<SchemaArgs, Args>
+        returns: S.Schema<Returns, SchemaReturns>
+        handler: (args: SchemaArgs) => E.Effect<SchemaReturns, TError, GenericQueryCtx<DataModel>>
       }
-    /**
-     * The implementation of this function.
-     *
-     * This is a function that takes in the appropriate context and arguments
-     * and produces some result.
-     *
-     * @param args - The arguments object for this function. This will match
-     * the type defined by the argument schema if provided.
-     * @returns
-     */
-    | ((
-        args: ArgStructFields extends S.Struct.Fields ? S.Schema.Type<S.Struct<ArgStructFields>>
-        : void,
-      ) => E.Effect<ReturnValueInput, TError, GenericQueryCtx<DataModel>>),
-) => RegisteredQuery<
-  Visibility,
-  ArgStructFields extends S.Struct.Fields ? DeepMutable<S.Schema.Encoded<S.Struct<ArgStructFields>>>
-  : EmptyObject,
-  Promise<DeepMutable<ReturnValueOutput>>
->
+    | {
+        args: S.Schema<SchemaArgs, Args>
+        handler: (args: SchemaArgs) => E.Effect<Returns, TError, GenericQueryCtx<DataModel>>
+      },
+) => RegisteredQuery<Visibility, Args, Promise<Returns>>
 
-export type EffectMutationBuilder<
-  DataModel extends GenericDataModel,
-  Visibility extends FunctionVisibility,
-> = <
-  ArgStructFields extends S.Struct.Fields | void = void,
-  ReturnValueInput = any,
-  ReturnValueOutput = ReturnValueInput,
+type MutationBuilder<Visibility extends FunctionVisibility, DataModel extends GenericDataModel> = <
+  SchemaArgs,
+  Args extends DefaultFunctionArgs,
+  SchemaReturns,
+  Returns = never,
   TError = never,
 >(
   mutation:
     | {
-        /**
-         * Argument schema.
-         *
-         * Examples:
-         *
-         * ```
-         * args: {}
-         * args: { input: Schema.optional(Schema.Number) }
-         * args: { message: Schema.String, author: SDocId("authors") }
-         * args: { messages: Schema.Array(Schema.String) }
-         * ```
-         */
-        args?: ArgStructFields
-
-        /**
-         * The return value schema.
-         *
-         * Examples:
-         *
-         * ```
-         * returns: Schema.Null
-         * returns: Schema.String
-         * returns: { message: Schema.String, author: SDocId("authors") }
-         * returns: Schema.Array(Schema.String)
-         * ```
-         */
-        returns?: S.Schema<ReturnValueOutput, ReturnValueInput>
-
-        /**
-         * The implementation of this function.
-         *
-         * This is a function that takes in the appropriate context and arguments
-         * and produces some result.
-         *
-         * @param args - The arguments object for this function. This will match
-         * the type defined by the argument schema if provided.
-         * @returns
-         */
+        args: S.Schema<SchemaArgs, Args>
+        returns: S.Schema<Returns, SchemaReturns>
         handler: (
-          args: ArgStructFields extends S.Struct.Fields ? S.Schema.Type<S.Struct<ArgStructFields>>
-          : void,
+          args: SchemaArgs,
         ) => E.Effect<
-          ReturnValueInput,
+          SchemaReturns,
           TError,
           GenericQueryCtx<DataModel> | GenericMutationCtx<DataModel>
         >
       }
-    /**
-     * The implementation of this function.
-     *
-     * This is a function that takes in the appropriate context and arguments
-     * and produces some result.
-     *
-     * @param args - The arguments object for this function. This will match
-     * the type defined by the argument schema if provided.
-     * @returns
-     */
-    | ((
-        args: ArgStructFields extends S.Struct.Fields ? S.Schema.Type<S.Struct<ArgStructFields>>
-        : void,
-      ) => E.Effect<
-        ReturnValueInput,
-        TError,
-        GenericQueryCtx<DataModel> | GenericMutationCtx<DataModel>
-      >),
-) => RegisteredMutation<
-  Visibility,
-  ArgStructFields extends S.Struct.Fields ? DeepMutable<S.Schema.Encoded<S.Struct<ArgStructFields>>>
-  : EmptyObject,
-  Promise<DeepMutable<ReturnValueOutput>>
->
+    | {
+        args: S.Schema<SchemaArgs, Args>
+        handler: (
+          args: SchemaArgs,
+        ) => E.Effect<Returns, TError, GenericQueryCtx<DataModel> | GenericMutationCtx<DataModel>>
+      },
+) => RegisteredMutation<Visibility, Args, Promise<Returns>>
 
+type ActionBuilder<Visibility extends FunctionVisibility, DataModel extends GenericDataModel> = <
+  SchemaArgs,
+  Args extends DefaultFunctionArgs,
+  SchemaReturns,
+  Returns = never,
+  TError = never,
+>(
+  action:
+    | {
+        args: S.Schema<SchemaArgs, Args>
+        returns: S.Schema<Returns, SchemaReturns>
+        handler: (args: SchemaArgs) => E.Effect<SchemaReturns, TError, GenericActionCtx<DataModel>>
+      }
+    | {
+        args: S.Schema<SchemaArgs, Args>
+        handler: (args: SchemaArgs) => E.Effect<Returns, TError, GenericActionCtx<DataModel>>
+      },
+) => RegisteredAction<Visibility, Args, Promise<Returns>>
+
+/**
+ * Recursively makes all properties mutable.
+ * Preserves Brand types and GenericId types.
+ */
 export type DeepMutable<T> =
   T extends Brand.Brand<any> | GenericId<any> ? T
   : [keyof T] extends [never] ? T

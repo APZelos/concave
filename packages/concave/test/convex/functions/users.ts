@@ -7,9 +7,9 @@ import {SDocId} from "../../../src/server/values"
 import {internalMutation, internalQuery, mutation, MutationCtx, query, QueryCtx} from "../concave"
 
 export const getUser = query({
-  args: {
+  args: S.Struct({
     id: SDocId("users"),
-  },
+  }),
   handler: E.fn(function* (args) {
     const {db} = yield* QueryCtx
     return yield* db.get(args.id)
@@ -17,9 +17,9 @@ export const getUser = query({
 })
 
 export const getUserByEmail = query({
-  args: {
+  args: S.Struct({
     email: S.String,
-  },
+  }),
   handler: E.fn(function* (args) {
     const {db} = yield* QueryCtx
     return yield* db
@@ -29,17 +29,18 @@ export const getUserByEmail = query({
   }),
 })
 
-export const listUsers = query(
-  E.fn(function* () {
+export const listUsers = query({
+  args: S.Struct({}),
+  handler: E.fn(function* () {
     const {db} = yield* QueryCtx
     return yield* db.query("users").collect()
   }),
-)
+})
 
 export const listUsersByRole = query({
-  args: {
+  args: S.Struct({
     role: S.Literal("admin", "user"),
-  },
+  }),
   handler: E.fn(function* (args) {
     const {db} = yield* QueryCtx
     return yield* db
@@ -50,9 +51,9 @@ export const listUsersByRole = query({
 })
 
 export const listUsersOrdered = query({
-  args: {
+  args: S.Struct({
     order: S.Literal("asc", "desc"),
-  },
+  }),
   handler: E.fn(function* (args) {
     const {db} = yield* QueryCtx
     return yield* db.query("users").order(args.order).collect()
@@ -60,29 +61,30 @@ export const listUsersOrdered = query({
 })
 
 export const listUsersPaginated = query({
-  args: {
+  args: S.Struct({
     paginationOpts: S.Struct({
       numItems: S.Number,
       cursor: S.NullOr(S.String),
     }),
-  },
+  }),
   handler: E.fn(function* (args) {
     const {db} = yield* QueryCtx
     return yield* db.query("users").paginate(args.paginationOpts)
   }),
 })
 
-export const getFirstUser = query(
-  E.fn(function* () {
+export const getFirstUser = query({
+  args: S.Struct({}),
+  handler: E.fn(function* () {
     const {db} = yield* QueryCtx
     return yield* db.query("users").first()
   }),
-)
+})
 
 export const takeUsers = query({
-  args: {
+  args: S.Struct({
     count: S.Number,
-  },
+  }),
   handler: E.fn(function* (args) {
     const {db} = yield* QueryCtx
     return yield* db.query("users").take(args.count)
@@ -90,9 +92,9 @@ export const takeUsers = query({
 })
 
 export const normalizeUserId = query({
-  args: {
+  args: S.Struct({
     idString: S.String,
-  },
+  }),
   handler: E.fn(function* (args) {
     const {db} = yield* QueryCtx
     return yield* db.normalizeId("users", args.idString)
@@ -100,11 +102,11 @@ export const normalizeUserId = query({
 })
 
 export const createUser = mutation({
-  args: {
+  args: S.Struct({
     name: S.String,
     email: S.String,
     role: S.Literal("admin", "user"),
-  },
+  }),
   handler: E.fn(function* (args) {
     const {db} = yield* MutationCtx
     return yield* db.insert("users", {
@@ -117,12 +119,12 @@ export const createUser = mutation({
 })
 
 export const updateUser = mutation({
-  args: {
+  args: S.Struct({
     id: SDocId("users"),
     name: S.optional(S.String),
     email: S.optional(S.String),
     role: S.optional(S.Literal("admin", "user")),
-  },
+  }),
   handler: E.fn(function* (args) {
     const {db} = yield* MutationCtx
     const {id, ...updates} = args
@@ -131,13 +133,13 @@ export const updateUser = mutation({
 })
 
 export const replaceUser = mutation({
-  args: {
+  args: S.Struct({
     id: SDocId("users"),
     name: S.String,
     email: S.String,
     role: S.Literal("admin", "user"),
     createdAt: S.Number,
-  },
+  }),
   handler: E.fn(function* (args) {
     const {db} = yield* MutationCtx
     const {id, ...data} = args
@@ -146,9 +148,9 @@ export const replaceUser = mutation({
 })
 
 export const deleteUser = mutation({
-  args: {
+  args: S.Struct({
     id: SDocId("users"),
-  },
+  }),
   handler: E.fn(function* (args) {
     const {db} = yield* MutationCtx
     yield* db.delete(args.id)
@@ -156,11 +158,11 @@ export const deleteUser = mutation({
 })
 
 export const createAndGetUser = mutation({
-  args: {
+  args: S.Struct({
     name: S.String,
     email: S.String,
     role: S.Literal("admin", "user"),
-  },
+  }),
   handler: E.fn(function* (args) {
     const ctx = yield* MutationCtx
 
@@ -185,9 +187,9 @@ export const createAndGetUser = mutation({
 })
 
 export const internalGetUser = internalQuery({
-  args: {
+  args: S.Struct({
     id: SDocId("users"),
-  },
+  }),
   handler: E.fn(function* (args) {
     const {db} = yield* QueryCtx
     return yield* db.get(args.id)
@@ -195,11 +197,11 @@ export const internalGetUser = internalQuery({
 })
 
 export const internalCreateUser = internalMutation({
-  args: {
+  args: S.Struct({
     name: S.String,
     email: S.String,
     role: S.Literal("admin", "user"),
-  },
+  }),
   handler: E.fn(function* (args) {
     const {db} = yield* MutationCtx
     return yield* db.insert("users", {

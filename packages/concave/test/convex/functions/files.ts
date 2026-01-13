@@ -4,9 +4,9 @@ import {SDocId} from "../../../src/server/values"
 import {mutation, MutationCtx, query, QueryCtx} from "../concave"
 
 export const getFileUrl = query({
-  args: {
+  args: S.Struct({
     storageId: SDocId("_storage"),
-  },
+  }),
   handler: E.fn(function* (args) {
     const {storage} = yield* QueryCtx
     return yield* storage.getUrl(args.storageId)
@@ -14,9 +14,9 @@ export const getFileUrl = query({
 })
 
 export const getFileMetadata = query({
-  args: {
+  args: S.Struct({
     id: SDocId("files"),
-  },
+  }),
   handler: E.fn(function* (args) {
     const {db} = yield* QueryCtx
     return yield* db.get(args.id)
@@ -24,9 +24,9 @@ export const getFileMetadata = query({
 })
 
 export const listFilesByUploader = query({
-  args: {
+  args: S.Struct({
     uploaderId: SDocId("users"),
-  },
+  }),
   handler: E.fn(function* (args) {
     const {db} = yield* QueryCtx
     return yield* db
@@ -36,21 +36,22 @@ export const listFilesByUploader = query({
   }),
 })
 
-export const generateUploadUrl = mutation(
-  E.fn(function* () {
+export const generateUploadUrl = mutation({
+  args: S.Struct({}),
+  handler: E.fn(function* () {
     const {storage} = yield* MutationCtx
     return yield* storage.generateUploadUrl()
   }),
-)
+})
 
 export const createFileRecord = mutation({
-  args: {
+  args: S.Struct({
     storageId: SDocId("_storage"),
     uploadedBy: SDocId("users"),
     filename: S.String,
     contentType: S.String,
     size: S.Number,
-  },
+  }),
   handler: E.fn(function* (args) {
     const {db} = yield* MutationCtx
     return yield* db.insert("files", {
@@ -64,9 +65,9 @@ export const createFileRecord = mutation({
 })
 
 export const deleteFile = mutation({
-  args: {
+  args: S.Struct({
     id: SDocId("files"),
-  },
+  }),
   handler: E.fn(function* (args) {
     const ctx = yield* MutationCtx
     const file = yield* ctx.db.get(args.id)
@@ -78,9 +79,9 @@ export const deleteFile = mutation({
 })
 
 export const deleteStorageFile = mutation({
-  args: {
+  args: S.Struct({
     storageId: SDocId("_storage"),
-  },
+  }),
   handler: E.fn(function* (args) {
     const {storage} = yield* MutationCtx
     yield* storage.delete(args.storageId)
