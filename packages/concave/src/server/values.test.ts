@@ -1,493 +1,543 @@
+import type {SchemaToValidator} from "./values"
+
 import {describe, expect, expectTypeOf, test} from "@effect/vitest"
 import {v} from "convex/values"
 import {Option, ParseResult, Schema as S, SchemaAST} from "effect"
 
-import {
-  ConvexTableName,
-  mapDecodedSchemaToValidator,
-  mapEncodedSchemaToValidator,
-  SDocId,
-  SPaginationResult,
-} from "./values"
+import {ConvexTableName, mapAstToValidator, SDocId, SPaginationResult} from "./values"
 
-describe("mapDecodedSchemaToValidator", () => {
-  test("Schema.Any", () => {
-    const actual = mapDecodedSchemaToValidator(S.Any)
-    const expected = v.any()
+describe("mapAstToValidator", () => {
+  describe("decode", () => {
+    test("Schema.Any", () => {
+      const schema = S.Any
+      const schemaValidator = mapAstToValidator(schema.ast, "decode")
+      type SchemaValidator = SchemaToValidator<S.Schema.Type<typeof schema>>
+      const expected = v.any()
 
-    expectTypeOf(actual).toEqualTypeOf(expected)
-    expect(actual).toStrictEqual(expected)
-  })
+      expectTypeOf<SchemaValidator>().toEqualTypeOf(expected)
+      expect(schemaValidator).toStrictEqual(expected)
+    })
 
-  test("SDocId", () => {
-    const actual = mapDecodedSchemaToValidator(SDocId("user"))
-    const expected = v.id("user")
+    test("SDocId", () => {
+      const schema = SDocId("user")
+      const schemaValidator = mapAstToValidator(schema.ast, "decode")
+      type SchemaValidator = SchemaToValidator<S.Schema.Type<typeof schema>>
+      const validator = v.id("user")
 
-    expectTypeOf(actual).toEqualTypeOf(expected)
-    expect(actual).toStrictEqual(expected)
-  })
+      expectTypeOf<SchemaValidator>().toEqualTypeOf(validator)
+      expect(schemaValidator).toStrictEqual(validator)
+    })
 
-  test("Schema.Literal", () => {
-    const actual = mapDecodedSchemaToValidator(S.Literal(1))
-    const expected = v.literal(1)
+    test("Schema.Literal", () => {
+      const schema = S.Literal(1)
+      const schemaValidator = mapAstToValidator(schema.ast, "decode")
+      type SchemaValidator = SchemaToValidator<S.Schema.Type<typeof schema>>
+      const expected = v.literal(1)
 
-    expectTypeOf(actual).toEqualTypeOf(expected)
-    expect(actual).toStrictEqual(expected)
-  })
+      expectTypeOf<SchemaValidator>().toEqualTypeOf(expected)
+      expect(schemaValidator).toStrictEqual(expected)
+    })
 
-  test("Schema.Number", () => {
-    const actual = mapDecodedSchemaToValidator(S.Number)
-    const expected = v.number()
+    test("Schema.Number", () => {
+      const schema = S.Number
+      const schemaValidator = mapAstToValidator(schema.ast, "decode")
+      type SchemaValidator = SchemaToValidator<S.Schema.Type<typeof schema>>
+      const expected = v.number()
 
-    expectTypeOf(actual).toEqualTypeOf(expected)
-    expect(actual).toStrictEqual(expected)
-  })
+      expectTypeOf<SchemaValidator>().toEqualTypeOf(expected)
+      expect(schemaValidator).toStrictEqual(expected)
+    })
 
-  test("Schema.BigIntFromSelf", () => {
-    const actual = mapDecodedSchemaToValidator(S.BigIntFromSelf)
-    const expected = v.int64()
+    test("Schema.BigIntFromSelf", () => {
+      const schema = S.BigIntFromSelf
+      const schemaValidator = mapAstToValidator(schema.ast, "decode")
+      type SchemaValidator = SchemaToValidator<S.Schema.Type<typeof schema>>
+      const expected = v.int64()
 
-    expectTypeOf(actual).toEqualTypeOf(expected)
-    expect(actual).toStrictEqual(expected)
-  })
+      expectTypeOf<SchemaValidator>().toEqualTypeOf(expected)
+      expect(schemaValidator).toStrictEqual(expected)
+    })
 
-  test("Schema.Boolean", () => {
-    const actual = mapDecodedSchemaToValidator(S.Boolean)
-    const expected = v.boolean()
+    test("Schema.Boolean", () => {
+      const schema = S.Boolean
+      const schemaValidator = mapAstToValidator(schema.ast, "decode")
+      type SchemaValidator = SchemaToValidator<S.Schema.Type<typeof schema>>
+      const expected = v.boolean()
 
-    expectTypeOf(actual).toEqualTypeOf(expected)
-    expect(actual).toStrictEqual(expected)
-  })
+      expectTypeOf<SchemaValidator>().toEqualTypeOf(expected)
+      expect(schemaValidator).toStrictEqual(expected)
+    })
 
-  test("Schema.String", () => {
-    const actual = mapDecodedSchemaToValidator(S.String)
-    const expected = v.string()
+    test("Schema.String", () => {
+      const schema = S.String
+      const schemaValidator = mapAstToValidator(schema.ast, "decode")
+      type SchemaValidator = SchemaToValidator<S.Schema.Type<typeof schema>>
+      const expected = v.string()
 
-    expectTypeOf(actual).toEqualTypeOf(expected)
-    expect(actual).toStrictEqual(expected)
-  })
+      expectTypeOf<SchemaValidator>().toEqualTypeOf(expected)
+      expect(schemaValidator).toStrictEqual(expected)
+    })
 
-  test("Schema.NumberFromString", () => {
-    const actual = mapDecodedSchemaToValidator(S.NumberFromString)
-    const expected = v.number()
+    test("Schema.NumberFromString", () => {
+      const schema = S.NumberFromString
+      const schemaValidator = mapAstToValidator(schema.ast, "decode")
+      type SchemaValidator = SchemaToValidator<S.Schema.Type<typeof schema>>
+      const expected = v.number()
 
-    expectTypeOf(actual).toEqualTypeOf(expected)
-    expect(actual).toStrictEqual(expected)
-  })
+      expectTypeOf<SchemaValidator>().toEqualTypeOf(expected)
+      expect(schemaValidator).toStrictEqual(expected)
+    })
 
-  test("Schema.NonEmptyString", () => {
-    const actual = mapDecodedSchemaToValidator(S.NonEmptyString)
-    const expected = v.string()
+    test("Schema.NonEmptyString", () => {
+      const schema = S.NonEmptyString
+      const schemaValidator = mapAstToValidator(schema.ast, "decode")
+      type SchemaValidator = SchemaToValidator<S.Schema.Type<typeof schema>>
+      const expected = v.string()
 
-    expectTypeOf(actual).toEqualTypeOf(expected)
-    expect(actual).toStrictEqual(expected)
-  })
+      expectTypeOf<SchemaValidator>().toEqualTypeOf(expected)
+      expect(schemaValidator).toStrictEqual(expected)
+    })
 
-  test("Schema.BooleanFromString", () => {
-    const actual = mapDecodedSchemaToValidator(S.BooleanFromString)
-    const expected = v.boolean()
+    test("Schema.BooleanFromString", () => {
+      const schema = S.BooleanFromString
+      const schemaValidator = mapAstToValidator(schema.ast, "decode")
+      type SchemaValidator = SchemaToValidator<S.Schema.Type<typeof schema>>
+      const expected = v.boolean()
 
-    expectTypeOf(actual).toEqualTypeOf(expected)
-    expect(actual).toStrictEqual(expected)
-  })
+      expectTypeOf<SchemaValidator>().toEqualTypeOf(expected)
+      expect(schemaValidator).toStrictEqual(expected)
+    })
 
-  test("Schema.Null", () => {
-    const actual = mapDecodedSchemaToValidator(S.Null)
-    const expected = v.null()
+    test("Schema.Null", () => {
+      const schema = S.Null
+      const schemaValidator = mapAstToValidator(schema.ast, "decode")
+      type SchemaValidator = SchemaToValidator<S.Schema.Type<typeof schema>>
+      const expected = v.null()
 
-    expectTypeOf(actual).toEqualTypeOf(expected)
-    expect(actual).toStrictEqual(expected)
-  })
+      expectTypeOf<SchemaValidator>().toEqualTypeOf(expected)
+      expect(schemaValidator).toStrictEqual(expected)
+    })
 
-  test("Schema.Union", () => {
-    const actual = mapDecodedSchemaToValidator(S.Union(S.String, S.Number))
-    const expected = v.union(v.string(), v.number())
+    test("Schema.Union", () => {
+      const schema = S.Union(S.String, S.Number)
+      const schemaValidator = mapAstToValidator(schema.ast, "decode")
+      type SchemaValidator = SchemaToValidator<S.Schema.Type<typeof schema>>
+      const expected = v.union(v.string(), v.number())
 
-    expectTypeOf(actual).toEqualTypeOf(expected)
-    expect(actual).toStrictEqual(expected)
-  })
+      expectTypeOf<SchemaValidator>().toEqualTypeOf(expected)
+      expect(schemaValidator).toStrictEqual(expected)
+    })
 
-  test("should flatten nested unions", () => {
-    const actual = mapDecodedSchemaToValidator(S.NullOr(S.Literal("a", "b")))
-    const expected = v.union(v.literal("a"), v.literal("b"), v.null())
+    test("should flatten nested unions", () => {
+      const schema = S.NullOr(S.Literal("a", "b"))
+      const schemaValidator = mapAstToValidator(schema.ast, "decode")
+      const expected = v.union(v.literal("a"), v.literal("b"), v.null())
 
-    // See mapDecodedSchemaToValidator JSDoc for union ordering limitation
-    expect(actual).toStrictEqual(expected)
-  })
+      // See mapAstToValidator JSDoc for union ordering limitation
+      expect(schemaValidator).toStrictEqual(expected)
+    })
 
-  test("Schema.Array", () => {
-    const actual = mapDecodedSchemaToValidator(S.Array(S.String))
-    const expected = v.array(v.string())
+    test("Schema.Array", () => {
+      const schema = S.Array(S.String)
+      const schemaValidator = mapAstToValidator(schema.ast, "decode")
+      type SchemaValidator = SchemaToValidator<S.Schema.Type<typeof schema>>
+      const expected = v.array(v.string())
 
-    expectTypeOf(actual).toEqualTypeOf(expected)
-    expect(actual).toStrictEqual(expected)
-  })
+      expectTypeOf<SchemaValidator>().toEqualTypeOf(expected)
+      expect(schemaValidator).toStrictEqual(expected)
+    })
 
-  test("Schema.Tuple", () => {
-    const actual = mapDecodedSchemaToValidator(S.Tuple(S.String, S.Number))
-    const expected = v.array(v.union(v.string(), v.number()))
+    test("Schema.Tuple", () => {
+      const schema = S.Tuple(S.String, S.Number)
+      const schemaValidator = mapAstToValidator(schema.ast, "decode")
+      type SchemaValidator = SchemaToValidator<S.Schema.Type<typeof schema>>
+      const expected = v.array(v.union(v.string(), v.number()))
 
-    expectTypeOf(actual).toEqualTypeOf(expected)
-    expect(actual).toStrictEqual(expected)
-  })
+      expectTypeOf<SchemaValidator>().toEqualTypeOf(expected)
+      expect(schemaValidator).toStrictEqual(expected)
+    })
 
-  test("Schema.Record", () => {
-    const actual = mapDecodedSchemaToValidator(
-      S.Record({
+    test("Schema.Record", () => {
+      const schema = S.Record({
         key: S.String,
         value: S.Number,
-      }),
-    )
+      })
+      const schemaValidator = mapAstToValidator(schema.ast, "decode")
+      type SchemaValidator = SchemaToValidator<S.Schema.Type<typeof schema>>
+      const expected = v.record(v.string(), v.number())
 
-    const expected = v.record(v.string(), v.number())
+      expectTypeOf<SchemaValidator>().toEqualTypeOf(expected)
+      expect(schemaValidator).toStrictEqual(expected)
+    })
 
-    expectTypeOf(actual).toEqualTypeOf(expected)
-    expect(actual).toStrictEqual(expected)
-  })
-
-  test("Schema.Struct", () => {
-    const actual = mapDecodedSchemaToValidator(
-      S.Struct({
+    test("Schema.Struct", () => {
+      const schema = S.Struct({
         id: S.optional(S.Number),
         name: S.NonEmptyString,
         kind: S.optional(S.Literal("guest", "customer")),
-      }),
-    )
+      })
+      const schemaValidator = mapAstToValidator(schema.ast, "decode")
+      type SchemaValidator = SchemaToValidator<S.Schema.Type<typeof schema>>
+      const expected = v.object({
+        id: v.optional(v.number()),
+        name: v.string(),
+        kind: v.optional(v.union(v.literal("guest"), v.literal("customer"))),
+      })
 
-    const expected = v.object({
-      id: v.optional(v.number()),
-      name: v.string(),
-      kind: v.optional(v.union(v.literal("guest"), v.literal("customer"))),
+      expectTypeOf<SchemaValidator>().toEqualTypeOf(expected)
+      expect(schemaValidator).toStrictEqual(expected)
     })
 
-    expectTypeOf(actual).toEqualTypeOf(expected)
-    expect(actual).toStrictEqual(expected)
-  })
+    test.skip("Schema.Class", () => {
+      class User extends S.Class<User>("User")({
+        id: S.optional(SDocId("user")),
+        name: S.NonEmptyString,
+        kind: S.optional(S.Literal("guest", "customer")),
+      }) {}
 
-  test.skip("Schema.Class", () => {
-    class User extends S.Class<User>("User")({
-      id: S.optional(SDocId("user")),
-      name: S.NonEmptyString,
-      kind: S.optional(S.Literal("guest", "customer")),
-    }) {}
+      const schemaValidator = mapAstToValidator(User.ast, "decode")
 
-    const actual = mapDecodedSchemaToValidator(User)
+      const expected = v.object({
+        id: v.optional(v.id("user")),
+        name: v.string(),
+        kind: v.optional(v.union(v.literal("guest"), v.literal("customer"))),
+      })
 
-    const expected = v.object({
-      id: v.optional(v.id("user")),
-      name: v.string(),
-      kind: v.optional(v.union(v.literal("guest"), v.literal("customer"))),
+      // TODO: find a way to correctly infer the validator type
+      // expectTypeOf<SchemaValidator>().toEqualTypeOf(expected)
+      expect(schemaValidator).toStrictEqual(expected)
     })
 
-    // TODO: find a way to correcty infer the validator type
-    // expectTypeOf(actual).toEqualTypeOf(expected)
-    expect(actual).toStrictEqual(expected)
-  })
-
-  test("Schema.transform", () => {
-    const actual = mapDecodedSchemaToValidator(
-      S.transform(S.Number, S.String, {
+    test("Schema.transform", () => {
+      const schema = S.transform(S.Number, S.String, {
         strict: true,
         decode: (value) => `${value}`,
         encode: () => 1,
-      }),
-    )
+      })
+      const schemaValidator = mapAstToValidator(schema.ast, "decode")
+      type SchemaValidator = SchemaToValidator<S.Schema.Type<typeof schema>>
+      const expected = v.string()
 
-    const expected = v.string()
+      expectTypeOf<SchemaValidator>().toEqualTypeOf(expected)
+      expect(schemaValidator).toStrictEqual(expected)
+    })
 
-    expectTypeOf(actual).toEqualTypeOf(expected)
-    expect(actual).toStrictEqual(expected)
-  })
-
-  test("Schema.transformOrFail", () => {
-    const actual = mapDecodedSchemaToValidator(
-      S.transformOrFail(S.Number, S.String, {
+    test("Schema.transformOrFail", () => {
+      const schema = S.transformOrFail(S.Number, S.String, {
         strict: true,
         decode: (value) => ParseResult.succeed(`${value}`),
         encode: () => ParseResult.succeed(1),
-      }),
-    )
+      })
+      const schemaValidator = mapAstToValidator(schema.ast, "decode")
+      type SchemaValidator = SchemaToValidator<S.Schema.Type<typeof schema>>
+      const expected = v.string()
 
-    const expected = v.string()
-
-    expectTypeOf(actual).toEqualTypeOf(expected)
-    expect(actual).toStrictEqual(expected)
-  })
-})
-
-describe("mapEncodedSchemaToValidator", () => {
-  test("Schema.Any", () => {
-    const actual = mapEncodedSchemaToValidator(S.Any)
-    const expected = v.any()
-
-    expectTypeOf(actual).toEqualTypeOf(expected)
-    expect(actual).toStrictEqual(expected)
+      expectTypeOf<SchemaValidator>().toEqualTypeOf(expected)
+      expect(schemaValidator).toStrictEqual(expected)
+    })
   })
 
-  test("SDocId", () => {
-    const actual = mapEncodedSchemaToValidator(SDocId("user"))
-    const expected = v.id("user")
+  describe("encode", () => {
+    test("Schema.Any", () => {
+      const schema = S.Any
+      const schemaValidator = mapAstToValidator(schema.ast, "encode")
+      type SchemaValidator = SchemaToValidator<S.Schema.Type<typeof schema>>
+      const expected = v.any()
 
-    expectTypeOf(actual).toEqualTypeOf(expected)
-    expect(actual).toStrictEqual(expected)
-  })
+      expectTypeOf<SchemaValidator>().toEqualTypeOf(expected)
+      expect(schemaValidator).toStrictEqual(expected)
+    })
 
-  test("Schema.Literal", () => {
-    const actual = mapEncodedSchemaToValidator(S.Literal(1))
-    const expected = v.literal(1)
+    test("SDocId", () => {
+      const schema = SDocId("user")
+      const schemaValidator = mapAstToValidator(schema.ast, "decode")
+      type SchemaValidator = SchemaToValidator<S.Schema.Type<typeof schema>>
+      const validator = v.id("user")
 
-    expectTypeOf(actual).toEqualTypeOf(expected)
-    expect(actual).toStrictEqual(expected)
-  })
+      expectTypeOf<SchemaValidator>().toEqualTypeOf(validator)
+      expect(schemaValidator).toStrictEqual(validator)
+    })
 
-  test("Schema.Number", () => {
-    const actual = mapEncodedSchemaToValidator(S.Number)
-    const expected = v.number()
+    test("Schema.Literal", () => {
+      const schema = S.Literal(1)
+      const schemaValidator = mapAstToValidator(schema.ast, "encode")
+      type SchemaValidator = SchemaToValidator<S.Schema.Encoded<typeof schema>>
+      const expected = v.literal(1)
 
-    expectTypeOf(actual).toEqualTypeOf(expected)
-    expect(actual).toStrictEqual(expected)
-  })
+      expectTypeOf<SchemaValidator>().toEqualTypeOf(expected)
+      expect(schemaValidator).toStrictEqual(expected)
+    })
 
-  test("Schema.BigIntFromSelf", () => {
-    const actual = mapEncodedSchemaToValidator(S.BigIntFromSelf)
-    const expected = v.int64()
+    test("Schema.Number", () => {
+      const schema = S.Number
+      const schemaValidator = mapAstToValidator(schema.ast, "encode")
+      type SchemaValidator = SchemaToValidator<S.Schema.Encoded<typeof schema>>
+      const expected = v.number()
 
-    expectTypeOf(actual).toEqualTypeOf(expected)
-    expect(actual).toStrictEqual(expected)
-  })
+      expectTypeOf<SchemaValidator>().toEqualTypeOf(expected)
+      expect(schemaValidator).toStrictEqual(expected)
+    })
 
-  test("Schema.Boolean", () => {
-    const actual = mapEncodedSchemaToValidator(S.Boolean)
-    const expected = v.boolean()
+    test("Schema.BigIntFromSelf", () => {
+      const schema = S.BigIntFromSelf
+      const schemaValidator = mapAstToValidator(schema.ast, "encode")
+      type SchemaValidator = SchemaToValidator<S.Schema.Encoded<typeof schema>>
+      const expected = v.int64()
 
-    expectTypeOf(actual).toEqualTypeOf(expected)
-    expect(actual).toStrictEqual(expected)
-  })
+      expectTypeOf<SchemaValidator>().toEqualTypeOf(expected)
+      expect(schemaValidator).toStrictEqual(expected)
+    })
 
-  test("Schema.String", () => {
-    const actual = mapEncodedSchemaToValidator(S.String)
-    const expected = v.string()
+    test("Schema.Boolean", () => {
+      const schema = S.Boolean
+      const schemaValidator = mapAstToValidator(schema.ast, "encode")
+      type SchemaValidator = SchemaToValidator<S.Schema.Encoded<typeof schema>>
+      const expected = v.boolean()
 
-    expectTypeOf(actual).toEqualTypeOf(expected)
-    expect(actual).toStrictEqual(expected)
-  })
+      expectTypeOf<SchemaValidator>().toEqualTypeOf(expected)
+      expect(schemaValidator).toStrictEqual(expected)
+    })
 
-  test("Schema.NumberFromString", () => {
-    const actual = mapEncodedSchemaToValidator(S.NumberFromString)
-    const expected = v.string()
+    test("Schema.String", () => {
+      const schema = S.String
+      const schemaValidator = mapAstToValidator(schema.ast, "encode")
+      type SchemaValidator = SchemaToValidator<S.Schema.Encoded<typeof schema>>
+      const expected = v.string()
 
-    expectTypeOf(actual).toEqualTypeOf(expected)
-    expect(actual).toStrictEqual(expected)
-  })
+      expectTypeOf<SchemaValidator>().toEqualTypeOf(expected)
+      expect(schemaValidator).toStrictEqual(expected)
+    })
 
-  test("Schema.NonEmptyString", () => {
-    const actual = mapEncodedSchemaToValidator(S.NonEmptyString)
-    const expected = v.string()
+    test("Schema.NumberFromString", () => {
+      const schema = S.NumberFromString
+      const schemaValidator = mapAstToValidator(schema.ast, "encode")
+      type SchemaValidator = SchemaToValidator<S.Schema.Encoded<typeof schema>>
+      const expected = v.string()
 
-    expectTypeOf(actual).toEqualTypeOf(expected)
-    expect(actual).toStrictEqual(expected)
-  })
+      expectTypeOf<SchemaValidator>().toEqualTypeOf(expected)
+      expect(schemaValidator).toStrictEqual(expected)
+    })
 
-  test("Schema.DateFromString", () => {
-    const actual = mapEncodedSchemaToValidator(S.DateFromString)
-    const expected = v.string()
+    test("Schema.NonEmptyString", () => {
+      const schema = S.NonEmptyString
+      const schemaValidator = mapAstToValidator(schema.ast, "encode")
+      type SchemaValidator = SchemaToValidator<S.Schema.Encoded<typeof schema>>
+      const expected = v.string()
 
-    expectTypeOf(actual).toEqualTypeOf(expected)
-    expect(actual).toStrictEqual(expected)
-  })
+      expectTypeOf<SchemaValidator>().toEqualTypeOf(expected)
+      expect(schemaValidator).toStrictEqual(expected)
+    })
 
-  test("Schema.BooleanFromString", () => {
-    const actual = mapEncodedSchemaToValidator(S.BooleanFromString)
-    const expected = v.union(v.literal("true"), v.literal("false"))
+    test("Schema.DateFromString", () => {
+      const schema = S.DateFromString
+      const schemaValidator = mapAstToValidator(schema.ast, "encode")
+      type SchemaValidator = SchemaToValidator<S.Schema.Encoded<typeof schema>>
+      const expected = v.string()
 
-    expectTypeOf(actual).toEqualTypeOf(expected)
-    expect(actual).toStrictEqual(expected)
-  })
+      expectTypeOf<SchemaValidator>().toEqualTypeOf(expected)
+      expect(schemaValidator).toStrictEqual(expected)
+    })
 
-  test("Schema.Null", () => {
-    const actual = mapEncodedSchemaToValidator(S.Null)
-    const expected = v.null()
+    test("Schema.BooleanFromString", () => {
+      const schema = S.BooleanFromString
+      const schemaValidator = mapAstToValidator(schema.ast, "encode")
+      type SchemaValidator = SchemaToValidator<S.Schema.Encoded<typeof schema>>
+      const expected = v.union(v.literal("true"), v.literal("false"))
 
-    expectTypeOf(actual).toEqualTypeOf(expected)
-    expect(actual).toStrictEqual(expected)
-  })
+      expectTypeOf<SchemaValidator>().toEqualTypeOf(expected)
+      expect(schemaValidator).toStrictEqual(expected)
+    })
 
-  test("Schema.Union", () => {
-    const actual = mapEncodedSchemaToValidator(S.Union(S.String, S.Number))
-    const expected = v.union(v.string(), v.number())
+    test("Schema.Null", () => {
+      const schema = S.Null
+      const schemaValidator = mapAstToValidator(schema.ast, "encode")
+      type SchemaValidator = SchemaToValidator<S.Schema.Encoded<typeof schema>>
+      const expected = v.null()
 
-    expectTypeOf(actual).toEqualTypeOf(expected)
-    expect(actual).toStrictEqual(expected)
-  })
+      expectTypeOf<SchemaValidator>().toEqualTypeOf(expected)
+      expect(schemaValidator).toStrictEqual(expected)
+    })
 
-  test("Schema.Array", () => {
-    const actual = mapEncodedSchemaToValidator(S.Array(S.String))
-    const expected = v.array(v.string())
+    test("Schema.Union", () => {
+      const schema = S.Union(S.String, S.Number)
+      const schemaValidator = mapAstToValidator(schema.ast, "encode")
+      type SchemaValidator = SchemaToValidator<S.Schema.Encoded<typeof schema>>
+      const expected = v.union(v.string(), v.number())
 
-    expectTypeOf(actual).toEqualTypeOf(expected)
-    expect(actual).toStrictEqual(expected)
-  })
+      expectTypeOf<SchemaValidator>().toEqualTypeOf(expected)
+      expect(schemaValidator).toStrictEqual(expected)
+    })
 
-  test("Schema.Tuple", () => {
-    const actual = mapEncodedSchemaToValidator(S.Tuple(S.String, S.Number))
-    const expected = v.array(v.union(v.string(), v.number()))
+    test("Schema.Array", () => {
+      const schema = S.Array(S.String)
+      const schemaValidator = mapAstToValidator(schema.ast, "encode")
+      type SchemaValidator = SchemaToValidator<S.Schema.Encoded<typeof schema>>
+      const expected = v.array(v.string())
 
-    expectTypeOf(actual).toEqualTypeOf(expected)
-    expect(actual).toStrictEqual(expected)
-  })
+      expectTypeOf<SchemaValidator>().toEqualTypeOf(expected)
+      expect(schemaValidator).toStrictEqual(expected)
+    })
 
-  test("Schema.Record", () => {
-    const actual = mapEncodedSchemaToValidator(
-      S.Record({
+    test("Schema.Tuple", () => {
+      const schema = S.Tuple(S.String, S.Number)
+      const schemaValidator = mapAstToValidator(schema.ast, "encode")
+      type SchemaValidator = SchemaToValidator<S.Schema.Encoded<typeof schema>>
+      const expected = v.array(v.union(v.string(), v.number()))
+
+      expectTypeOf<SchemaValidator>().toEqualTypeOf(expected)
+      expect(schemaValidator).toStrictEqual(expected)
+    })
+
+    test("Schema.Record", () => {
+      const schema = S.Record({
         key: S.String,
         value: S.Number,
-      }),
-    )
+      })
+      const schemaValidator = mapAstToValidator(schema.ast, "encode")
+      type SchemaValidator = SchemaToValidator<S.Schema.Encoded<typeof schema>>
+      const expected = v.record(v.string(), v.number())
 
-    const expected = v.record(v.string(), v.number())
+      expectTypeOf<SchemaValidator>().toEqualTypeOf(expected)
+      expect(schemaValidator).toStrictEqual(expected)
+    })
 
-    expectTypeOf(actual).toEqualTypeOf(expected)
-    expect(actual).toStrictEqual(expected)
-  })
-
-  test("Schema.Struct", () => {
-    const actual = mapEncodedSchemaToValidator(
-      S.Struct({
+    test("Schema.Struct", () => {
+      const schema = S.Struct({
         id: S.optional(S.Number),
         name: S.NonEmptyString,
         kind: S.optional(S.Literal("guest", "customer")),
-      }),
-    )
+      })
+      const schemaValidator = mapAstToValidator(schema.ast, "encode")
+      type SchemaValidator = SchemaToValidator<S.Schema.Encoded<typeof schema>>
+      const expected = v.object({
+        id: v.optional(v.number()),
+        name: v.string(),
+        kind: v.optional(v.union(v.literal("guest"), v.literal("customer"))),
+      })
 
-    const expected = v.object({
-      id: v.optional(v.number()),
-      name: v.string(),
-      kind: v.optional(v.union(v.literal("guest"), v.literal("customer"))),
+      expectTypeOf<SchemaValidator>().toEqualTypeOf(expected)
+      expect(schemaValidator).toStrictEqual(expected)
     })
 
-    expectTypeOf(actual).toEqualTypeOf(expected)
-    expect(actual).toStrictEqual(expected)
-  })
+    test("Schema.Class", () => {
+      class User extends S.Class<User>("User")({
+        id: S.optional(SDocId("user")),
+        name: S.NonEmptyString,
+        kind: S.optional(S.Literal("guest", "customer")),
+      }) {}
 
-  test("Schema.Class", () => {
-    class User extends S.Class<User>("User")({
-      id: S.optional(SDocId("user")),
-      name: S.NonEmptyString,
-      kind: S.optional(S.Literal("guest", "customer")),
-    }) {}
+      const schemaValidator = mapAstToValidator(User.ast, "encode")
+      type SchemaValidator = SchemaToValidator<S.Schema.Encoded<typeof User>>
+      const expected = v.object({
+        id: v.optional(v.id("user")),
+        name: v.string(),
+        kind: v.optional(v.union(v.literal("guest"), v.literal("customer"))),
+      })
 
-    const actual = mapEncodedSchemaToValidator(User)
-
-    const expected = v.object({
-      id: v.optional(v.id("user")),
-      name: v.string(),
-      kind: v.optional(v.union(v.literal("guest"), v.literal("customer"))),
+      expectTypeOf<SchemaValidator>().toEqualTypeOf(expected)
+      expect(schemaValidator).toStrictEqual(expected)
     })
 
-    expectTypeOf(actual).toEqualTypeOf(expected)
-    expect(actual).toStrictEqual(expected)
-  })
-
-  test("Schema.transform", () => {
-    const actual = mapEncodedSchemaToValidator(
-      S.transform(S.Number, S.String, {
+    test("Schema.transform", () => {
+      const schema = S.transform(S.Number, S.String, {
         strict: true,
         decode: (value) => `${value}`,
         encode: () => 1,
-      }),
-    )
+      })
+      const schemaValidator = mapAstToValidator(schema.ast, "encode")
+      type SchemaValidator = SchemaToValidator<S.Schema.Encoded<typeof schema>>
+      const expected = v.number()
 
-    const expected = v.number()
+      expectTypeOf<SchemaValidator>().toEqualTypeOf(expected)
+      expect(schemaValidator).toStrictEqual(expected)
+    })
 
-    expectTypeOf(actual).toEqualTypeOf(expected)
-    expect(actual).toStrictEqual(expected)
-  })
-
-  test("Schema.transformOrFail", () => {
-    const actual = mapEncodedSchemaToValidator(
-      S.transformOrFail(S.Number, S.String, {
+    test("Schema.transformOrFail", () => {
+      const schema = S.transformOrFail(S.Number, S.String, {
         strict: true,
         decode: (value) => ParseResult.succeed(`${value}`),
         encode: () => ParseResult.succeed(1),
-      }),
-    )
+      })
+      const schemaValidator = mapAstToValidator(schema.ast, "encode")
+      type SchemaValidator = SchemaToValidator<S.Schema.Encoded<typeof schema>>
 
-    const expected = v.number()
+      const expected = v.number()
 
-    expectTypeOf(actual).toEqualTypeOf(expected)
-    expect(actual).toStrictEqual(expected)
+      expectTypeOf<SchemaValidator>().toEqualTypeOf(expected)
+      expect(schemaValidator).toStrictEqual(expected)
+    })
   })
-})
 
-describe("SPaginationResult", () => {
-  test("should create pagination result schema with correct structure", () => {
-    const actual = mapDecodedSchemaToValidator(SPaginationResult(S.String))
-    const expected = v.object({
-      page: v.array(v.string()),
-      isDone: v.boolean(),
-      continueCursor: v.string(),
-      splitCursor: v.optional(v.union(v.string(), v.null())),
-      pageStatus: v.optional(
-        v.union(v.literal("SplitRecommended"), v.literal("SplitRequired"), v.null()),
-      ),
+  describe("SPaginationResult", () => {
+    test("should create pagination result schema with correct structure", () => {
+      const schema = SPaginationResult(S.String)
+      const schemaValidator = mapAstToValidator(schema.ast, "decode")
+      const expected = v.object({
+        page: v.array(v.string()),
+        isDone: v.boolean(),
+        continueCursor: v.string(),
+        splitCursor: v.optional(v.union(v.string(), v.null())),
+        pageStatus: v.optional(
+          v.union(v.literal("SplitRecommended"), v.literal("SplitRequired"), v.null()),
+        ),
+      })
+
+      // See mapAstToValidator JSDoc for union ordering limitation
+      expect(schemaValidator).toStrictEqual(expected)
     })
 
-    // See mapDecodedSchemaToValidator JSDoc for union ordering limitation
-    expect(actual).toStrictEqual(expected)
+    test("should work with complex element schemas", () => {
+      const schema = SPaginationResult(S.Struct({id: S.Number, name: S.String}))
+      const schemaValidator = mapAstToValidator(schema.ast, "decode")
+      const expected = v.object({
+        page: v.array(v.object({id: v.number(), name: v.string()})),
+        isDone: v.boolean(),
+        continueCursor: v.string(),
+        splitCursor: v.optional(v.union(v.string(), v.null())),
+        pageStatus: v.optional(
+          v.union(v.literal("SplitRecommended"), v.literal("SplitRequired"), v.null()),
+        ),
+      })
+
+      // See mapAstToValidator JSDoc for union ordering limitation
+      expect(schemaValidator).toStrictEqual(expected)
+    })
   })
 
-  test("should work with complex element schemas", () => {
-    const actual = mapDecodedSchemaToValidator(
-      SPaginationResult(S.Struct({id: S.Number, name: S.String})),
-    )
-    const expected = v.object({
-      page: v.array(v.object({id: v.number(), name: v.string()})),
-      isDone: v.boolean(),
-      continueCursor: v.string(),
-      splitCursor: v.optional(v.union(v.string(), v.null())),
-      pageStatus: v.optional(
-        v.union(v.literal("SplitRecommended"), v.literal("SplitRequired"), v.null()),
-      ),
+  describe("SDocId", () => {
+    test("should attach table name annotation", () => {
+      const schema = SDocId("user")
+      const annotation = SchemaAST.getAnnotation<string>(ConvexTableName)(schema.ast)
+
+      expect(Option.isSome(annotation)).toBe(true)
+      expect(Option.getOrNull(annotation)).toBe("user")
+    })
+  })
+
+  describe("error cases", () => {
+    test("should throw for optional tuple elements", () => {
+      const schema = S.Tuple(S.String, S.optionalElement(S.Number))
+
+      expect(() => mapAstToValidator(schema.ast, "decode")).toThrow(
+        "Convex doesn't support optional elements for tuples",
+      )
     })
 
-    // See mapDecodedSchemaToValidator JSDoc for union ordering limitation
-    expect(actual).toStrictEqual(expected)
-  })
-})
+    test("should throw for empty tuple schema", () => {
+      const schema = S.Tuple()
 
-describe("SDocId", () => {
-  test("should attach table name annotation", () => {
-    const schema = SDocId("user")
-    const annotation = SchemaAST.getAnnotation<string>(ConvexTableName)(schema.ast)
+      expect(() => mapAstToValidator(schema.ast, "decode")).toThrow(
+        "Array/Tuple schemas require at least one element schema",
+      )
+    })
 
-    expect(Option.isSome(annotation)).toBe(true)
-    expect(Option.getOrNull(annotation)).toBe("user")
-  })
-})
+    // Note: Non-string record keys are already rejected by Effect Schema itself,
+    // so we can't test that error path in mapAstToValidator
 
-describe("error cases", () => {
-  test("should throw for optional tuple elements", () => {
-    const schema = S.Tuple(S.String, S.optionalElement(S.Number))
+    test("should throw for unsupported schema types", () => {
+      const schema = S.SymbolFromSelf
 
-    expect(() => mapDecodedSchemaToValidator(schema)).toThrow(
-      "Convex doesn't support optional elements for tuples",
-    )
-  })
-
-  test("should throw for empty tuple schema", () => {
-    const schema = S.Tuple()
-
-    expect(() => mapDecodedSchemaToValidator(schema)).toThrow(
-      "Array/Tuple schemas require at least one element schema",
-    )
-  })
-
-  // Note: Non-string record keys are already rejected by Effect Schema itself,
-  // so we can't test that error path in mapDecodedSchemaToValidator
-
-  test("should throw for unsupported schema types", () => {
-    const schema = S.SymbolFromSelf
-
-    expect(() => mapDecodedSchemaToValidator(schema)).toThrow("Unsupported schema")
+      expect(() => mapAstToValidator(schema.ast, "decode")).toThrow("Unsupported schema")
+    })
   })
 })

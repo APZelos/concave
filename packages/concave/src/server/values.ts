@@ -42,24 +42,6 @@ export function SPaginationResult<Schema extends S.Schema.Any>(schema: Schema) {
   })
 }
 
-export function mapDecodedSchemaToValidator<Schema extends S.Schema.All>(
-  schema: Schema,
-): EncodedSchemaToValidator<S.Schema.Type<Schema>> {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-  return mapAstToValidator(schema.ast, "decode") as any as EncodedSchemaToValidator<
-    S.Schema.Type<Schema>
-  >
-}
-
-export function mapEncodedSchemaToValidator<Schema extends S.Schema.All>(
-  schema: Schema,
-): EncodedSchemaToValidator<S.Schema.Encoded<Schema>> {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-  return mapAstToValidator(schema.ast, "encode") as any as EncodedSchemaToValidator<
-    S.Schema.Encoded<Schema>
-  >
-}
-
 export function mapAstToValidator(
   ast: SchemaAST.AST,
   action: "decode" | "encode",
@@ -238,7 +220,7 @@ type EncodedValue =
   | ArrayBuffer
   | null
 
-export type EncodedSchemaToValidator<Value> =
+export type SchemaToValidator<Value> =
   IsAny<Value> extends true ? VAny
   : IsUnion<Value> extends true ? UnionToValidator<Value>
   : IsDocId<Value> extends true ? DocIdToValidator<Value>
@@ -269,7 +251,7 @@ type TupleToValidatorArray<Value> =
       [VBoolean, ...TailValidators]
     : never
   : Value extends [infer Head extends EncodedValue, ...infer Tail extends readonly EncodedValue[]] ?
-    EncodedSchemaToValidator<Head> extends infer HeadValidator extends AnyValidator ?
+    SchemaToValidator<Head> extends infer HeadValidator extends AnyValidator ?
       TupleToValidatorArray<Tail> extends infer TailValidators extends AnyValidator[] ?
         [HeadValidator, ...TailValidators]
       : never
@@ -281,7 +263,7 @@ type DocIdToValidator<Value> =
 
 type ArrayToValidator<Value> =
   Value extends ReadonlyArray<infer Element extends EncodedValue> ?
-    EncodedSchemaToValidator<Element> extends infer ElementValidator extends AnyValidator ?
+    SchemaToValidator<Element> extends infer ElementValidator extends AnyValidator ?
       VArray<DeepMutable<Element[]>, ElementValidator>
     : never
   : never
@@ -302,11 +284,11 @@ type RecordToValidator<Value> =
 type PropertyToValidator<Value> =
   undefined extends Value ?
     [Value] extends [(infer Property extends EncodedValue) | undefined] ?
-      EncodedSchemaToValidator<Property> extends infer Vd extends AnyValidator ?
+      SchemaToValidator<Property> extends infer Vd extends AnyValidator ?
         VOptional<Vd>
       : never
     : never
-  : Value extends EncodedValue ? EncodedSchemaToValidator<Value>
+  : Value extends EncodedValue ? SchemaToValidator<Value>
   : never
 
 type IsDocId<Value> = Value extends {__tableName: any} ? true : false
