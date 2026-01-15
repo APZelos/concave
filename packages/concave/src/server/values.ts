@@ -52,6 +52,12 @@ export function mapAstToValidator(
     case "AnyKeyword":
       validator = v.any()
       break
+    case "UnknownKeyword":
+      // Convex validator doesn't support `unknown`, so we use `any` under the hood.
+      // This is for cases where for example you need args with a payload/data dynamic field
+      // but you don't want to use S.Any to avoid eslint errors.
+      validator = v.any()
+      break
     case "Union": {
       // Flatten nested unions (e.g., S.NullOr(S.Literal("a", "b")) creates Union(Union(a, b), null))
       // to produce v.union(v.literal("a"), v.literal("b"), v.null()) instead of nested unions.

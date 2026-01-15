@@ -3,12 +3,12 @@ import {describe, expect, it} from "vitest"
 import {api} from "../convex/_generated/api"
 import {setup} from "../setup"
 
-describe("Storage Operations", () => {
+describe("Storage", () => {
   describe("generateUploadUrl", () => {
-    it("should generate a valid upload URL", async () => {
+    it("should generate valid upload URL", async () => {
       const t = setup()
 
-      const url = await t.mutation(api.functions.files.generateUploadUrl, {})
+      const url = await t.mutation(api.functions.storage.storageGenerateUploadUrl, {})
 
       expect(url).toBeDefined()
       expect(typeof url).toBe("string")
@@ -16,91 +16,15 @@ describe("Storage Operations", () => {
     })
   })
 
-  describe("File metadata operations", () => {
-    it("should create and retrieve file metadata", async () => {
-      const t = setup()
-
-      // Create a user first
-      const userId = await t.mutation(api.functions.users.createUser, {
-        name: "Uploader",
-        email: "uploader@example.com",
-        role: "user",
-      })
-
-      // Create a storage entry directly for testing
-      const storageId = await t.run(async (ctx) => {
-        return await ctx.storage.store(new Blob(["test content"], {type: "text/plain"}))
-      })
-
-      // Create file metadata
-      const fileId = await t.mutation(api.functions.files.createFileRecord, {
-        storageId,
-        uploadedBy: userId,
-        filename: "test.txt",
-        contentType: "text/plain",
-        size: 12,
-      })
-
-      // Retrieve file metadata
-      const file = await t.query(api.functions.files.getFileMetadata, {id: fileId})
-
-      expect(file).toBeDefined()
-      expect(file?.filename).toBe("test.txt")
-      expect(file?.contentType).toBe("text/plain")
-      expect(file?.size).toBe(12)
-    })
-
-    it("should list files by uploader", async () => {
-      const t = setup()
-
-      const userId = await t.mutation(api.functions.users.createUser, {
-        name: "Multi Uploader",
-        email: "multi@example.com",
-        role: "user",
-      })
-
-      // Create multiple storage entries
-      const storageId1 = await t.run(async (ctx) => {
-        return await ctx.storage.store(new Blob(["file 1"], {type: "text/plain"}))
-      })
-      const storageId2 = await t.run(async (ctx) => {
-        return await ctx.storage.store(new Blob(["file 2"], {type: "text/plain"}))
-      })
-
-      await t.mutation(api.functions.files.createFileRecord, {
-        storageId: storageId1,
-        uploadedBy: userId,
-        filename: "file1.txt",
-        contentType: "text/plain",
-        size: 6,
-      })
-
-      await t.mutation(api.functions.files.createFileRecord, {
-        storageId: storageId2,
-        uploadedBy: userId,
-        filename: "file2.txt",
-        contentType: "text/plain",
-        size: 6,
-      })
-
-      const files = await t.query(api.functions.files.listFilesByUploader, {
-        uploaderId: userId,
-      })
-
-      expect(files).toHaveLength(2)
-    })
-  })
-
   describe("getUrl", () => {
     it("should return URL for existing file", async () => {
       const t = setup()
 
-      // Create a storage entry directly
       const storageId = await t.run(async (ctx) => {
         return await ctx.storage.store(new Blob(["test content"], {type: "text/plain"}))
       })
 
-      const url = await t.query(api.functions.files.getFileUrl, {storageId})
+      const url = await t.query(api.functions.storage.storageGetUrl, {storageId})
 
       expect(url).toBeDefined()
       expect(typeof url).toBe("string")
@@ -108,63 +32,143 @@ describe("Storage Operations", () => {
   })
 
   describe("delete", () => {
-    it("should delete file and metadata", async () => {
+    it("should delete existing file", async () => {
       const t = setup()
-
-      const userId = await t.mutation(api.functions.users.createUser, {
-        name: "Delete Tester",
-        email: "delete@example.com",
-        role: "user",
-      })
 
       const storageId = await t.run(async (ctx) => {
         return await ctx.storage.store(new Blob(["to delete"], {type: "text/plain"}))
       })
 
-      const fileId = await t.mutation(api.functions.files.createFileRecord, {
-        storageId,
-        uploadedBy: userId,
-        filename: "deleteme.txt",
-        contentType: "text/plain",
-        size: 9,
-      })
+      const urlBefore = await t.query(api.functions.storage.storageGetUrl, {storageId})
+      expect(urlBefore).toBeDefined()
 
-      // Verify file exists
-      const fileBefore = await t.query(api.functions.files.getFileMetadata, {id: fileId})
-      expect(fileBefore).toBeDefined()
+      await t.mutation(api.functions.storage.storageDelete, {storageId})
 
-      // Delete file
-      await t.mutation(api.functions.files.deleteFile, {id: fileId})
-
-      // Verify metadata is gone
-      const fileAfter = await t.query(api.functions.files.getFileMetadata, {id: fileId})
-      expect(fileAfter).toBeNull()
+      const urlAfter = await t.query(api.functions.storage.storageGetUrl, {storageId})
+      expect(urlAfter).toBeNull()
     })
+  })
 
-    it("should handle deleting non-existent file gracefully", async () => {
+  describe("store (action)", () => {
+    it("should store blob and return ID", async () => {
       const t = setup()
 
-      const userId = await t.mutation(api.functions.users.createUser, {
-        name: "Delete Tester",
-        email: "delete2@example.com",
-        role: "user",
+      const storageId = await t.action(api.functions.storage.storageStore, {
+        content: "action stored content",
       })
+
+      expect(storageId).toBeDefined()
+      expect(typeof storageId).toBe("string")
+
+      const url = await t.query(api.functions.storage.storageGetUrl, {storageId})
+      expect(url).toBeDefined()
+    })
+  })
+
+  describe("File Metadata", () => {
+    it("should create and retrieve metadata", async () => {
+      const t = setup()
 
       const storageId = await t.run(async (ctx) => {
-        return await ctx.storage.store(new Blob(["temp"], {type: "text/plain"}))
+        return await ctx.storage.store(new Blob(["test content"], {type: "text/plain"}))
       })
 
-      const fileId = await t.mutation(api.functions.files.createFileRecord, {
+      const fileId = await t.mutation(api.functions.storage.storageCreateFileRecord, {
         storageId,
-        uploadedBy: userId,
-        filename: "temp.txt",
-        contentType: "text/plain",
-        size: 4,
+        filename: "test.txt",
+        size: 12,
       })
 
-      // Delete twice - second should not throw
-      await t.mutation(api.functions.files.deleteFile, {id: fileId})
-      await t.mutation(api.functions.files.deleteFile, {id: fileId})
+      const file = await t.query(api.functions.storage.storageGetFileRecord, {id: fileId})
+
+      expect(file).toBeDefined()
+      expect(file?.filename).toBe("test.txt")
+      expect(file?.size).toBe(12)
+    })
+
+    it("should list files", async () => {
+      const t = setup()
+
+      const storageId1 = await t.run(async (ctx) => {
+        return await ctx.storage.store(new Blob(["file 1"], {type: "text/plain"}))
+      })
+      const storageId2 = await t.run(async (ctx) => {
+        return await ctx.storage.store(new Blob(["file 2"], {type: "text/plain"}))
+      })
+
+      await t.mutation(api.functions.storage.storageCreateFileRecord, {
+        storageId: storageId1,
+        filename: "file1.txt",
+        size: 6,
+      })
+
+      await t.mutation(api.functions.storage.storageCreateFileRecord, {
+        storageId: storageId2,
+        filename: "file2.txt",
+        size: 6,
+      })
+
+      const files = await t.query(api.functions.storage.storageListFiles, {})
+
+      expect(files).toHaveLength(2)
+    })
+  })
+
+  describe("Authentication", () => {
+    describe("functions not requiring auth", () => {
+      it("should succeed when unauthenticated", async () => {
+        const t = setup()
+
+        const url = await t.mutation(api.functions.storage.storageGenerateUploadUrl, {})
+
+        expect(url).toBeDefined()
+      })
+
+      it("should succeed when authenticated", async () => {
+        const t = setup()
+        const authedT = t.withIdentity({
+          name: "Test User",
+          email: "test@example.com",
+          tokenIdentifier: "test-token",
+        })
+
+        const url = await authedT.mutation(api.functions.storage.storageGenerateUploadUrl, {})
+
+        expect(url).toBeDefined()
+      })
+    })
+
+    describe("functions requiring auth", () => {
+      it("should fail when unauthenticated", async () => {
+        const t = setup()
+
+        const storageId = await t.run(async (ctx) => {
+          return await ctx.storage.store(new Blob(["test"], {type: "text/plain"}))
+        })
+
+        await expect(
+          t.query(api.functions.storage.storageGetUrlAuthRequired, {storageId}),
+        ).rejects.toThrow()
+      })
+
+      it("should succeed when authenticated", async () => {
+        const t = setup()
+        const authedT = t.withIdentity({
+          name: "Auth User",
+          email: "auth@example.com",
+          tokenIdentifier: "auth-token-storage",
+        })
+
+        const storageId = await t.run(async (ctx) => {
+          return await ctx.storage.store(new Blob(["test"], {type: "text/plain"}))
+        })
+
+        const url = await authedT.query(api.functions.storage.storageGetUrlAuthRequired, {
+          storageId,
+        })
+
+        expect(url).toBeDefined()
+      })
     })
   })
 })

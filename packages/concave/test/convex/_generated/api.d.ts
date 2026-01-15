@@ -10,12 +10,11 @@
 
 import type * as concave from "../concave.js"
 import type * as http from "../http.js"
-import type * as functions_users from "../functions/users.js"
-import type * as functions_posts from "../functions/posts.js"
-import type * as functions_files from "../functions/files.js"
-import type * as functions_auth from "../functions/auth.js"
-import type * as functions_scheduled from "../functions/scheduled.js"
-import type * as functions_context from "../functions/context.js"
+import type * as functions_queries from "../functions/queries.js"
+import type * as functions_mutations from "../functions/mutations.js"
+import type * as functions_actions from "../functions/actions.js"
+import type * as functions_storage from "../functions/storage.js"
+import type * as functions_scheduler from "../functions/scheduler.js"
 
 import type {ApiFromModules, FilterApi, FunctionReference} from "convex/server"
 
@@ -30,12 +29,11 @@ import type {ApiFromModules, FilterApi, FunctionReference} from "convex/server"
 declare const fullApi: ApiFromModules<{
   concave: typeof concave
   http: typeof http
-  "functions/users": typeof functions_users
-  "functions/posts": typeof functions_posts
-  "functions/files": typeof functions_files
-  "functions/auth": typeof functions_auth
-  "functions/scheduled": typeof functions_scheduled
-  "functions/context": typeof functions_context
+  "functions/queries": typeof functions_queries
+  "functions/mutations": typeof functions_mutations
+  "functions/actions": typeof functions_actions
+  "functions/storage": typeof functions_storage
+  "functions/scheduler": typeof functions_scheduler
 }>
 declare const fullApiWithMounts: typeof fullApi
 

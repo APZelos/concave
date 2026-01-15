@@ -11,10 +11,16 @@ export const QueryCtx = createQueryCtx<DataModel>()
 export const MutationCtx = createMutationCtx<DataModel>()
 export const ActionCtx = createActionCtx<DataModel>()
 
-export const {query, internalQuery, mutation, internalMutation, httpAction} = createServerFunctions(
-  {
-    QueryCtx,
-    MutationCtx,
-    ActionCtx,
-  },
-)
+export const {
+  query,
+  internalQuery,
+  mutation,
+  internalMutation,
+  action,
+  internalAction,
+  httpAction,
+} = createServerFunctions({
+  QueryCtx,
+  MutationCtx,
+  ActionCtx,
+})

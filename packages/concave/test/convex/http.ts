@@ -1,50 +1,46 @@
-import type {Doc, Id} from "./_generated/dataModel"
-
 import {httpRouter} from "convex/server"
-import {Effect as E, Schema as S} from "effect"
+import {Data, Effect as E, Schema as S} from "effect"
 
 import {HttpActionCtx} from "../../src/server"
 import {internal} from "./_generated/api"
 import {httpAction} from "./concave"
 
+class HttpTaggedError extends Data.TaggedError("HttpTaggedError")<{
+  message: string
+}> {}
+
+export class RequestJsonTaggedError extends Data.TaggedError("FetchTaggedError")<{
+  message: string
+  cause?: unknown
+}> {}
+
 const http = httpRouter()
 
 http.route({
-  path: "/users",
+  path: "/noauth",
+  method: "GET",
+  handler: httpAction(
+    E.fn(function* (_request: Request) {
+      return new Response(JSON.stringify({message: "public get"}), {
+        status: 200,
+        headers: {"Content-Type": "application/json"},
+      })
+    }),
+  ),
+})
+
+http.route({
+  path: "/noauth",
   method: "POST",
   handler: httpAction(
     E.fn(function* (request: Request) {
-      const ctx = yield* HttpActionCtx
-
       const body = yield* E.tryPromise({
-        try: async () =>
-          S.decodeUnknownSync(
-            S.Struct({
-              name: S.String,
-              email: S.String,
-              role: S.Union(S.Literal("admin"), S.Literal("user")),
-            }),
-          )(await request.json()),
-        catch: () => new Error("Failed to parse JSON"),
-      })
+        try: async () => request.json() as Promise<unknown>,
+        catch: (error) =>
+          new RequestJsonTaggedError({message: "Failed to read json", cause: error}),
+      }).pipe(E.map(S.decodeUnknownSync(S.Struct({data: S.String}))))
 
-      const createUserEffect: E.Effect<Id<"users">> = ctx.runMutation(
-        internal.functions.users.internalCreateUser,
-        {
-          name: body.name,
-          email: body.email,
-          role: body.role,
-        },
-      )
-      const userId = yield* createUserEffect
-
-      const getUserEffect: E.Effect<Doc<"users"> | null> = ctx.runQuery(
-        internal.functions.users.internalGetUser,
-        {id: userId},
-      )
-      const user = yield* getUserEffect
-
-      return new Response(JSON.stringify(user), {
+      return new Response(JSON.stringify({received: body.data}), {
         status: 201,
         headers: {"Content-Type": "application/json"},
       })
@@ -53,7 +49,163 @@ http.route({
 })
 
 http.route({
-  path: "/users",
+  path: "/auth",
+  method: "GET",
+  handler: httpAction(
+    E.fn(function* (_request: Request) {
+      const ctx = yield* HttpActionCtx
+      const identity = yield* ctx.auth.getUserIdentity()
+
+      if (!identity) {
+        return new Response(JSON.stringify({error: "Unauthorized"}), {
+          status: 401,
+          headers: {"Content-Type": "application/json"},
+        })
+      }
+
+      return new Response(
+        JSON.stringify({
+          tokenIdentifier: identity.tokenIdentifier,
+          name: identity.name,
+        }),
+        {
+          status: 200,
+          headers: {"Content-Type": "application/json"},
+        },
+      )
+    }),
+  ),
+})
+
+http.route({
+  path: "/auth",
+  method: "POST",
+  handler: httpAction(
+    E.fn(function* (request: Request) {
+      const ctx = yield* HttpActionCtx
+      const identity = yield* ctx.auth.getUserIdentity()
+
+      if (!identity) {
+        return new Response(JSON.stringify({error: "Unauthorized"}), {
+          status: 401,
+          headers: {"Content-Type": "application/json"},
+        })
+      }
+
+      const body = yield* E.tryPromise({
+        try: async () => request.json() as Promise<unknown>,
+        catch: (error) =>
+          new RequestJsonTaggedError({message: "Failed to read json", cause: error}),
+      }).pipe(E.map(S.decodeUnknownSync(S.Struct({data: S.String}))))
+
+      return new Response(
+        JSON.stringify({
+          received: body.data,
+          user: identity.name,
+        }),
+        {
+          status: 201,
+          headers: {"Content-Type": "application/json"},
+        },
+      )
+    }),
+  ),
+})
+
+http.route({
+  path: "/calls-query",
+  method: "GET",
+  handler: httpAction(
+    E.fn(function* (request: Request) {
+      const ctx = yield* HttpActionCtx
+      const url = new URL(request.url)
+      const value = yield* E.succeed(url.searchParams.get("value") ?? "0").pipe(
+        E.map(S.decodeUnknownSync(S.NumberFromString)),
+      )
+
+      const Eresult: E.Effect<string> = ctx.runQuery(
+        internal.functions.queries.internalQueryWithArgs,
+        {value},
+      )
+      const result = yield* Eresult
+
+      return new Response(JSON.stringify({result}), {
+        status: 200,
+        headers: {"Content-Type": "application/json"},
+      })
+    }),
+  ),
+})
+
+http.route({
+  path: "/calls-mutation",
+  method: "POST",
+  handler: httpAction(
+    E.fn(function* (request: Request) {
+      const ctx = yield* HttpActionCtx
+      const body = yield* E.tryPromise({
+        try: async () => request.json() as Promise<unknown>,
+        catch: (error) =>
+          new RequestJsonTaggedError({message: "Failed to read json", cause: error}),
+      }).pipe(E.map(S.decodeUnknownSync(S.Struct({name: S.String}))))
+
+      const id = yield* ctx.runMutation(internal.functions.mutations.internalMutationInsert, {
+        name: body.name,
+      })
+
+      return new Response(JSON.stringify({id}), {
+        status: 201,
+        headers: {"Content-Type": "application/json"},
+      })
+    }),
+  ),
+})
+
+http.route({
+  path: "/throws-tagged",
+  method: "GET",
+  handler: httpAction(
+    E.fn(function* (_request: Request) {
+      return yield* new HttpTaggedError({message: "tagged error thrown"})
+    }),
+  ),
+})
+
+http.route({
+  path: "/throws-regular",
+  method: "GET",
+  handler: httpAction(
+    E.fn(function* (_request: Request) {
+      throw new Error("regular error thrown")
+    }),
+  ),
+})
+
+http.route({
+  path: "/bad-request",
+  method: "GET",
+  handler: httpAction(
+    E.fn(function* (request: Request) {
+      const url = new URL(request.url)
+      const required = url.searchParams.get("required")
+
+      if (!required) {
+        return new Response(JSON.stringify({error: "required parameter missing"}), {
+          status: 400,
+          headers: {"Content-Type": "application/json"},
+        })
+      }
+
+      return new Response(JSON.stringify({value: required}), {
+        status: 200,
+        headers: {"Content-Type": "application/json"},
+      })
+    }),
+  ),
+})
+
+http.route({
+  path: "/not-found",
   method: "GET",
   handler: httpAction(
     E.fn(function* (request: Request) {
@@ -68,26 +220,47 @@ http.route({
         })
       }
 
-      const getUserEffect: E.Effect<Doc<"users"> | null> = ctx.runQuery(
-        internal.functions.users.internalGetUser,
-        {id: id as Id<"users">},
-      )
-      const user = yield* getUserEffect
+      // Always return null to simulate not found
+      yield* ctx.runQuery(internal.functions.queries.internalQueryNoArgs, {})
+      const item = null
 
-      if (!user) {
-        return new Response(JSON.stringify({error: "User not found"}), {
+      if (!item) {
+        return new Response(JSON.stringify({error: "Item not found"}), {
           status: 404,
           headers: {"Content-Type": "application/json"},
         })
       }
 
-      return new Response(JSON.stringify(user), {
+      return new Response(JSON.stringify(item), {
         status: 200,
         headers: {"Content-Type": "application/json"},
       })
     }),
   ),
 })
+
+http.route({
+  path: "/with-params",
+  method: "GET",
+  handler: httpAction(
+    E.fn(function* (request: Request) {
+      const url = new URL(request.url)
+      const name = url.searchParams.get("name") ?? "default"
+      const count = yield* E.succeed(url.searchParams.get("count") ?? "0").pipe(
+        E.map(S.decodeUnknownSync(S.NumberFromString)),
+      )
+
+      return new Response(JSON.stringify({name, count}), {
+        status: 200,
+        headers: {"Content-Type": "application/json"},
+      })
+    }),
+  ),
+})
+
+// ============================================================================
+// Health Check
+// ============================================================================
 
 http.route({
   path: "/health",
