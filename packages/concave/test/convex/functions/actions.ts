@@ -186,3 +186,24 @@ export const internalActionWithArgs = internalAction({
     return `internal action: ${args.value * 4}`
   }),
 })
+
+export const actionWithTransformations = action({
+  args: S.Struct({
+    count: S.NumberFromString,
+    timestamp: S.DateFromString,
+  }),
+  handler: E.fn(function* (args) {
+    return {
+      doubled: args.count * 2,
+      year: args.timestamp.getFullYear(),
+    }
+  }),
+})
+
+export const actionReturnsWithTransformation = action({
+  args: S.Struct({value: S.Number}),
+  returns: S.Struct({result: S.NumberFromString}),
+  handler: E.fn(function* (args) {
+    return {result: String(args.value * 2)}
+  }),
+})

@@ -233,4 +233,36 @@ describe("Actions", () => {
       expect(result).toBe("internal action: 28")
     })
   })
+
+  describe("Schema Transformations", () => {
+    describe("args transformations", () => {
+      it("should decode multiple transformations in action args", async () => {
+        const t = setup()
+        const isoDate = "2024-01-15T10:30:00.000Z"
+
+        const result = await t.action(api.functions.actions.actionWithTransformations, {
+          count: "5",
+          timestamp: isoDate,
+        })
+
+        expect(result).toEqual({
+          doubled: 10,
+          year: 2024,
+        })
+      })
+    })
+
+    describe("returns transformations", () => {
+      it("should decode NumberFromString - handler returns string, client receives number", async () => {
+        const t = setup()
+
+        const result = await t.action(api.functions.actions.actionReturnsWithTransformation, {
+          value: 21,
+        })
+
+        expect(typeof result.result).toBe("number")
+        expect(result.result).toBe(42)
+      })
+    })
+  })
 })

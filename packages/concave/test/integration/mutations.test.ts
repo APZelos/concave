@@ -422,4 +422,44 @@ describe("Mutations", () => {
       expect(result).toBe("internal mutation: 21")
     })
   })
+
+  describe("Schema Transformations", () => {
+    describe("args transformations", () => {
+      it("should decode NumberFromString in mutation args", async () => {
+        const t = setup()
+
+        const result = await t.mutation(api.functions.mutations.mutationWithNumberFromString, {
+          value: "21",
+        })
+
+        expect(result).toBe("mutation received: 42")
+      })
+
+      it("should decode DateFromString and use in database operation", async () => {
+        const t = setup()
+        const isoDate = "2024-01-15T10:30:00.000Z"
+
+        const id = await t.mutation(api.functions.mutations.mutationWithDateTransformation, {
+          name: "Test Item",
+          createdAtString: isoDate,
+        })
+
+        const item = await t.mutation(api.functions.mutations.mutationGet, {id})
+        expect(item?.createdAt).toBe(new Date(isoDate).getTime())
+      })
+    })
+
+    describe("returns transformations", () => {
+      it("should decode NumberFromString - handler returns string, client receives number", async () => {
+        const t = setup()
+
+        const result = await t.mutation(api.functions.mutations.mutationReturnsNumber, {
+          value: 21,
+        })
+
+        expect(typeof result).toBe("number")
+        expect(result).toBe(42)
+      })
+    })
+  })
 })

@@ -249,3 +249,35 @@ export const internalMutationInsert = internalMutation({
     })
   }),
 })
+
+export const mutationWithNumberFromString = mutation({
+  args: S.Struct({value: S.NumberFromString}),
+  handler: E.fn(function* (args) {
+    return `mutation received: ${args.value * 2}`
+  }),
+})
+
+export const mutationWithDateTransformation = mutation({
+  args: S.Struct({
+    name: S.String,
+    createdAtString: S.DateFromString,
+  }),
+  handler: E.fn(function* (args) {
+    const {db} = yield* MutationCtx
+    return yield* db.insert("items", {
+      name: args.name,
+      category: "dated",
+      status: "active",
+      priority: 1,
+      createdAt: args.createdAtString.getTime(),
+    })
+  }),
+})
+
+export const mutationReturnsNumber = mutation({
+  args: S.Struct({value: S.Number}),
+  returns: S.NumberFromString,
+  handler: E.fn(function* (args) {
+    return String(args.value * 2)
+  }),
+})

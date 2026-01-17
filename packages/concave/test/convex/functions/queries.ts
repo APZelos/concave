@@ -303,3 +303,68 @@ export const internalQueryWithArgs = internalQuery({
     return `internal: ${args.value * 2}`
   }),
 })
+
+export const queryWithNumberFromString = query({
+  args: S.Struct({value: S.NumberFromString}),
+  handler: E.fn(function* (args) {
+    return args.value * 2
+  }),
+})
+
+export const queryWithDateFromString = query({
+  args: S.Struct({date: S.DateFromString}),
+  handler: E.fn(function* (args) {
+    return args.date.getTime()
+  }),
+})
+
+export const queryWithNestedTransformations = query({
+  args: S.Struct({
+    user: S.Struct({
+      age: S.NumberFromString,
+      birthDate: S.DateFromString,
+    }),
+  }),
+  handler: E.fn(function* (args) {
+    return {
+      age: args.user.age,
+      timestamp: args.user.birthDate.getTime(),
+    }
+  }),
+})
+
+export const queryWithArrayOfDates = query({
+  args: S.Struct({dates: S.Array(S.DateFromString)}),
+  handler: E.fn(function* (args) {
+    return args.dates.map((d) => d.getTime())
+  }),
+})
+
+export const queryWithOptionalTransformation = query({
+  args: S.Struct({value: S.optional(S.NumberFromString)}),
+  handler: E.fn(function* (args) {
+    return args.value !== undefined ? args.value * 2 : null
+  }),
+})
+
+export const queryReturnsNumber = query({
+  args: S.Struct({value: S.Number}),
+  returns: S.NumberFromString,
+  handler: E.fn(function* (args) {
+    return String(args.value * 2)
+  }),
+})
+
+export const queryReturnsStructWithTransformations = query({
+  args: S.Struct({value: S.Number}),
+  returns: S.Struct({
+    doubledValue: S.NumberFromString,
+    original: S.NumberFromString,
+  }),
+  handler: E.fn(function* (args) {
+    return {
+      doubledValue: String(args.value * 2),
+      original: String(args.value),
+    }
+  }),
+})

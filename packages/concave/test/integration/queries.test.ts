@@ -543,4 +543,121 @@ describe("Queries", () => {
       expect(result).toBe("internal: 14")
     })
   })
+
+  describe("Schema Transformations", () => {
+    describe("args transformations", () => {
+      it("should decode NumberFromString - string to number", async () => {
+        const t = setup()
+
+        const result = await t.query(api.functions.queries.queryWithNumberFromString, {
+          value: "42",
+        })
+
+        expect(result).toBe(84)
+      })
+
+      it("should reject invalid NumberFromString input", async () => {
+        const t = setup()
+
+        await expect(
+          t.query(api.functions.queries.queryWithNumberFromString, {
+            value: "not-a-number",
+          }),
+        ).rejects.toThrow()
+      })
+
+      it("should decode DateFromString - ISO string to Date", async () => {
+        const t = setup()
+        const isoDate = "2024-01-15T10:30:00.000Z"
+
+        const result = await t.query(api.functions.queries.queryWithDateFromString, {
+          date: isoDate,
+        })
+
+        expect(result).toBe(new Date(isoDate).getTime())
+      })
+
+      it("should return NaN for invalid DateFromString input", async () => {
+        const t = setup()
+
+        const result = await t.query(api.functions.queries.queryWithDateFromString, {
+          date: "not-a-date",
+        })
+
+        expect(result).toBeNaN()
+      })
+
+      it("should decode nested struct with multiple transformations", async () => {
+        const t = setup()
+        const isoDate = "2024-01-15T10:30:00.000Z"
+
+        const result = await t.query(api.functions.queries.queryWithNestedTransformations, {
+          user: {
+            age: "30",
+            birthDate: isoDate,
+          },
+        })
+
+        expect(result).toEqual({
+          age: 30,
+          timestamp: new Date(isoDate).getTime(),
+        })
+      })
+
+      it("should decode array of transformed values", async () => {
+        const t = setup()
+        const dates = ["2024-01-01T00:00:00.000Z", "2024-06-15T12:00:00.000Z"]
+
+        const result = await t.query(api.functions.queries.queryWithArrayOfDates, {
+          dates,
+        })
+
+        expect(result).toEqual(dates.map((d) => new Date(d).getTime()))
+      })
+
+      it("should decode optional transformed value when present", async () => {
+        const t = setup()
+
+        const result = await t.query(api.functions.queries.queryWithOptionalTransformation, {
+          value: "21",
+        })
+
+        expect(result).toBe(42)
+      })
+
+      it("should handle optional transformed value when absent", async () => {
+        const t = setup()
+
+        const result = await t.query(api.functions.queries.queryWithOptionalTransformation, {})
+
+        expect(result).toBeNull()
+      })
+    })
+
+    describe("returns transformations", () => {
+      it("should decode NumberFromString - handler returns string, client receives number", async () => {
+        const t = setup()
+
+        const result = await t.query(api.functions.queries.queryReturnsNumber, {
+          value: 21,
+        })
+
+        expect(typeof result).toBe("number")
+        expect(result).toBe(42)
+      })
+
+      it("should return struct with transformed fields", async () => {
+        const t = setup()
+
+        const result = await t.query(api.functions.queries.queryReturnsStructWithTransformations, {
+          value: 21,
+        })
+
+        expect(typeof result.doubledValue).toBe("number")
+        expect(result.doubledValue).toBe(42)
+        expect(typeof result.original).toBe("number")
+        expect(result.original).toBe(21)
+      })
+    })
+  })
 })
