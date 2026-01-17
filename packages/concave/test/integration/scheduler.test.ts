@@ -1,9 +1,17 @@
-import {describe, expect, it} from "vitest"
+import {afterEach, beforeEach, describe, expect, it, vi} from "vitest"
 
 import {api} from "../convex/_generated/api"
 import {setup} from "../setup"
 
 describe("Scheduler", () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
   describe("runAfter", () => {
     it("should schedule task with delay", async () => {
       const t = setup()
@@ -125,7 +133,8 @@ describe("Scheduler", () => {
         data: {},
       })
 
-      // Complete the scheduled function
+      // Complete the scheduled function using fake timers
+      vi.runAllTimers()
       await t.finishInProgressScheduledFunctions()
 
       await expect(
@@ -146,7 +155,8 @@ describe("Scheduler", () => {
         data: {executed: true},
       })
 
-      // Execute the scheduled function
+      // Execute the scheduled function using fake timers
+      vi.runAllTimers()
       await t.finishInProgressScheduledFunctions()
 
       // The internal mutation was called - we can verify by checking the task exists
@@ -164,7 +174,8 @@ describe("Scheduler", () => {
         data: {},
       })
 
-      // Execute scheduled functions
+      // Execute scheduled functions using fake timers
+      vi.runAllTimers()
       await t.finishInProgressScheduledFunctions()
 
       // Mark task as completed (in real scenario, the scheduled function would do this)
@@ -188,7 +199,8 @@ describe("Scheduler", () => {
 
       expect(scheduledId).toBeDefined()
 
-      // Execute the scheduled function
+      // Execute the scheduled function using fake timers
+      vi.runAllTimers()
       await t.finishInProgressScheduledFunctions()
 
       // The internal function schedulerGetAuthInScheduled should have returned null
