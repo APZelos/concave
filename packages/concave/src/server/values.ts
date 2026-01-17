@@ -106,7 +106,14 @@ export function mapAstToValidator(
     case "Declaration": {
       const [typeParameter, ...restTypeParameters] = ast.typeParameters
       if (!typeParameter) {
-        throw new Error("Declaration schema without typeParameters")
+        const identifier = SchemaAST.getIdentifierAnnotation(ast).pipe(
+          Option.getOrElse(() => "unknown"),
+        )
+        throw new Error(
+          `Declaration schema "${identifier}" has no type parameters and cannot be
+mapped to a Convex validator. Convex only supports JSON-serializable types.
+e.g. For Date values, use S.DateFromString (string on wire, Date in handler).`,
+        )
       }
       if (restTypeParameters.length) {
         throw new Error("Declaration schema with more than one typeParameters")
