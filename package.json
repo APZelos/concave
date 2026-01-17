@@ -7,6 +7,7 @@
     "dev": "turbo run dev",
     "test": "vitest",
     "test:run": "vitest --run",
+    "test:integration": "pnpm --filter @apzelos/concave test:integration",
     "typecheck": "turbo run typecheck",
     "lint": "turbo run lint",
     "checks": "turbo run typecheck lint && pnpx prettier . --check",
