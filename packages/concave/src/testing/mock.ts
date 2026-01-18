@@ -42,8 +42,8 @@ import {
 } from "../server"
 
 export class MockNotImplementedError extends Error {
-  constructor() {
-    super("mock not implemented")
+  constructor(message?: string) {
+    super(message ?? "mock not implemented")
   }
 }
 

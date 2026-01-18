@@ -26,7 +26,7 @@ function createBaseConvexQueryStreamMock<T extends GenericStreamItem>(): ConvexQ
     first: vi.fn().mockRejectedValue(new MockNotImplementedError()),
     unique: vi.fn().mockRejectedValue(new MockNotImplementedError()),
     filter: vi.fn().mockImplementation(() => {
-      throw new Error("Use filterWith instead")
+      throw new MockNotImplementedError("Use filterWith instead")
     }),
     [Symbol.asyncIterator]: vi.fn().mockRejectedValue(new MockNotImplementedError()),
     iterWithKeys: vi.fn().mockRejectedValue(new MockNotImplementedError()),
@@ -85,7 +85,7 @@ export function mockConvexStreamQueryInitializer<
     fullTableScan: vi.fn().mockImplementation(() => mockConvexStreamQuery()),
     withIndex: vi.fn().mockImplementation(() => mockConvexStreamQuery()),
     withSearchIndex: vi.fn().mockImplementation(() => {
-      throw new Error("withSearchIndex is not supported on streams")
+      throw new MockNotImplementedError("withSearchIndex is not supported on streams")
     }),
     order: vi.fn().mockReturnValue(baseMock),
   } as unknown as ConvexStreamQueryInitializer<Schema, TableName>
