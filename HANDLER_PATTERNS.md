@@ -12,10 +12,12 @@ import {Effect as E, Schema as S} from "effect"
 
 export const getUser = query({
   args: S.Struct({id: SDocId("users")}),
-  returns: S.NullOr(S.Struct({
-    name: S.NonEmptyString,
-    email: S.NonEmptyString,
-  })),
+  returns: S.NullOr(
+    S.Struct({
+      name: S.NonEmptyString,
+      email: S.NonEmptyString,
+    }),
+  ),
   handler: E.fn(function* (args) {
     const {db} = yield* QueryCtx
     return yield* db.get(args.id)
@@ -46,10 +48,12 @@ args: S.Struct({
 ```typescript
 import {SPaginationResult} from "@apzelos/concave/server"
 
-returns: SPaginationResult(S.Struct({
-  name: S.NonEmptyString,
-  email: S.NonEmptyString,
-}))
+returns: SPaginationResult(
+  S.Struct({
+    name: S.NonEmptyString,
+    email: S.NonEmptyString,
+  }),
+)
 ```
 
 ---
@@ -60,10 +64,7 @@ returns: SPaginationResult(S.Struct({
 
 ```typescript
 // Branded type for type-safe IDs
-const Email = S.NonEmptyString.pipe(
-  S.pattern(/^[^@]+@[^@]+\.[^@]+$/),
-  S.brand("Email"),
-)
+const Email = S.NonEmptyString.pipe(S.pattern(/^[^@]+@[^@]+\.[^@]+$/), S.brand("Email"))
 
 export const createUser = mutation({
   args: S.Struct({
@@ -85,8 +86,8 @@ export const createUser = mutation({
 ```typescript
 export const getEvents = query({
   args: S.Struct({
-    after: S.DateFromString,           // "2024-01-01" -> Date
-    limit: S.NumberFromString,         // "10" -> 10
+    after: S.DateFromString, // "2024-01-01" -> Date
+    limit: S.NumberFromString, // "10" -> 10
   }),
   handler: E.fn(function* (args) {
     const {db} = yield* QueryCtx
@@ -105,8 +106,8 @@ export const getEvents = query({
 `Data.TaggedError` instances are yieldable directly - no need for `E.fail()`:
 
 ```typescript
-import {Data} from "effect"
 import {DocNotFoundError, FileNotFoundError} from "@apzelos/concave/server"
+import {Data} from "effect"
 
 export class NotAuthenticatedError extends Data.TaggedError("NotAuthenticatedError") {}
 
@@ -134,7 +135,7 @@ export const getProfile = query({
     const avatarUrl = yield* storage.getUrl(user.avatarId).pipe(
       E.catchTags({
         FileNotFoundError: () => E.succeed(null),
-      })
+      }),
     )
 
     return {...user, avatarUrl}
@@ -150,6 +151,7 @@ Annotate the Effect type for proper inference:
 
 ```typescript
 import type {Id} from "../_generated/dataModel"
+
 import {internal} from "../_generated/api"
 
 export const processOrder = action({
@@ -167,10 +169,9 @@ export const processOrder = action({
       return yield* new DocNotFoundError({tableName: "orders"})
     }
 
-    const Eresult: E.Effect<{success: boolean}> = ctx.runMutation(
-      internal.orders.markProcessed,
-      {id: args.orderId},
-    )
+    const Eresult: E.Effect<{success: boolean}> = ctx.runMutation(internal.orders.markProcessed, {
+      id: args.orderId,
+    })
     return yield* Eresult
   }),
 })
@@ -209,10 +210,7 @@ http.route({
       )
 
       const ctx = yield* HttpActionCtx
-      const Eid: E.Effect<Id<"users">> = ctx.runMutation(
-        internal.users.create,
-        body,
-      )
+      const Eid: E.Effect<Id<"users">> = ctx.runMutation(internal.users.create, body)
       const id = yield* Eid
 
       return new Response(JSON.stringify({id}), {
@@ -235,15 +233,18 @@ http.route({
       const url = new URL(request.url)
 
       const params = yield* E.try({
-        try: () => S.decodeUnknownSync(S.Struct({
-          page: S.optionalWith(S.NumberFromString, {default: () => 1}),
-          limit: S.optionalWith(S.NumberFromString, {default: () => 10}),
-          search: S.optional(S.NonEmptyString),
-        }))({
-          page: url.searchParams.get("page") ?? undefined,
-          limit: url.searchParams.get("limit") ?? undefined,
-          search: url.searchParams.get("search") ?? undefined,
-        }),
+        try: () =>
+          S.decodeUnknownSync(
+            S.Struct({
+              page: S.optionalWith(S.NumberFromString, {default: () => 1}),
+              limit: S.optionalWith(S.NumberFromString, {default: () => 10}),
+              search: S.optional(S.NonEmptyString),
+            }),
+          )({
+            page: url.searchParams.get("page") ?? undefined,
+            limit: url.searchParams.get("limit") ?? undefined,
+            search: url.searchParams.get("search") ?? undefined,
+          }),
         catch: (e) => new RequestParseError({message: "Invalid parameters", cause: e}),
       })
 
@@ -270,11 +271,9 @@ export const getUserWithPosts = query({
     const {db} = yield* QueryCtx
 
     // andThen - flexible chaining (accepts values, Effects, or functions)
-    const user = yield* db.get(args.userId).pipe(
-      E.andThen((doc) =>
-        doc ? E.succeed(doc) : new DocNotFoundError({tableName: "users"})
-      ),
-    )
+    const user = yield* db
+      .get(args.userId)
+      .pipe(E.andThen((doc) => (doc ? E.succeed(doc) : new DocNotFoundError({tableName: "users"}))))
 
     // flatMap - for chaining Effects
     const posts = yield* db
@@ -283,18 +282,18 @@ export const getUserWithPosts = query({
       .collect()
       .pipe(
         E.flatMap((posts) =>
-          E.all(posts.map((post) =>
-            db.get(post.categoryId).pipe(
-              E.andThen((cat) => ({...post, category: cat?.name ?? "Uncategorized"}))
-            )
-          ))
+          E.all(
+            posts.map((post) =>
+              db
+                .get(post.categoryId)
+                .pipe(E.andThen((cat) => ({...post, category: cat?.name ?? "Uncategorized"}))),
+            ),
+          ),
         ),
       )
 
     // tap - for side effects without changing value
-    yield* E.tap(
-      E.logInfo(`Fetched ${posts.length} posts for user ${user._id}`)
-    )
+    yield* E.tap(E.logInfo(`Fetched ${posts.length} posts for user ${user._id}`))
 
     return {user, posts}
   }),
@@ -305,21 +304,21 @@ export const getUserWithPosts = query({
 
 ## Context Services Matrix
 
-| Service | QueryCtx | MutationCtx | ActionCtx |
-|---------|----------|-------------|-----------|
-| `auth` | ✓ | ✓ | ✓ |
-| `db` (read) | ✓ | ✓ | - |
-| `db` (write) | - | ✓ | - |
-| `storage.getUrl` | ✓ | ✓ | ✓ |
-| `storage.generateUploadUrl` | - | ✓ | ✓ |
-| `storage.delete` | - | ✓ | ✓ |
-| `storage.get` | - | - | ✓ |
-| `storage.store` | - | - | ✓ |
-| `scheduler` | - | ✓ | ✓ |
-| `runQuery` | ✓ | ✓ | ✓ |
-| `runMutation` | - | ✓ | ✓ |
-| `runAction` | - | - | ✓ |
-| `vectorSearch` | - | - | ✓ |
+| Service                     | QueryCtx | MutationCtx | ActionCtx |
+| --------------------------- | -------- | ----------- | --------- |
+| `auth`                      | ✓        | ✓           | ✓         |
+| `db` (read)                 | ✓        | ✓           | -         |
+| `db` (write)                | -        | ✓           | -         |
+| `storage.getUrl`            | ✓        | ✓           | ✓         |
+| `storage.generateUploadUrl` | -        | ✓           | ✓         |
+| `storage.delete`            | -        | ✓           | ✓         |
+| `storage.get`               | -        | -           | ✓         |
+| `storage.store`             | -        | -           | ✓         |
+| `scheduler`                 | -        | ✓           | ✓         |
+| `runQuery`                  | ✓        | ✓           | ✓         |
+| `runMutation`               | -        | ✓           | ✓         |
+| `runAction`                 | -        | -           | ✓         |
+| `vectorSearch`              | -        | -           | ✓         |
 
 ---
 
@@ -329,6 +328,7 @@ export const getUserWithPosts = query({
 
 ```typescript
 import type {DataModel} from "./_generated/dataModel"
+
 import {
   createActionCtx,
   createMutationCtx,
@@ -355,14 +355,14 @@ export const {
 
 ## Anti-Patterns
 
-### Missing yield*
+### Missing yield\*
 
 ```typescript
 // WRONG - doc is Effect, not document
 const doc = db.get(args.id)
 
 // CORRECT
-const doc = yield* db.get(args.id)
+const doc = yield * db.get(args.id)
 ```
 
 ### Returning Effect instead of value
@@ -379,21 +379,21 @@ return data
 
 ```typescript
 // UNNECESSARY
-return yield* E.fail(new NotAuthenticatedError())
+return yield * E.fail(new NotAuthenticatedError())
 
 // CORRECT - TaggedErrors are yieldable
-return yield* new NotAuthenticatedError()
+return yield * new NotAuthenticatedError()
 ```
 
 ### Missing type annotation on cross-function calls
 
 ```typescript
 // WRONG - loses type information
-const user = yield* ctx.runQuery(internal.users.get, {id})
+const user = yield * ctx.runQuery(internal.users.get, {id})
 
 // CORRECT
 const Euser: E.Effect<User | null> = ctx.runQuery(internal.users.get, {id})
-const user = yield* Euser
+const user = yield * Euser
 ```
 
 ### Using S.Date in args/returns
@@ -410,18 +410,20 @@ args: S.Struct({date: S.DateFromString})
 
 ```typescript
 // VERBOSE
-yield* effect.pipe(
-  E.catchTag("ErrorA", () => E.succeed(null)),
-  E.catchTag("ErrorB", () => E.succeed(null)),
-)
+yield *
+  effect.pipe(
+    E.catchTag("ErrorA", () => E.succeed(null)),
+    E.catchTag("ErrorB", () => E.succeed(null)),
+  )
 
 // BETTER
-yield* effect.pipe(
-  E.catchTags({
-    ErrorA: () => E.succeed(null),
-    ErrorB: () => E.succeed(null),
-  })
-)
+yield *
+  effect.pipe(
+    E.catchTags({
+      ErrorA: () => E.succeed(null),
+      ErrorB: () => E.succeed(null),
+    }),
+  )
 ```
 
 ### Using raw primitives without validation
@@ -447,11 +449,13 @@ args: S.Struct({
 const data = S.decodeUnknown(MySchema)(input)
 
 // CORRECT - yield the Effect
-const data = yield* S.decodeUnknown(MySchema)(input)
+const data = yield * S.decodeUnknown(MySchema)(input)
 
 // OR use Sync with E.try
-const data = yield* E.try({
-  try: () => S.decodeUnknownSync(MySchema)(input),
-  catch: (e) => new ParseError({cause: e}),
-})
+const data =
+  yield *
+  E.try({
+    try: () => S.decodeUnknownSync(MySchema)(input),
+    catch: (e) => new ParseError({cause: e}),
+  })
 ```
