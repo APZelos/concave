@@ -1,6 +1,6 @@
+import {SDocId} from "@apzelos/concave/server"
 import {Data, Effect as E, Schema as S} from "effect"
 
-import {SDocId} from "../../../src/server/values"
 import {action, ActionCtx, mutation, MutationCtx, query, QueryCtx} from "../concave"
 
 export class NotAuthenticatedError extends Data.TaggedError("NotAuthenticatedError") {}

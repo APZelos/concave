@@ -51,6 +51,7 @@
     "convex-helpers": "^0.1.109",
     "effect": "^3.19.0",
     "typescript": "^5.9.0",
+    "vite-tsconfig-paths": "^5.1.4",
     "vitest": "^3.0.0"
   }
 }

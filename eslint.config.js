@@ -8,12 +8,10 @@ export default defineConfig(
     ignores: [
       "**/dist/**",
       "**/node_modules/**",
-      "src/test/convex/_generated",
-      "test/convex/_generated",
+      "**/_generated/**",
       "**/vitest.config.ts",
       "**/tsup.config.ts",
       "vitest.workspace.ts",
-      "packages/concave/test/convex/_generated/**",
     ],
   },
   {

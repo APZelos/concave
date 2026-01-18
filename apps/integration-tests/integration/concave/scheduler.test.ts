@@ -1,7 +1,7 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest"
 
-import {api} from "../convex/_generated/api"
-import {setup} from "../setup"
+import {api} from "../../convex/_generated/api"
+import {setup} from "../../setup"
 
 describe("Scheduler", () => {
   beforeEach(() => {

@@ -1,7 +1,7 @@
 import {describe, expect, it} from "vitest"
 
-import {api, internal} from "../convex/_generated/api"
-import {setup} from "../setup"
+import {api, internal} from "../../convex/_generated/api"
+import {setup} from "../../setup"
 
 async function createTestItem(
   t: ReturnType<typeof setup>,

@@ -1,7 +1,7 @@
+import {HttpActionCtx} from "@apzelos/concave/server"
 import {httpRouter} from "convex/server"
 import {Data, Effect as E, Schema as S} from "effect"
 
-import {HttpActionCtx} from "../../src/server"
 import {internal} from "./_generated/api"
 import {httpAction} from "./concave"
 

@@ -1,7 +1,7 @@
 import {describe, expect, it} from "vitest"
 
-import {api, internal} from "../convex/_generated/api"
-import {setup} from "../setup"
+import {api, internal} from "../../convex/_generated/api"
+import {setup} from "../../setup"
 
 async function createTestItem(
   t: ReturnType<typeof setup>,
@@ -13,12 +13,16 @@ async function createTestItem(
     content?: string
   } = {},
 ) {
-  return await t.mutation(api.functions.mutations.mutationInsert, {
-    name: overrides.name ?? "Test Item",
-    category: overrides.category ?? "default",
-    status: overrides.status ?? "active",
-    priority: overrides.priority ?? 1,
-    content: overrides.content,
+  return await t.run(async (ctx) => {
+    return await ctx.db.insert("items", {
+      name: overrides.name ?? "Test Item",
+      category: overrides.category ?? "default",
+      status: overrides.status ?? "active",
+      priority: overrides.priority ?? 1,
+      value: 0,
+      content: overrides.content,
+      createdAt: Date.now(),
+    })
   })
 }
 
@@ -483,7 +487,9 @@ describe("Queries", () => {
 
         // Create and delete to get a valid but non-existent ID format
         const id = await createTestItem(t, {name: "Temp"})
-        await t.mutation(api.functions.mutations.mutationDelete, {id})
+        await t.run(async (ctx) => {
+          await ctx.db.delete(id)
+        })
 
         const item = await t.query(api.functions.queries.queryGet, {id})
 

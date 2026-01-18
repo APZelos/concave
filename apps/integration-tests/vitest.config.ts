@@ -4,9 +4,9 @@ import {defineConfig} from "vitest/config"
 export default defineConfig({
   plugins: [tsconfigPaths()],
   test: {
-    name: "@apzelos/concave/integration",
+    name: "integration",
     environment: "edge-runtime",
-    include: ["test/integration/**/*.test.ts"],
+    include: ["integration/**/*.test.ts"],
     server: {deps: {inline: ["convex-test"]}},
   },
 })

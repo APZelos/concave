@@ -28,8 +28,7 @@
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "clean": "rm -rf dist",
-    "test:integration": "vitest --config test/vitest.config.ts"
+    "clean": "rm -rf dist"
   },
   "keywords": [
     "convex",
@@ -54,6 +53,7 @@
     "convex-test": "^0.0.35",
     "effect": "^3.19.0",
     "typescript": "^5.9.0",
+    "vite-tsconfig-paths": "^5.1.4",
     "vitest": "^3.0.0"
   }
 }

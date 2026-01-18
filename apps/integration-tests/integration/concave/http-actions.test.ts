@@ -1,6 +1,6 @@
 import {describe, expect, it} from "vitest"
 
-import {setup} from "../setup"
+import {setup} from "../../setup"
 
 describe("HTTP Actions", () => {
   describe("Request Methods", () => {

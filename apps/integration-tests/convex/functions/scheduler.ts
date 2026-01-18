@@ -1,9 +1,9 @@
 import type {Id} from "../_generated/dataModel"
 
+import {SDocId} from "@apzelos/concave/server"
 import {Effect as E, Schema as S} from "effect"
 
 import {internal} from "../_generated/api"
-import {SDocId} from "../../../src/server/values"
 import {internalMutation, mutation, MutationCtx, query, QueryCtx} from "../concave"
 
 export const schedulerRunAfter = mutation({

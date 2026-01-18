@@ -5,11 +5,15 @@ import {
   createMutationCtx,
   createQueryCtx,
   createServerFunctions,
-} from "../../src/server"
+} from "@apzelos/concave/server"
+
+import schema from "./schema"
 
 export const QueryCtx = createQueryCtx<DataModel>()
 export const MutationCtx = createMutationCtx<DataModel>()
 export const ActionCtx = createActionCtx<DataModel>()
+
+export {schema}
 
 export const {
   query,

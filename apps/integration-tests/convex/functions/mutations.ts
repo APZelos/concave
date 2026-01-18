@@ -1,9 +1,9 @@
 import type {Id} from "../_generated/dataModel"
 
+import {SDocId} from "@apzelos/concave/server"
 import {Data, Effect as E, Schema as S} from "effect"
 
 import {internal} from "../_generated/api"
-import {SDocId} from "../../../src/server/values"
 import {internalMutation, mutation, MutationCtx} from "../concave"
 
 export class NotAuthenticatedError extends Data.TaggedError("NotAuthenticatedError") {}
@@ -149,6 +149,7 @@ export const mutationInsert = mutation({
       category: args.category,
       status: args.status,
       priority: args.priority,
+      value: 0,
       content: args.content,
       createdAt: Date.now(),
     })
@@ -194,7 +195,7 @@ export const mutationReplace = mutation({
   handler: E.fn(function* (args) {
     const {db} = yield* MutationCtx
     const {id, ...data} = args
-    yield* db.replace(id, data)
+    yield* db.replace(id, {...data, value: 0})
   }),
 })
 
@@ -245,6 +246,7 @@ export const internalMutationInsert = internalMutation({
       category: "internal",
       status: "active",
       priority: 0,
+      value: 0,
       createdAt: Date.now(),
     })
   }),
@@ -269,6 +271,7 @@ export const mutationWithDateTransformation = mutation({
       category: "dated",
       status: "active",
       priority: 1,
+      value: 0,
       createdAt: args.createdAtString.getTime(),
     })
   }),
@@ -279,5 +282,43 @@ export const mutationReturnsNumber = mutation({
   returns: S.NumberFromString,
   handler: E.fn(function* (args) {
     return String(args.value * 2)
+  }),
+})
+
+// Helper mutations for stream/filter tests
+export const mutationInsertWithValue = mutation({
+  args: S.Struct({
+    name: S.String,
+    category: S.String,
+    status: S.Literal("active", "inactive"),
+    priority: S.Number,
+    value: S.Number,
+    content: S.optional(S.String),
+  }),
+  handler: E.fn(function* (args) {
+    const {db} = yield* MutationCtx
+    return yield* db.insert("items", {
+      name: args.name,
+      category: args.category,
+      status: args.status,
+      priority: args.priority,
+      value: args.value,
+      content: args.content,
+      createdAt: Date.now(),
+    })
+  }),
+})
+
+export const mutationInsertDetail = mutation({
+  args: S.Struct({
+    itemId: SDocId("items"),
+    info: S.String,
+  }),
+  handler: E.fn(function* (args) {
+    const {db} = yield* MutationCtx
+    return yield* db.insert("details", {
+      itemId: args.itemId,
+      info: args.info,
+    })
   }),
 })
