@@ -19,8 +19,14 @@ import {
   mockConvexStreamQueryInitializer,
 } from "../testing"
 import {
+  collectStream,
+  distinctStream,
+  filterStreamWith,
   firstFromStream,
+  flatMapStream,
+  mapStream,
   mergedStream,
+  orderStream,
   paginateStream,
   QueryStream,
   stream,
@@ -29,6 +35,7 @@ import {
   StreamQueryInitializer,
   takeFromStream,
   uniqueFromStream,
+  withStreamIndex,
 } from "./stream"
 
 const _schema = defineSchema({
@@ -459,5 +466,109 @@ describe("Helper functions", () => {
         expect(merged).toBeInstanceOf(QueryStream)
       }),
     )
+  })
+
+  describe("collectStream", () => {
+    test("should have correct type signature", () => {
+      const queryCtx = mockGenericQueryCtx<DataModel>()
+      const convexStream = mockConvexQueryStream<Doc<"user">>()
+      const queryStream = new QueryStream(QueryCtx, queryCtx, convexStream)
+
+      const actual = collectStream(queryStream)
+
+      expectTypeOf(actual).toEqualTypeOf<E.Effect<Doc<"user">[], never>>()
+    })
+  })
+
+  describe("withStreamIndex", () => {
+    test("should have correct type signature", () => {
+      const queryCtx = mockGenericQueryCtx<DataModel>()
+      const convexStreamQueryInitializer = mockConvexStreamQueryInitializer<Schema, "user">()
+      const streamQueryInitializer = new StreamQueryInitializer(
+        QueryCtx,
+        queryCtx,
+        convexStreamQueryInitializer,
+      )
+
+      const withIndex = withStreamIndex<Schema, "user", "by_name">("by_name")
+      const actual = withIndex(streamQueryInitializer)
+
+      expectTypeOf(actual).toEqualTypeOf<StreamQuery<Schema, "user", "by_name">>()
+    })
+  })
+
+  describe("filterStreamWith", () => {
+    test("should have correct type signature", () => {
+      const queryCtx = mockGenericQueryCtx<DataModel>()
+      const convexStream = mockConvexQueryStream<Doc<"user">>()
+      const queryStream = new QueryStream(QueryCtx, queryCtx, convexStream)
+
+      const filterFn = filterStreamWith<DataModel, Doc<"user">>(() => E.succeed(true))
+      const actual = filterFn(queryStream)
+
+      expectTypeOf(actual).toEqualTypeOf<QueryStream<DataModel, Doc<"user">, never>>()
+    })
+  })
+
+  describe("mapStream", () => {
+    test("should have correct type signature", () => {
+      const queryCtx = mockGenericQueryCtx<DataModel>()
+      const convexStream = mockConvexQueryStream<Doc<"user">>()
+      const queryStream = new QueryStream(QueryCtx, queryCtx, convexStream)
+
+      const mapFn = mapStream<DataModel, Doc<"user">, {id: string}>((doc) =>
+        E.succeed({id: doc._id}),
+      )
+      const actual = mapFn(queryStream)
+
+      expectTypeOf(actual).toEqualTypeOf<QueryStream<DataModel, {id: string}, never>>()
+    })
+  })
+
+  describe("flatMapStream", () => {
+    test("should have correct type signature", () => {
+      const queryCtx = mockGenericQueryCtx<DataModel>()
+      const convexStream = mockConvexQueryStream<Doc<"user">>()
+      const queryStream = new QueryStream(QueryCtx, queryCtx, convexStream)
+
+      const flatMapFn = flatMapStream<DataModel, Doc<"user">, {nested: string}>(
+        () =>
+          E.succeed(new QueryStream(QueryCtx, queryCtx, mockConvexQueryStream<{nested: string}>())),
+        ["nested"],
+      )
+      const actual = flatMapFn(queryStream)
+
+      expectTypeOf(actual).toEqualTypeOf<QueryStream<DataModel, {nested: string}, never>>()
+    })
+  })
+
+  describe("distinctStream", () => {
+    test("should have correct type signature", () => {
+      const queryCtx = mockGenericQueryCtx<DataModel>()
+      const convexStream = mockConvexQueryStream<Doc<"user">>()
+      const queryStream = new QueryStream(QueryCtx, queryCtx, convexStream)
+
+      const distinctFn = distinctStream<DataModel, Doc<"user">>(["name"])
+      const actual = distinctFn(queryStream)
+
+      expectTypeOf(actual).toEqualTypeOf<QueryStream<DataModel, Doc<"user">, never>>()
+    })
+  })
+
+  describe("orderStream", () => {
+    test("should have correct type signature", () => {
+      const queryCtx = mockGenericQueryCtx<DataModel>()
+      const convexStreamQueryInitializer = mockConvexStreamQueryInitializer<Schema, "user">()
+      const streamQueryInitializer = new StreamQueryInitializer(
+        QueryCtx,
+        queryCtx,
+        convexStreamQueryInitializer,
+      )
+
+      const orderFn = orderStream<Schema, "user">("asc")
+      const actual = orderFn(streamQueryInitializer)
+
+      expectTypeOf(actual).toEqualTypeOf<QueryStream<DataModel, Doc<"user">>>()
+    })
   })
 })
