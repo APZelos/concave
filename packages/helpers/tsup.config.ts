@@ -1,13 +1,7 @@
 import {defineConfig} from "tsup"
 
 export default defineConfig({
-  entry: [
-    "src/index.ts",
-    "src/server/index.ts",
-    "src/server/filter.ts",
-    "src/server/stream.ts",
-    "src/testing/index.ts",
-  ],
+  entry: ["src/server/filter.ts", "src/server/stream.ts", "src/testing/index.ts"],
   dts: true,
   sourcemap: true,
   clean: true,

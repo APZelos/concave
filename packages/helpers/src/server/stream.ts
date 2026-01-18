@@ -1,5 +1,5 @@
-import type {GenericQueryCtx, QueryCtxTag} from "@apzelos/concave"
 import type {SafeUnion} from "@apzelos/concave-internal/types"
+import type {GenericQueryCtx, QueryCtxTag} from "@apzelos/concave/server"
 import type {
   QueryStream as ConvexQueryStream,
   StreamDatabaseReader as ConvexStreamDatabaseReader,
@@ -21,7 +21,7 @@ import type {
   TableNamesInDataModel,
 } from "convex/server"
 
-import {DocNotUniqueError, SPaginationOptions} from "@apzelos/concave"
+import {DocNotUniqueError, SPaginationOptions} from "@apzelos/concave/server"
 import {
   mergedStream as convexMergedStream,
   stream as convexStream,

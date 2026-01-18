@@ -1,11 +1,11 @@
-import type {OrderedQuery} from "@apzelos/concave"
+import type {OrderedQuery} from "@apzelos/concave/server"
 import type {
   DataModelFromSchemaDefinition,
   NamedTableInfo,
   TableNamesInDataModel,
 } from "convex/server"
 
-import {QueryInitializer} from "@apzelos/concave"
+import {QueryInitializer} from "@apzelos/concave/server"
 import {mockOrderedQuery} from "@apzelos/concave/testing"
 import {describe, expect, expectTypeOf, it, test} from "@effect/vitest"
 import {defineSchema, defineTable} from "convex/server"

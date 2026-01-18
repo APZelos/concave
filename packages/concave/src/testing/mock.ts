@@ -39,7 +39,7 @@ import {
   StorageActionWriter,
   StorageReader,
   StorageWriter,
-} from "../index"
+} from "../server"
 
 export class MockNotImplementedError extends Error {
   constructor() {

@@ -5,14 +5,6 @@
   "type": "module",
   "sideEffects": false,
   "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    },
-    "./server": {
-      "types": "./dist/server/index.d.ts",
-      "import": "./dist/server/index.js"
-    },
     "./server/filter": {
       "types": "./dist/server/filter.d.ts",
       "import": "./dist/server/filter.js"

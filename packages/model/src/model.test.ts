@@ -1,4 +1,9 @@
 import type {
+  QueryStream,
+  StreamQuery,
+  StreamQueryInitializer,
+} from "@apzelos/concave-helpers/server/stream"
+import type {
   DocNotUniqueError,
   GenericMutationCtx,
   GenericQueryCtx,
@@ -6,12 +11,7 @@ import type {
   Query,
   QueryInitializer,
   SPaginationResult,
-} from "@apzelos/concave"
-import type {
-  QueryStream,
-  StreamQuery,
-  StreamQueryInitializer,
-} from "@apzelos/concave-helpers/server/stream"
+} from "@apzelos/concave/server"
 import type {
   DataModelFromSchemaDefinition,
   DocumentByName,
@@ -20,13 +20,13 @@ import type {
 } from "convex/server"
 import type {GenericId} from "convex/values"
 
+import {mockQueryStream, mockStreamQueryInitializer} from "@apzelos/concave-helpers/testing"
 import {
   createMutationCtx,
   createQueryCtx,
   DocNotFoundError,
   InvalidDocIdError,
-} from "@apzelos/concave"
-import {mockQueryStream, mockStreamQueryInitializer} from "@apzelos/concave-helpers/testing"
+} from "@apzelos/concave/server"
 import {
   mockConvexGenericDatabaseReader,
   mockConvexGenericDatabaseWriter,

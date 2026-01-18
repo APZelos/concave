@@ -7,7 +7,7 @@ import type {
 import type {GenericDataModel, SchemaDefinition} from "convex/server"
 import type {GenericStreamItem} from "../server/stream"
 
-import {createQueryCtx} from "@apzelos/concave"
+import {createQueryCtx} from "@apzelos/concave/server"
 import {
   mockConvexBaseDatabaseReader,
   mockConvexGenericDatabaseReader,

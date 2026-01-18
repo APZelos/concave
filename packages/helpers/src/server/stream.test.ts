@@ -5,7 +5,7 @@ import type {
   TableNamesInDataModel,
 } from "convex/server"
 
-import {createQueryCtx, DocNotUniqueError} from "@apzelos/concave"
+import {createQueryCtx, DocNotUniqueError} from "@apzelos/concave/server"
 import {mockGenericId, mockGenericQueryCtx} from "@apzelos/concave/testing"
 import {describe, expect, expectTypeOf, it, test, vi} from "@effect/vitest"
 import {defineSchema, defineTable} from "convex/server"

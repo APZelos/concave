@@ -1,4 +1,4 @@
-import type {OrderedQuery} from "@apzelos/concave"
+import type {OrderedQuery} from "@apzelos/concave/server"
 import type {Predicate} from "convex-helpers/server/filter"
 import type {
   OrderedQuery as ConvexOrderedQuery,
@@ -6,7 +6,7 @@ import type {
   GenericTableInfo,
 } from "convex/server"
 
-import {QueryInitializer} from "@apzelos/concave"
+import {QueryInitializer} from "@apzelos/concave/server"
 import {filter as convexFilter} from "convex-helpers/server/filter"
 
 type QueryTableInfo<Q> = Q extends OrderedQuery<infer T> ? T : never
