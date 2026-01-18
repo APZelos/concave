@@ -4,108 +4,44 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Concave** is a monorepo containing npm packages that integrate the Effect functional programming library with Convex backend services. It provides type-safe, composable abstractions over Convex's database operations, auth, storage, and scheduling using Effect's functional programming paradigm.
+Concave is an Effect-based integration library for Convex backend services. It provides type-safe, composable abstractions over Convex's database operations, auth, storage, and scheduling using the Effect functional programming library.
 
-### Packages
+## Monorepo Structure
 
-- **`@apzelos/concave`** - Core Effect wrappers for Convex services
-- **`@apzelos/concave-helpers`** - Stream query helpers and filter utilities (requires `convex-helpers`)
-- **`@apzelos/concave-model`** - Schema-based model generation
-- **`@apzelos/concave-internal`** - Private shared utilities (bundled into consuming packages)
+```
+packages/
+├── concave/          # Core Effect wrappers (@apzelos/concave)
+├── helpers/          # Stream query helpers and filter utilities (@apzelos/concave-helpers)
+├── model/            # Schema-based model generation (@apzelos/concave-model)
+└── internal/         # Shared utilities (not published, bundled into consumers)
+apps/
+└── integration-tests/ # End-to-end tests against simulated Convex backend
+```
 
-## Build/Test/Lint Commands
+## Documentation Reference
+
+- **HANDLER_PATTERNS.md** — Best practices, patterns, anti-patterns and examples of how to write query, mutation, action and http action handlers using Effect [Schema, validation, TaggedError, context, E.fn, yield, generators, SDocId, catchTags]
+- **UNIT_TESTING.md** — Best practices, patterns, anti-patterns and examples of how to write unit tests for testing the functionality of the concave packages [mocks, mockQueryCtx, it.effect, E.flip, vitest, expectTypeOf]
+- **INTEGRATION_TESTING.md** — Best practices, patterns, anti-patterns and examples of how to write integration tests for testing the functionality of the concave packages [convex-test, setup, t.run, t.query, t.mutation, withIdentity, database]
+
+## Package Manager
+
+This repo uses **pnpm** exclusively. Always use `pnpm` and `pnpx` instead of `npm`/`npx` or `yarn`.
+
+## Publishing
+
+Uses Changesets for version management:
 
 ```bash
-pnpm test                           # Run all tests once (unit + integration)
-pnpm test:watch                     # Run tests in watch mode
-pnpm build                          # Build all packages with turbo
-pnpm typecheck                      # Type check all packages
-pnpm lint                           # Lint all packages
-pnpm checks                         # Run typecheck, lint, and prettier check
-pnpm format                         # Format code with prettier
-pnpm changeset                      # Create a changeset for versioning
-pnpm version-packages              # Version packages based on changesets
-pnpm release                        # Build and publish packages
+pnpm changeset        # Create changeset
+pnpm version-packages # Update versions and changelogs
+pnpm release          # Build and publish to npm
 ```
 
-## Architecture
+## After Making Changes
 
-### Package Structure
+Run these commands in order after making code changes. Fix any issues before proceeding to next steps.
 
-- **`packages/concave/`** - Core Effect wrappers for Convex services
-  - `src/context.ts` - QueryCtx, MutationCtx, ActionCtx classes and factory functions
-  - `src/database.ts` - GenericDatabaseReader/Writer wrapping Convex database operations
-  - `src/query.ts` - QueryInitializer, OrderedQuery, Query for building queries
-  - `src/server.ts` - `createServerFunctions()` factory for Effect-based handlers
-  - `src/error.ts` - Typed errors (DocNotFoundError, DocNotUniqueError, etc.)
-  - `src/values.ts` - Schema/validator bridge between Effect Schema and Convex
-  - `src/testing/` - Core mock utilities
-
-- **`packages/helpers/`** - Stream and filter utilities
-  - `src/server/stream.ts` - Stream query helpers
-  - `src/server/filter.ts` - Filter utilities
-  - `src/testing/` - Stream mock utilities
-
-- **`packages/model/`** - Schema-based model generation
-  - `src/model.ts` - `createModelFunction()` and related types
-
-- **`packages/internal/`** - Private shared utilities (not published)
-  - `src/types/` - Advanced TypeScript utilities (IsAny, IsUnion, SafeUnion, etc.)
-  - `src/option.ts` - Option helpers
-
-### Key Patterns
-
-**Effect Handler Pattern:**
-
-```typescript
-const handler = E.fn(function* (args) {
-  const {db} = yield* QueryCtx // Dependency injection via Context
-  const doc = yield* db.get(id)
-  return doc
-})
-```
-
-**Context Injection:**
-
-- `createQueryCtx<DataModel>()`, `createMutationCtx<DataModel>()`, `createActionCtx<DataModel>()` create Context tags
-- Services provided via `E.provideService()` at boundaries
-- Access inside handlers with `yield* ContextTag`
-
-**Database Operations:**
-
-- All operations return `Effect<T, E, never>` with typed errors
-- `db.get(id)` returns `Effect<Doc | null>`, use Option helpers
-- Query building: `db.query(table).withIndex(...).filter(...).collect()`
-
-## Code Style
-
-- No semicolons, 2 spaces, no bracket spacing
-- Max line length: 100 chars (prettier), 120 chars (eslint)
-- Use function declarations, not arrow functions
-- Type imports with `type` keyword: `import type {Foo} from "bar"`
-- Prefix unused variables with `_`
-- Functions returning promises must be `async`
-
-## Testing
-
-Uses `@effect/vitest` with edge-runtime environment:
-
-- `test()` for type signature validation with `expectTypeOf()`
-- `it.effect()` for Effect-based tests using `E.gen()` generators
-- Test files alongside source: `module.test.ts`
-- Mock utilities layered by package:
-  - `@apzelos/concave/testing` - Core mocks (contexts, database)
-  - `@apzelos/concave-helpers/testing` - Re-exports core + stream mocks
-  - `@apzelos/concave-model/testing` - Re-exports all mocks
-
-**For writing tests, use the skill at `.claude/skills/test.md`** - it contains comprehensive patterns for test structure, mocking, Effect testing, error testing with `E.flip`, and context injection with `E.provideService()`.
-
-## Important Constraints
-
-See AGENTS.md for detailed Convex-specific restrictions. Key points:
-
-- Convex functions cannot return Effect types (must be JSON-serializable)
-- Use `E.runPromise()` at Convex function boundaries
-- Queries are read-only; only mutations/actions can write
-- Only actions can make external HTTP requests
-- Auth returns `null` in scheduled functions
+1. `pnpm format` — Format all files with Prettier
+2. `pnpm checks` — Run typecheck, lint, and prettier check
+3. `pnpm test:run` — Run the test suite
