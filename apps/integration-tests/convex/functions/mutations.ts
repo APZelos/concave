@@ -136,8 +136,8 @@ export const mutationCallsMutation = mutation({
 
 export const mutationInsert = mutation({
   args: S.Struct({
-    name: S.String,
-    category: S.String,
+    name: S.NonEmptyTrimmedString,
+    category: S.NonEmptyString,
     status: S.Literal("active", "inactive"),
     priority: S.Number,
     content: S.optional(S.String),

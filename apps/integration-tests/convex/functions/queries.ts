@@ -27,8 +27,8 @@ export const queryNoArgsWithReturns = query({
 
 export const queryWithArgs = query({
   args: S.Struct({
-    name: S.String,
-    count: S.Number,
+    name: S.NonEmptyTrimmedString,
+    count: S.Number.pipe(S.int(), S.positive()),
   }),
   handler: E.fn(function* (args) {
     return `${args.name}: ${args.count}`

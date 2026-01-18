@@ -38,7 +38,10 @@ http.route({
         try: async () => request.json() as Promise<unknown>,
         catch: (error) =>
           new RequestJsonTaggedError({message: "Failed to read json", cause: error}),
-      }).pipe(E.map(S.decodeUnknownSync(S.Struct({data: S.String}))))
+      }).pipe(
+        E.flatMap(S.decodeUnknown(S.Struct({data: S.NonEmptyString}))),
+        E.mapError((e) => new RequestJsonTaggedError({message: "Validation failed", cause: e})),
+      )
 
       return new Response(JSON.stringify({received: body.data}), {
         status: 201,
@@ -96,7 +99,10 @@ http.route({
         try: async () => request.json() as Promise<unknown>,
         catch: (error) =>
           new RequestJsonTaggedError({message: "Failed to read json", cause: error}),
-      }).pipe(E.map(S.decodeUnknownSync(S.Struct({data: S.String}))))
+      }).pipe(
+        E.flatMap(S.decodeUnknown(S.Struct({data: S.NonEmptyString}))),
+        E.mapError((e) => new RequestJsonTaggedError({message: "Validation failed", cause: e})),
+      )
 
       return new Response(
         JSON.stringify({
@@ -119,9 +125,18 @@ http.route({
     E.fn(function* (request: Request) {
       const ctx = yield* HttpActionCtx
       const url = new URL(request.url)
-      const value = yield* E.succeed(url.searchParams.get("value") ?? "0").pipe(
-        E.map(S.decodeUnknownSync(S.NumberFromString)),
-      )
+      const params = yield* E.try({
+        try: () =>
+          S.decodeUnknownSync(
+            S.Struct({
+              value: S.optionalWith(S.NumberFromString, {default: () => 0}),
+            }),
+          )({
+            value: url.searchParams.get("value") ?? undefined,
+          }),
+        catch: (e) => new RequestJsonTaggedError({message: "Invalid parameters", cause: e}),
+      })
+      const value = params.value
 
       const Eresult: E.Effect<string> = ctx.runQuery(
         internal.functions.queries.internalQueryWithArgs,
@@ -147,7 +162,10 @@ http.route({
         try: async () => request.json() as Promise<unknown>,
         catch: (error) =>
           new RequestJsonTaggedError({message: "Failed to read json", cause: error}),
-      }).pipe(E.map(S.decodeUnknownSync(S.Struct({name: S.String}))))
+      }).pipe(
+        E.flatMap(S.decodeUnknown(S.Struct({name: S.NonEmptyString}))),
+        E.mapError((e) => new RequestJsonTaggedError({message: "Validation failed", cause: e})),
+      )
 
       const id = yield* ctx.runMutation(internal.functions.mutations.internalMutationInsert, {
         name: body.name,
@@ -245,12 +263,21 @@ http.route({
   handler: httpAction(
     E.fn(function* (request: Request) {
       const url = new URL(request.url)
-      const name = url.searchParams.get("name") ?? "default"
-      const count = yield* E.succeed(url.searchParams.get("count") ?? "0").pipe(
-        E.map(S.decodeUnknownSync(S.NumberFromString)),
-      )
+      const params = yield* E.try({
+        try: () =>
+          S.decodeUnknownSync(
+            S.Struct({
+              name: S.optionalWith(S.NonEmptyString, {default: () => "default"}),
+              count: S.optionalWith(S.NumberFromString, {default: () => 0}),
+            }),
+          )({
+            name: url.searchParams.get("name") ?? undefined,
+            count: url.searchParams.get("count") ?? undefined,
+          }),
+        catch: (e) => new RequestJsonTaggedError({message: "Invalid parameters", cause: e}),
+      })
 
-      return new Response(JSON.stringify({name, count}), {
+      return new Response(JSON.stringify({name: params.name, count: params.count}), {
         status: 200,
         headers: {"Content-Type": "application/json"},
       })
