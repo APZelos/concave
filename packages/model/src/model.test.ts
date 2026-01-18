@@ -4,7 +4,6 @@ import type {
   StreamQueryInitializer,
 } from "@apzelos/concave-helpers/server/stream"
 import type {
-  DocNotUniqueError,
   GenericMutationCtx,
   GenericQueryCtx,
   OrderedQuery,
@@ -25,6 +24,7 @@ import {
   createMutationCtx,
   createQueryCtx,
   DocNotFoundError,
+  DocNotUniqueError,
   InvalidDocIdError,
 } from "@apzelos/concave/server"
 import {
@@ -1048,6 +1048,18 @@ describe("model", () => {
         expect(actual).toEqual(Option.none())
       }),
     )
+
+    it.effect("should fail with DocNotUniqueError when multiple documents exist", () =>
+      E.gen(function* () {
+        const orderedQuery = mockOrderedQuery<TableInfo<"user">>({
+          take: vi.fn().mockResolvedValue([doc, doc]),
+        })
+
+        const error = yield* User.unique(orderedQuery).pipe(E.flip)
+
+        expect(error).toBeInstanceOf(DocNotUniqueError)
+      }),
+    )
   })
 
   describe("paginate", () => {
@@ -1079,6 +1091,22 @@ describe("model", () => {
         expect(actual.continueCursor).toBe("cursor-123")
       }),
     )
+
+    test("should die if cannot decode paginated docs", async () => {
+      const invalidDoc = {...doc, age: -1}
+      const paginationResult = {
+        page: [invalidDoc],
+        isDone: false,
+        continueCursor: "cursor-123",
+      }
+      const orderedQuery = mockOrderedQuery<TableInfo<"user">>({
+        paginate: vi.fn().mockResolvedValue(paginationResult),
+      })
+
+      await expect(async () =>
+        User.paginate({numItems: 10, cursor: null})(orderedQuery).pipe(E.runPromise),
+      ).rejects.toThrowError(/userDocument|age/)
+    })
   })
 
   describe("collectStream", () => {
@@ -1088,6 +1116,17 @@ describe("model", () => {
       const actual = User.collectStream(queryStream)
 
       expectTypeOf(actual).toEqualTypeOf<E.Effect<readonly UserDocument[], never, never>>()
+    })
+
+    test("should die if cannot decode doc in collectStream", async () => {
+      const invalidDoc = {...doc, age: -1}
+      const queryStream = mockQueryStream<DataModel, Doc<"user">>({
+        collect: vi.fn().mockResolvedValue([invalidDoc]),
+      })
+
+      await expect(async () =>
+        User.collectStream(queryStream).pipe(E.runPromise),
+      ).rejects.toThrowError(/userDocument|age/)
     })
   })
 
@@ -1099,6 +1138,17 @@ describe("model", () => {
 
       expectTypeOf(actual).toEqualTypeOf<E.Effect<readonly UserDocument[], never, never>>()
     })
+
+    test("should die if cannot decode doc in takeFromStream", async () => {
+      const invalidDoc = {...doc, age: -1}
+      const queryStream = mockQueryStream<DataModel, Doc<"user">>({
+        take: vi.fn().mockResolvedValue([invalidDoc]),
+      })
+
+      await expect(async () =>
+        User.takeFromStream(5)(queryStream).pipe(E.runPromise),
+      ).rejects.toThrowError(/userDocument|age/)
+    })
   })
 
   describe("firstFromStream", () => {
@@ -1108,6 +1158,17 @@ describe("model", () => {
       const actual = User.firstFromStream(queryStream)
 
       expectTypeOf(actual).toEqualTypeOf<E.Effect<Option.Option<UserDocument>, never, never>>()
+    })
+
+    test("should die if cannot decode doc in firstFromStream", async () => {
+      const invalidDoc = {...doc, age: -1}
+      const queryStream = mockQueryStream<DataModel, Doc<"user">>({
+        first: vi.fn().mockResolvedValue(invalidDoc),
+      })
+
+      await expect(async () =>
+        User.firstFromStream(queryStream).pipe(E.runPromise),
+      ).rejects.toThrowError(/userDocument|age/)
     })
   })
 
@@ -1121,6 +1182,18 @@ describe("model", () => {
         E.Effect<Option.Option<UserDocument>, DocNotUniqueError, never>
       >()
     })
+
+    it.effect("should fail with DocNotUniqueError when multiple documents exist", () =>
+      E.gen(function* () {
+        const queryStream = mockQueryStream<DataModel, Doc<"user">>({
+          take: vi.fn().mockResolvedValue([doc, doc]),
+        })
+
+        const error = yield* User.uniqueFromStream(queryStream).pipe(E.flip)
+
+        expect(error).toBeInstanceOf(DocNotUniqueError)
+      }),
+    )
   })
 
   describe("paginateStream", () => {
@@ -1133,6 +1206,22 @@ describe("model", () => {
         ReturnType<typeof SPaginationResult<typeof User.Document>>
       >
       expectTypeOf(actual).toEqualTypeOf<E.Effect<ExpectedPaginationResult, never, never>>()
+    })
+
+    test("should die if cannot decode paginated stream docs", async () => {
+      const invalidDoc = {...doc, age: -1}
+      const paginationResult = {
+        page: [invalidDoc],
+        isDone: false,
+        continueCursor: "cursor-123",
+      }
+      const queryStream = mockQueryStream<DataModel, Doc<"user">>({
+        paginate: vi.fn().mockResolvedValue(paginationResult),
+      })
+
+      await expect(async () =>
+        User.paginateStream({numItems: 10, cursor: null})(queryStream).pipe(E.runPromise),
+      ).rejects.toThrowError(/userDocument|age/)
     })
   })
 
