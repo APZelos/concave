@@ -13,5 +13,12 @@ export default defineConfig({
   clean: true,
   format: ["esm"],
   noExternal: ["@apzelos/concave-internal"],
-  external: ["typescript", "effect", "convex", "convex-helpers", "@apzelos/concave"],
+  external: [
+    "typescript",
+    "effect",
+    "convex",
+    "convex-helpers",
+    "@apzelos/concave",
+    "@effect/vitest",
+  ],
 })
