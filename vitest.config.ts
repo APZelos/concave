@@ -6,6 +6,7 @@ export default defineConfig({
       "packages/concave/vitest.config.ts",
       "packages/helpers/vitest.config.ts",
       "packages/model/vitest.config.ts",
+      "apps/integration-tests/vitest.config.ts",
     ],
   },
 })

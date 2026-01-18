@@ -5,9 +5,8 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
-    "test": "vitest",
-    "test:run": "vitest --run",
-    "test:integration": "pnpm --filter integration-tests test",
+    "test": "vitest --run",
+    "test:watch": "vitest",
     "typecheck": "turbo run typecheck",
     "lint": "turbo run lint",
     "checks": "turbo run typecheck lint && pnpx prettier . --check",

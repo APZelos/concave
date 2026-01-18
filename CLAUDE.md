@@ -16,8 +16,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Build/Test/Lint Commands
 
 ```bash
-pnpm test                           # Run tests with vitest (watch mode)
-pnpm test:run                       # Run tests once
+pnpm test                           # Run all tests once (unit + integration)
+pnpm test:watch                     # Run tests in watch mode
 pnpm build                          # Build all packages with turbo
 pnpm typecheck                      # Type check all packages
 pnpm lint                           # Lint all packages
