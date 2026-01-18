@@ -13,11 +13,13 @@ Integration tests verify that **Concave packages** work correctly against a simu
 These tests exist to verify our Concave packages behave correctly - they are **not** for testing Convex itself. Assume Convex works perfectly; it has its own thorough test suite and testing it is not our responsibility.
 
 We use Convex operations as a **means to an end** - to verify our packages work correctly. For example:
+
 - Verify data made it to the database correctly to ensure our wrappers pass data through properly
 - Check query results to ensure our abstractions play correctly with Convex
 - Use `t.run()` to inspect database state after mutations to verify our handlers behaved correctly
 
 **Focus on testing:**
+
 - Concave Effect handlers integrate correctly with Convex runtime
 - Context injection (QueryCtx, MutationCtx, ActionCtx) works as expected
 - Schema transformations between Effect Schema and Convex validators
@@ -26,6 +28,7 @@ We use Convex operations as a **means to an end** - to verify our packages work 
 - Package-specific features (streams, filters, models)
 
 **Avoid testing Convex itself:**
+
 - Don't write tests just to verify Convex's insert/get/patch/delete work
 - Don't test that Convex indexes return correct results in isolation
 - Don't test Convex pagination mechanics
@@ -141,6 +144,7 @@ const id = await t.run(async (ctx) => {
 #### When to Extract Helpers
 
 Only extract helpers when there's significant repetition **within the same file**. Keep helpers:
+
 - **Local to the file** - Do not share helpers across test files
 - **Simple** - Avoid over-engineered abstractions with many parameters
 - **Optional** - Question whether a helper is needed at all
@@ -192,8 +196,12 @@ it("test 2", async () => {
 
 // BAD - shared state between tests
 const t = setup()
-it("test 1", async () => { /* ... */ })
-it("test 2", async () => { /* ... */ })
+it("test 1", async () => {
+  /* ... */
+})
+it("test 2", async () => {
+  /* ... */
+})
 ```
 
 #### Storage Data Setup
@@ -202,9 +210,7 @@ For tests involving file storage:
 
 ```typescript
 const storageId = await t.run(async (ctx) => {
-  return await ctx.storage.store(
-    new Blob(["file content"], {type: "text/plain"})
-  )
+  return await ctx.storage.store(new Blob(["file content"], {type: "text/plain"}))
 })
 ```
 
