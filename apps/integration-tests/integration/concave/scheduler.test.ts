@@ -232,4 +232,83 @@ describe("Scheduler", () => {
       expect(pendingTasks.every((task: {status: string}) => task.status === "pending")).toBe(true)
     })
   })
+
+  describe("Chained Scheduled Functions", () => {
+    it("should execute entire chain with finishAllScheduledFunctions", async () => {
+      const t = setup()
+      const chainId = "test-chain-1"
+
+      const result = await t.mutation(api.functions.scheduler.scheduleChainedTask, {
+        delayMs: 0,
+        chainId,
+      })
+
+      expect(result.taskId).toBeDefined()
+      expect(result.scheduledId).toBeDefined()
+
+      await t.finishAllScheduledFunctions(() => {
+        vi.runAllTimers()
+      })
+
+      const chainTasks = await t.query(api.functions.scheduler.getChainTasks, {chainId})
+
+      expect(chainTasks).toHaveLength(3)
+      expect(chainTasks.every((task: {status: string}) => task.status === "completed")).toBe(true)
+
+      const step1 = chainTasks.find((task: {type: string}) => task.type.includes("step-1"))
+      const step2 = chainTasks.find((task: {type: string}) => task.type.includes("step-2"))
+      const step3 = chainTasks.find((task: {type: string}) => task.type.includes("step-3"))
+
+      expect(step1).toBeDefined()
+      expect(step2).toBeDefined()
+      expect(step3).toBeDefined()
+    })
+
+    it("should only execute first level with finishInProgressScheduledFunctions", async () => {
+      const t = setup()
+      const chainId = "test-chain-2"
+
+      await t.mutation(api.functions.scheduler.scheduleChainedTask, {
+        delayMs: 0,
+        chainId,
+      })
+
+      vi.runAllTimers()
+      await t.finishInProgressScheduledFunctions()
+
+      const chainTasks = await t.query(api.functions.scheduler.getChainTasks, {chainId})
+
+      expect(chainTasks.length).toBeGreaterThanOrEqual(2)
+
+      const step1 = chainTasks.find((task: {type: string}) => task.type.includes("step-1"))
+      expect(step1?.status).toBe("completed")
+    })
+
+    it("should handle multiple chains independently", async () => {
+      const t = setup()
+      const chainIdA = "chain-A"
+      const chainIdB = "chain-B"
+
+      await t.mutation(api.functions.scheduler.scheduleChainedTask, {
+        delayMs: 0,
+        chainId: chainIdA,
+      })
+      await t.mutation(api.functions.scheduler.scheduleChainedTask, {
+        delayMs: 0,
+        chainId: chainIdB,
+      })
+
+      await t.finishAllScheduledFunctions(() => {
+        vi.runAllTimers()
+      })
+
+      const chainATasks = await t.query(api.functions.scheduler.getChainTasks, {chainId: chainIdA})
+      const chainBTasks = await t.query(api.functions.scheduler.getChainTasks, {chainId: chainIdB})
+
+      expect(chainATasks).toHaveLength(3)
+      expect(chainBTasks).toHaveLength(3)
+      expect(chainATasks.every((task: {status: string}) => task.status === "completed")).toBe(true)
+      expect(chainBTasks.every((task: {status: string}) => task.status === "completed")).toBe(true)
+    })
+  })
 })

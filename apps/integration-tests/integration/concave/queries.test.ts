@@ -3,24 +3,14 @@ import {describe, expect, it} from "vitest"
 import {api, internal} from "../../convex/_generated/api"
 import {setup} from "../../setup"
 
-async function createTestItem(
-  t: ReturnType<typeof setup>,
-  overrides: {
-    name?: string
-    category?: string
-    status?: "active" | "inactive"
-    priority?: number
-    content?: string
-  } = {},
-) {
+async function createItem(t: ReturnType<typeof setup>, name: string, category: string) {
   return await t.run(async (ctx) => {
     return await ctx.db.insert("items", {
-      name: overrides.name ?? "Test Item",
-      category: overrides.category ?? "default",
-      status: overrides.status ?? "active",
-      priority: overrides.priority ?? 1,
+      name,
+      category,
+      status: "active",
+      priority: 1,
       value: 0,
-      content: overrides.content,
       createdAt: Date.now(),
     })
   })
@@ -185,9 +175,9 @@ describe("Queries", () => {
       it("should return all documents", async () => {
         const t = setup()
 
-        await createTestItem(t, {name: "Item 1"})
-        await createTestItem(t, {name: "Item 2"})
-        await createTestItem(t, {name: "Item 3"})
+        await createItem(t, "Item 1", "default")
+        await createItem(t, "Item 2", "default")
+        await createItem(t, "Item 3", "default")
 
         const items = await t.query(api.functions.queries.queryFullTableScan, {})
 
@@ -207,8 +197,8 @@ describe("Queries", () => {
       it("should sort ascending", async () => {
         const t = setup()
 
-        await createTestItem(t, {name: "First"})
-        await createTestItem(t, {name: "Second"})
+        await createItem(t, "First", "default")
+        await createItem(t, "Second", "default")
 
         const items = await t.query(api.functions.queries.queryWithOrderAsc, {})
 
@@ -219,8 +209,8 @@ describe("Queries", () => {
       it("should sort descending", async () => {
         const t = setup()
 
-        await createTestItem(t, {name: "First"})
-        await createTestItem(t, {name: "Second"})
+        await createItem(t, "First", "default")
+        await createItem(t, "Second", "default")
 
         const items = await t.query(api.functions.queries.queryWithOrderDesc, {})
 
@@ -233,9 +223,9 @@ describe("Queries", () => {
       it("should limit results to N", async () => {
         const t = setup()
 
-        await createTestItem(t, {name: "Item 1"})
-        await createTestItem(t, {name: "Item 2"})
-        await createTestItem(t, {name: "Item 3"})
+        await createItem(t, "Item 1", "default")
+        await createItem(t, "Item 2", "default")
+        await createItem(t, "Item 3", "default")
 
         const items = await t.query(api.functions.queries.queryWithTake, {count: 2})
 
@@ -245,7 +235,7 @@ describe("Queries", () => {
       it("should return all if N exceeds total", async () => {
         const t = setup()
 
-        await createTestItem(t, {name: "Only Item"})
+        await createItem(t, "Only Item", "default")
 
         const items = await t.query(api.functions.queries.queryWithTake, {count: 10})
 
@@ -257,8 +247,8 @@ describe("Queries", () => {
       it("should return first document", async () => {
         const t = setup()
 
-        await createTestItem(t, {name: "First Item"})
-        await createTestItem(t, {name: "Second Item"})
+        await createItem(t, "First Item", "default")
+        await createItem(t, "Second Item", "default")
 
         const item = await t.query(api.functions.queries.queryFirst, {})
 
@@ -279,9 +269,9 @@ describe("Queries", () => {
       it("should filter by index field", async () => {
         const t = setup()
 
-        await createTestItem(t, {name: "Cat Item", category: "animals"})
-        await createTestItem(t, {name: "Dog Item", category: "animals"})
-        await createTestItem(t, {name: "Car Item", category: "vehicles"})
+        await createItem(t, "Cat Item", "animals")
+        await createItem(t, "Dog Item", "animals")
+        await createItem(t, "Car Item", "vehicles")
 
         const animals = await t.query(api.functions.queries.queryWithIndex, {
           category: "animals",
@@ -294,7 +284,7 @@ describe("Queries", () => {
       it("should return empty when no match", async () => {
         const t = setup()
 
-        await createTestItem(t, {name: "Item", category: "other"})
+        await createItem(t, "Item", "other")
 
         const items = await t.query(api.functions.queries.queryWithIndex, {
           category: "nonexistent",
@@ -308,7 +298,7 @@ describe("Queries", () => {
       it("should return document when exactly one", async () => {
         const t = setup()
 
-        await createTestItem(t, {name: "Unique Item", category: "unique-cat"})
+        await createItem(t, "Unique Item", "unique-cat")
 
         const item = await t.query(api.functions.queries.queryUnique, {
           category: "unique-cat",
@@ -331,8 +321,8 @@ describe("Queries", () => {
       it("should throw DocNotUniqueError when multiple", async () => {
         const t = setup()
 
-        await createTestItem(t, {name: "Item 1", category: "duplicate"})
-        await createTestItem(t, {name: "Item 2", category: "duplicate"})
+        await createItem(t, "Item 1", "duplicate")
+        await createItem(t, "Item 2", "duplicate")
 
         await expect(
           t.query(api.functions.queries.queryUnique, {category: "duplicate"}),
@@ -345,7 +335,7 @@ describe("Queries", () => {
         const t = setup()
 
         for (let i = 0; i < 5; i++) {
-          await createTestItem(t, {name: `Item ${i}`})
+          await createItem(t, `Item ${i}`, "default")
         }
 
         const firstPage = await t.query(api.functions.queries.queryPaginate, {
@@ -361,7 +351,7 @@ describe("Queries", () => {
         const t = setup()
 
         for (let i = 0; i < 5; i++) {
-          await createTestItem(t, {name: `Item ${i}`})
+          await createItem(t, `Item ${i}`, "default")
         }
 
         const firstPage = await t.query(api.functions.queries.queryPaginate, {
@@ -381,7 +371,7 @@ describe("Queries", () => {
       it("should indicate done on last page", async () => {
         const t = setup()
 
-        await createTestItem(t, {name: "Single Item"})
+        await createItem(t, "Single Item", "default")
 
         const result = await t.query(api.functions.queries.queryPaginate, {
           paginationOpts: {numItems: 10, cursor: null},
@@ -396,9 +386,32 @@ describe("Queries", () => {
       it("should filter by multiple index fields", async () => {
         const t = setup()
 
-        await createTestItem(t, {category: "tech", status: "active"})
-        await createTestItem(t, {category: "tech", status: "inactive"})
-        await createTestItem(t, {category: "food", status: "active"})
+        await t.run(async (ctx) => {
+          await ctx.db.insert("items", {
+            name: "Tech Active",
+            category: "tech",
+            status: "active",
+            priority: 1,
+            value: 0,
+            createdAt: Date.now(),
+          })
+          await ctx.db.insert("items", {
+            name: "Tech Inactive",
+            category: "tech",
+            status: "inactive",
+            priority: 1,
+            value: 0,
+            createdAt: Date.now(),
+          })
+          await ctx.db.insert("items", {
+            name: "Food Active",
+            category: "food",
+            status: "active",
+            priority: 1,
+            value: 0,
+            createdAt: Date.now(),
+          })
+        })
 
         const items = await t.query(api.functions.queries.queryCompoundIndex, {
           category: "tech",
@@ -413,9 +426,32 @@ describe("Queries", () => {
       it("should support partial prefix match", async () => {
         const t = setup()
 
-        await createTestItem(t, {category: "tech", status: "active"})
-        await createTestItem(t, {category: "tech", status: "inactive"})
-        await createTestItem(t, {category: "food", status: "active"})
+        await t.run(async (ctx) => {
+          await ctx.db.insert("items", {
+            name: "Tech Active",
+            category: "tech",
+            status: "active",
+            priority: 1,
+            value: 0,
+            createdAt: Date.now(),
+          })
+          await ctx.db.insert("items", {
+            name: "Tech Inactive",
+            category: "tech",
+            status: "inactive",
+            priority: 1,
+            value: 0,
+            createdAt: Date.now(),
+          })
+          await ctx.db.insert("items", {
+            name: "Food Active",
+            category: "food",
+            status: "active",
+            priority: 1,
+            value: 0,
+            createdAt: Date.now(),
+          })
+        })
 
         const items = await t.query(api.functions.queries.queryCompoundIndexPartial, {
           category: "tech",
@@ -430,8 +466,26 @@ describe("Queries", () => {
       it("should find documents by text", async () => {
         const t = setup()
 
-        await createTestItem(t, {name: "Cat Article", content: "Cats are wonderful pets"})
-        await createTestItem(t, {name: "Dog Article", content: "Dogs are loyal companions"})
+        await t.run(async (ctx) => {
+          await ctx.db.insert("items", {
+            name: "Cat Article",
+            category: "articles",
+            status: "active",
+            priority: 1,
+            value: 0,
+            content: "Cats are wonderful pets",
+            createdAt: Date.now(),
+          })
+          await ctx.db.insert("items", {
+            name: "Dog Article",
+            category: "articles",
+            status: "active",
+            priority: 1,
+            value: 0,
+            content: "Dogs are loyal companions",
+            createdAt: Date.now(),
+          })
+        })
 
         const results = await t.query(api.functions.queries.querySearch, {
           searchText: "cats wonderful",
@@ -443,7 +497,17 @@ describe("Queries", () => {
       it("should return empty when no match", async () => {
         const t = setup()
 
-        await createTestItem(t, {name: "Item", content: "Some content"})
+        await t.run(async (ctx) => {
+          await ctx.db.insert("items", {
+            name: "Item",
+            category: "misc",
+            status: "active",
+            priority: 1,
+            value: 0,
+            content: "Some content",
+            createdAt: Date.now(),
+          })
+        })
 
         const results = await t.query(api.functions.queries.querySearch, {
           searchText: "elephants",
@@ -457,9 +521,32 @@ describe("Queries", () => {
       it("should apply filter to results", async () => {
         const t = setup()
 
-        await createTestItem(t, {name: "Low Priority", priority: 1})
-        await createTestItem(t, {name: "High Priority", priority: 10})
-        await createTestItem(t, {name: "Medium Priority", priority: 5})
+        await t.run(async (ctx) => {
+          await ctx.db.insert("items", {
+            name: "Low Priority",
+            category: "tasks",
+            status: "active",
+            priority: 1,
+            value: 0,
+            createdAt: Date.now(),
+          })
+          await ctx.db.insert("items", {
+            name: "High Priority",
+            category: "tasks",
+            status: "active",
+            priority: 10,
+            value: 0,
+            createdAt: Date.now(),
+          })
+          await ctx.db.insert("items", {
+            name: "Medium Priority",
+            category: "tasks",
+            status: "active",
+            priority: 5,
+            value: 0,
+            createdAt: Date.now(),
+          })
+        })
 
         const highPriorityItems = await t.query(api.functions.queries.queryWithFilter, {
           minPriority: 5,
@@ -474,7 +561,7 @@ describe("Queries", () => {
       it("should return document by ID", async () => {
         const t = setup()
 
-        const id = await createTestItem(t, {name: "Get Test"})
+        const id = await createItem(t, "Get Test", "default")
 
         const item = await t.query(api.functions.queries.queryGet, {id})
 
@@ -486,7 +573,7 @@ describe("Queries", () => {
         const t = setup()
 
         // Create and delete to get a valid but non-existent ID format
-        const id = await createTestItem(t, {name: "Temp"})
+        const id = await createItem(t, "Temp", "default")
         await t.run(async (ctx) => {
           await ctx.db.delete(id)
         })
@@ -501,7 +588,7 @@ describe("Queries", () => {
       it("should return valid ID unchanged", async () => {
         const t = setup()
 
-        const id = await createTestItem(t, {name: "Test"})
+        const id = await createItem(t, "Test", "default")
 
         const normalized = await t.query(api.functions.queries.queryNormalizeId, {
           idString: id,
@@ -638,6 +725,86 @@ describe("Queries", () => {
 
         expect(result).toBeNull()
       })
+
+      it("should decode deeply nested transformations (3+ levels)", async () => {
+        const t = setup()
+        const isoDate = "2024-03-20T15:45:00.000Z"
+
+        const result = await t.query(api.functions.queries.queryWithDeeplyNestedTransformations, {
+          level1: {
+            level2: {
+              level3: {
+                value: "42",
+                date: isoDate,
+              },
+            },
+          },
+        })
+
+        expect(result).toEqual({
+          value: 42,
+          timestamp: new Date(isoDate).getTime(),
+        })
+      })
+
+      it("should decode nullable transformation when value is present", async () => {
+        const t = setup()
+
+        const result = await t.query(api.functions.queries.queryWithNullableTransformation, {
+          value: "25",
+        })
+
+        expect(result).toBe(50)
+      })
+
+      it("should handle nullable transformation when value is null", async () => {
+        const t = setup()
+
+        const result = await t.query(api.functions.queries.queryWithNullableTransformation, {
+          value: null,
+        })
+
+        expect(result).toBeNull()
+      })
+
+      it("should decode union type with number transformation", async () => {
+        const t = setup()
+
+        const result = await t.query(api.functions.queries.queryWithUnionTransformation, {
+          value: {type: "number", data: "21"},
+        })
+
+        expect(result).toEqual({type: "number", result: 42})
+      })
+
+      it("should decode union type with date transformation", async () => {
+        const t = setup()
+        const isoDate = "2024-06-15T12:00:00.000Z"
+
+        const result = await t.query(api.functions.queries.queryWithUnionTransformation, {
+          value: {type: "date", data: isoDate},
+        })
+
+        expect(result).toEqual({type: "date", result: new Date(isoDate).getTime()})
+      })
+
+      it("should decode array of nested objects with multiple transformations", async () => {
+        const t = setup()
+        const date1 = "2024-01-01T00:00:00.000Z"
+        const date2 = "2024-06-15T12:00:00.000Z"
+
+        const result = await t.query(api.functions.queries.queryWithArrayOfNestedTransformations, {
+          items: [
+            {id: "1", timestamp: date1, nested: {value: "10"}},
+            {id: "2", timestamp: date2, nested: {value: "20"}},
+          ],
+        })
+
+        expect(result).toEqual([
+          {id: 1, timestamp: new Date(date1).getTime(), nestedValue: 10},
+          {id: 2, timestamp: new Date(date2).getTime(), nestedValue: 20},
+        ])
+      })
     })
 
     describe("returns transformations", () => {
@@ -663,6 +830,26 @@ describe("Queries", () => {
         expect(result.doubledValue).toBe(42)
         expect(typeof result.original).toBe("number")
         expect(result.original).toBe(21)
+      })
+
+      it("should return deeply nested struct with transformations", async () => {
+        const t = setup()
+
+        const result = await t.query(
+          api.functions.queries.queryReturnsDeeplyNestedTransformations,
+          {
+            value: 7,
+          },
+        )
+
+        expect(result).toEqual({
+          level1: {
+            level2: {
+              transformed: 21,
+            },
+          },
+        })
+        expect(typeof result.level1.level2.transformed).toBe("number")
       })
     })
   })

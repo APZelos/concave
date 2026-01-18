@@ -368,3 +368,87 @@ export const queryReturnsStructWithTransformations = query({
     }
   }),
 })
+
+export const queryWithDeeplyNestedTransformations = query({
+  args: S.Struct({
+    level1: S.Struct({
+      level2: S.Struct({
+        level3: S.Struct({
+          value: S.NumberFromString,
+          date: S.DateFromString,
+        }),
+      }),
+    }),
+  }),
+  handler: E.fn(function* (args) {
+    return {
+      value: args.level1.level2.level3.value,
+      timestamp: args.level1.level2.level3.date.getTime(),
+    }
+  }),
+})
+
+export const queryWithNullableTransformation = query({
+  args: S.Struct({
+    value: S.NullOr(S.NumberFromString),
+  }),
+  handler: E.fn(function* (args) {
+    return args.value !== null ? args.value * 2 : null
+  }),
+})
+
+export const queryWithUnionTransformation = query({
+  args: S.Struct({
+    value: S.Union(
+      S.Struct({type: S.Literal("number"), data: S.NumberFromString}),
+      S.Struct({type: S.Literal("date"), data: S.DateFromString}),
+    ),
+  }),
+  handler: E.fn(function* (args) {
+    if (args.value.type === "number") {
+      return {type: "number" as const, result: args.value.data * 2}
+    }
+    return {type: "date" as const, result: args.value.data.getTime()}
+  }),
+})
+
+export const queryWithArrayOfNestedTransformations = query({
+  args: S.Struct({
+    items: S.Array(
+      S.Struct({
+        id: S.NumberFromString,
+        timestamp: S.DateFromString,
+        nested: S.Struct({
+          value: S.NumberFromString,
+        }),
+      }),
+    ),
+  }),
+  handler: E.fn(function* (args) {
+    return args.items.map((item) => ({
+      id: item.id,
+      timestamp: item.timestamp.getTime(),
+      nestedValue: item.nested.value,
+    }))
+  }),
+})
+
+export const queryReturnsDeeplyNestedTransformations = query({
+  args: S.Struct({value: S.Number}),
+  returns: S.Struct({
+    level1: S.Struct({
+      level2: S.Struct({
+        transformed: S.NumberFromString,
+      }),
+    }),
+  }),
+  handler: E.fn(function* (args) {
+    return {
+      level1: {
+        level2: {
+          transformed: String(args.value * 3),
+        },
+      },
+    }
+  }),
+})

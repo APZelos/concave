@@ -132,3 +132,82 @@ export const scheduleAuthCheck = mutation({
     return yield* EscheduledId
   }),
 })
+
+// Explicit type annotations break circular type inference
+export const processChainStep = internalMutation({
+  args: S.Struct({
+    chainId: S.String,
+    taskId: SDocId("tasks"),
+    currentStep: S.Number,
+    totalSteps: S.Number,
+  }),
+  handler: E.fn(function* (args) {
+    const {db, scheduler} = yield* MutationCtx
+
+    yield* db.patch(args.taskId, {status: "completed"})
+
+    if (args.currentStep < args.totalSteps) {
+      const nextStep = args.currentStep + 1
+
+      const ENextTaskId: E.Effect<Id<"tasks">> = db.insert("tasks", {
+        type: `chain-${args.chainId}-step-${nextStep}`,
+        status: "pending",
+        data: {chainId: args.chainId, step: nextStep, previousTaskId: args.taskId},
+      })
+      const nextTaskId = yield* ENextTaskId
+
+      const EScheduled: E.Effect<Id<"_scheduled_functions">> = scheduler.runAfter(
+        0,
+        internal.functions.scheduler.processChainStep,
+        {
+          chainId: args.chainId,
+          taskId: nextTaskId,
+          currentStep: nextStep,
+          totalSteps: args.totalSteps,
+        },
+      )
+      yield* EScheduled
+
+      return {step: args.currentStep, completed: true, nextTaskId}
+    }
+
+    return {step: args.currentStep, completed: true, chainComplete: true}
+  }),
+})
+
+export const scheduleChainedTask = mutation({
+  args: S.Struct({
+    delayMs: S.Number,
+    chainId: S.String,
+  }),
+  handler: E.fn(function* (args) {
+    const {db, scheduler} = yield* MutationCtx
+
+    const ETaskId: E.Effect<Id<"tasks">> = db.insert("tasks", {
+      type: `chain-${args.chainId}-step-1`,
+      status: "pending",
+      data: {chainId: args.chainId, step: 1},
+    })
+    const taskId = yield* ETaskId
+
+    const EScheduledId: E.Effect<Id<"_scheduled_functions">> = scheduler.runAfter(
+      args.delayMs,
+      internal.functions.scheduler.processChainStep,
+      {chainId: args.chainId, taskId, currentStep: 1, totalSteps: 3},
+    )
+    const scheduledId = yield* EScheduledId
+
+    return {taskId, scheduledId}
+  }),
+})
+
+export const getChainTasks = query({
+  args: S.Struct({
+    chainId: S.String,
+  }),
+  handler: E.fn(function* (args) {
+    const {db} = yield* QueryCtx
+    const allTasks = yield* db.query("tasks").collect()
+    return allTasks.filter((task) => task.type.startsWith(`chain-${args.chainId}`))
+  }),
+})
