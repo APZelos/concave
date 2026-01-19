@@ -104,9 +104,10 @@ export function distinctStream<
 export function orderStream<
   Schema extends SchemaDefinition<any, boolean>,
   TableName extends TableNamesInDataModel<DataModelFromSchemaDefinition<Schema>>,
+  IndexName extends IndexNames<NamedTableInfo<DataModelFromSchemaDefinition<Schema>, TableName>>,
 >(order: "asc" | "desc") {
   return (
-    q: StreamQueryInitializer<Schema, TableName>,
+    q: StreamQuery<Schema, TableName, IndexName>,
   ): QueryStream<
     DataModelFromSchemaDefinition<Schema>,
     DocumentByInfo<NamedTableInfo<DataModelFromSchemaDefinition<Schema>, TableName>>

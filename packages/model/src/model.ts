@@ -289,10 +289,10 @@ export function createModelFunction<Schema extends SchemaDefinition<any, boolean
         q.order(order)
     }
 
-    function orderStream<Schema extends SchemaDefinition<any, boolean>>(order: "asc" | "desc") {
+    function orderStream<IndexName extends IndexNames<TableInfo>>(order: "asc" | "desc") {
       return (
-        q: StreamQueryInitializer<Schema, TableName>,
-      ): QueryStream<DataModelFromSchemaDefinition<Schema>, Doc<TableName>> => q.order(order)
+        q: StreamQuery<Schema, TableName, IndexName>,
+      ): QueryStream<DataModel, Doc<TableName>> => q.order(order)
     }
 
     function paginate(paginationOpts: S.Schema.Type<typeof SPaginationOptions>) {

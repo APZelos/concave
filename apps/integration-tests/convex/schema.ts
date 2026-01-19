@@ -15,6 +15,7 @@ export default defineSchema({
     .index("by_category", ["category"])
     .index("by_status", ["status"])
     .index("by_value", ["value"])
+    .index("by_created_at", ["createdAt"])
     .index("by_category_status", ["category", "status"])
     .index("by_category_priority", ["category", "priority"])
     .index("by_category_value", ["category", "value"])

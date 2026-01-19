@@ -11,6 +11,7 @@
 import type * as concave from "../concave.js";
 import type * as functions_actions from "../functions/actions.js";
 import type * as functions_filter from "../functions/filter.js";
+import type * as functions_model from "../functions/model.js";
 import type * as functions_mutations from "../functions/mutations.js";
 import type * as functions_queries from "../functions/queries.js";
 import type * as functions_scheduler from "../functions/scheduler.js";
@@ -28,6 +29,7 @@ declare const fullApi: ApiFromModules<{
   concave: typeof concave;
   "functions/actions": typeof functions_actions;
   "functions/filter": typeof functions_filter;
+  "functions/model": typeof functions_model;
   "functions/mutations": typeof functions_mutations;
   "functions/queries": typeof functions_queries;
   "functions/scheduler": typeof functions_scheduler;

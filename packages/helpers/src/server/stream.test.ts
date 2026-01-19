@@ -558,15 +558,11 @@ describe("Helper functions", () => {
   describe("orderStream", () => {
     test("should have correct type signature", () => {
       const queryCtx = mockGenericQueryCtx<DataModel>()
-      const convexStreamQueryInitializer = mockConvexStreamQueryInitializer<Schema, "user">()
-      const streamQueryInitializer = new StreamQueryInitializer(
-        QueryCtx,
-        queryCtx,
-        convexStreamQueryInitializer,
-      )
+      const convexStreamQuery = mockConvexStreamQuery<Schema, "user", "by_name">()
+      const streamQuery = new StreamQuery(QueryCtx, queryCtx, convexStreamQuery)
 
-      const orderFn = orderStream<Schema, "user">("asc")
-      const actual = orderFn(streamQueryInitializer)
+      const orderFn = orderStream<Schema, "user", "by_name">("asc")
+      const actual = orderFn(streamQuery)
 
       expectTypeOf(actual).toEqualTypeOf<QueryStream<DataModel, Doc<"user">>>()
     })
