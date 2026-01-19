@@ -300,58 +300,133 @@ export const getUserWithPosts = query({
 })
 ```
 
----
+### Yield Directly in Pipe
 
-## Context Services Matrix
-
-| Service                     | QueryCtx | MutationCtx | ActionCtx |
-| --------------------------- | -------- | ----------- | --------- |
-| `auth`                      | ✓        | ✓           | ✓         |
-| `db` (read)                 | ✓        | ✓           | -         |
-| `db` (write)                | -        | ✓           | -         |
-| `storage.getUrl`            | ✓        | ✓           | ✓         |
-| `storage.generateUploadUrl` | -        | ✓           | ✓         |
-| `storage.delete`            | -        | ✓           | ✓         |
-| `storage.get`               | -        | -           | ✓         |
-| `storage.store`             | -        | -           | ✓         |
-| `scheduler`                 | -        | ✓           | ✓         |
-| `runQuery`                  | ✓        | ✓           | ✓         |
-| `runMutation`               | -        | ✓           | ✓         |
-| `runAction`                 | -        | -           | ✓         |
-| `vectorSearch`              | -        | -           | ✓         |
-
----
-
-## Setup
-
-`convex/concave.ts`:
+When piping from an Effect, yield it directly inside `pipe` instead of assigning to a variable:
 
 ```typescript
-import type {DataModel} from "./_generated/dataModel"
+// VERBOSE
+const q = yield * db.query("items")
+return yield * pipe(q, someTransform, anotherTransform)
 
-import {
-  createActionCtx,
-  createMutationCtx,
-  createQueryCtx,
-  createServerFunctions,
-} from "@apzelos/concave/server"
+// BETTER - yield directly in pipe
+return yield * pipe(yield * db.query("items"), someTransform, anotherTransform)
+```
 
-export const QueryCtx = createQueryCtx<DataModel>()
-export const MutationCtx = createMutationCtx<DataModel>()
-export const ActionCtx = createActionCtx<DataModel>()
+### Transform Option Results in Pipe
 
-export const {
-  query,
-  internalQuery,
-  mutation,
-  internalMutation,
-  action,
-  internalAction,
-  httpAction,
-} = createServerFunctions({QueryCtx, MutationCtx, ActionCtx})
+Use `E.andThen` to transform Option results directly in the pipe:
+
+```typescript
+// VERBOSE
+const result = yield * db.query("items").first()
+return Option.getOrNull(result)
+
+// BETTER - use E.andThen in pipe
+return yield * db.query("items").first().pipe(E.andThen(Option.getOrNull))
 ```
 
 ---
+
+## Model Patterns
+
+`@apzelos/concave-model` adds schema validation and typed errors on top of Convex operations.
+
+### Choosing Your Error Strategy
+
+Most model operations come in three variants. Choose based on how you want to handle the "not found" case:
+
+| Variant    | Returns       | Use When                                         |
+| ---------- | ------------- | ------------------------------------------------ |
+| `strict`   | `T` or throws | Missing data is a bug - fail fast                |
+| `Nullable` | `T \| null`   | Missing data is normal - handle inline           |
+| `Option`   | `Option<T>`   | You want to chain transformations with `Option.` |
+
+```typescript
+// Strict: "This document MUST exist, crash if it doesn't"
+const user = yield * User.getById(id)
+
+// Nullable: "It might not exist, I'll handle null"
+const user = yield * User.getByIdNullable(id)
+if (!user) return {error: "User not found"}
+
+// Option: "I want to transform the result functionally"
+return (
+  yield *
+  pipe(
+    User.getByIdOption(id),
+    E.andThen(Option.map((u) => u.name)),
+    E.andThen(Option.getOrElse(() => "Anonymous")),
+  )
+)
+```
+
+**Key insight**: Use the strict variant by default. Only use `Nullable`/`Option` when absence is a valid business case, not an error.
+
+### Typed Errors as Control Flow
+
+Model operations throw typed errors (`DocNotFoundError`, `InvalidDocIdError`, `DocNotUniqueError`) that you can catch selectively. This lets you handle specific failures without try/catch:
+
+```typescript
+// Provide a fallback for missing documents
+const user =
+  yield *
+  pipe(
+    User.getById(id),
+    E.catchTag("DocNotFoundError", () => E.succeed(defaultUser)),
+  )
+
+// Convert invalid IDs to null instead of crashing
+const validId =
+  yield *
+  pipe(
+    User.normalizeId(untrustedInput),
+    E.catchTag("InvalidDocIdError", () => E.succeed(null)),
+  )
+```
+
+**Key insight**: Typed errors make error handling explicit in the type system. You can see what can fail and decide how to handle each case.
+
+### Streams Need an Index First
+
+Unlike queries, streams require you to specify an index before you can order or collect. This is because streams are designed for efficient iteration over large datasets:
+
+```typescript
+// WRONG - streams need an index
+yield * pipe(yield * Item.stream, Item.orderStream("asc"), Item.collectStream)
+
+// CORRECT - specify the index first
+yield *
+  pipe(
+    yield * Item.stream,
+    Item.withStreamIndex("by_creation_time"),
+    Item.orderStream("asc"),
+    Item.collectStream,
+  )
+```
+
+**Key insight**: Think of `withStreamIndex` as telling the stream "iterate over this index" before you can order or filter.
+
+### When to Use Streams vs Queries
+
+- **Queries** (`Item.query`): Standard Convex queries. Use for most cases.
+- **Streams** (`Item.stream`): For effectful filtering/mapping where you need to do async work per document (like looking up related data).
+
+```typescript
+// Stream with effectful filter - check related data for each item
+yield *
+  pipe(
+    yield * Item.stream,
+    Item.withStreamIndex("by_category", (q) => q.eq("category", "active")),
+    Item.filterStreamWith((item) =>
+      E.gen(function* () {
+        const details = yield* Detail.getByIdNullable(item.detailId)
+        return details?.isValid ?? false
+      }),
+    ),
+    Item.collectStream,
+  )
+```
 
 ## Anti-Patterns
 
@@ -458,4 +533,51 @@ const data =
     try: () => S.decodeUnknownSync(MySchema)(input),
     catch: (e) => new ParseError({cause: e}),
   })
+```
+
+### Assigning Effect result to variable before pipe
+
+```typescript
+// VERBOSE
+const items = yield * db.query("items").collect()
+return yield * pipe(items, E.succeed, E.andThen(transform))
+
+// BETTER - yield directly in pipe
+return yield * pipe(yield * db.query("items").collect(), transform)
+```
+
+### Assigning Option result to variable
+
+```typescript
+// VERBOSE
+const result = yield * db.query("items").first()
+return Option.getOrNull(result)
+
+// BETTER - use E.andThen in pipe
+return yield * db.query("items").first().pipe(E.andThen(Option.getOrNull))
+```
+
+### Using orderStream without withStreamIndex (Model)
+
+```typescript
+// WRONG - orderStream requires StreamQuery, not StreamQueryInitializer
+return (
+  yield *
+  pipe(
+    yield * Item.stream,
+    Item.orderStream("asc"), // Type error!
+    Item.collectStream,
+  )
+)
+
+// CORRECT - use withStreamIndex first
+return (
+  yield *
+  pipe(
+    yield * Item.stream,
+    Item.withStreamIndex("by_creation_time"),
+    Item.orderStream("asc"),
+    Item.collectStream,
+  )
+)
 ```
