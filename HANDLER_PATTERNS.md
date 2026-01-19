@@ -27,11 +27,32 @@ export const getUser = query({
 
 ---
 
-## Concave Utilities
+## Handler Type Selection
+
+Choose the appropriate handler type based on what the operation does:
+
+| Handler      | Use When                                                           |
+| ------------ | ------------------------------------------------------------------ |
+| `query`      | Read-only operations (fetching data, searches, lookups)            |
+| `mutation`   | Write operations (create, update, delete)                          |
+| `action`     | External calls (APIs, file storage) or operations that can't retry |
+| `httpAction` | HTTP endpoints (webhooks, REST APIs, custom routes)                |
+
+**Key considerations:**
+
+- Queries are cached and can retry safely - use for all read operations
+- Mutations are transactional - use for any database writes
+- Actions run outside the transaction and cannot be retried automatically - use only when necessary (external HTTP calls, Convex storage operations)
+
+---
+
+## Essential Utilities
+
+Always use these utilities instead of raw primitives for type safety.
 
 ### SDocId
 
-Type-safe document ID schema for Convex tables:
+Type-safe document ID schema - use instead of raw `S.String` for document references:
 
 ```typescript
 import {SDocId} from "@apzelos/concave/server"
@@ -44,6 +65,8 @@ args: S.Struct({
 ```
 
 ### SPaginationResult
+
+Schema for paginated results:
 
 ```typescript
 import {SPaginationResult} from "@apzelos/concave/server"
@@ -147,7 +170,7 @@ export const getProfile = query({
 
 ## Type-Safe Cross-Function Calls
 
-Annotate the Effect type for proper inference:
+TypeScript cannot infer return types through Convex's `runQuery`/`runMutation` wrappers, so explicit type annotation is required to preserve type safety:
 
 ```typescript
 import type {Id} from "../_generated/dataModel"
@@ -181,7 +204,11 @@ export const processOrder = action({
 
 ## HTTP Action Patterns
 
-### Parsing Request Body
+Key principles for HTTP actions:
+
+- Validate all external input at system boundaries
+- Use Schema for structured parsing of body and query params
+- Wrap parsing errors in domain-specific TaggedErrors
 
 ```typescript
 import {HttpActionCtx} from "@apzelos/concave/server"
@@ -196,6 +223,13 @@ const CreateUserBody = S.Struct({
   email: S.NonEmptyString.pipe(S.pattern(/^[^@]+@[^@]+\.[^@]+$/)),
 })
 
+const ListParams = S.Struct({
+  page: S.optionalWith(S.NumberFromString, {default: () => 1}),
+  limit: S.optionalWith(S.NumberFromString, {default: () => 10}),
+  search: S.optional(S.NonEmptyString),
+})
+
+// POST with body parsing
 http.route({
   path: "/api/users",
   method: "POST",
@@ -220,27 +254,17 @@ http.route({
     }),
   ),
 })
-```
 
-### Parsing Query Parameters
-
-```typescript
+// GET with query param parsing
 http.route({
   path: "/api/items",
   method: "GET",
   handler: httpAction(
     E.fn(function* (request: Request) {
       const url = new URL(request.url)
-
       const params = yield* E.try({
         try: () =>
-          S.decodeUnknownSync(
-            S.Struct({
-              page: S.optionalWith(S.NumberFromString, {default: () => 1}),
-              limit: S.optionalWith(S.NumberFromString, {default: () => 10}),
-              search: S.optional(S.NonEmptyString),
-            }),
-          )({
+          S.decodeUnknownSync(ListParams)({
             page: url.searchParams.get("page") ?? undefined,
             limit: url.searchParams.get("limit") ?? undefined,
             search: url.searchParams.get("search") ?? undefined,
@@ -302,27 +326,29 @@ export const getUserWithPosts = query({
 
 ### Yield Directly in Pipe
 
-When piping from an Effect, yield it directly inside `pipe` instead of assigning to a variable:
+When piping from an Effect, you can yield it directly inside `pipe`:
 
 ```typescript
-// VERBOSE
+// Option A - intermediate variable (useful for debugging or complex pipelines)
 const q = yield * db.query("items")
 return yield * pipe(q, someTransform, anotherTransform)
 
-// BETTER - yield directly in pipe
+// Option B - inline yield (concise for simple transforms)
 return yield * pipe(yield * db.query("items"), someTransform, anotherTransform)
 ```
+
+Prefer inline yields for simple transforms; use intermediate variables when debugging or when the pipeline is complex.
 
 ### Transform Option Results in Pipe
 
 Use `E.andThen` to transform Option results directly in the pipe:
 
 ```typescript
-// VERBOSE
+// Option A - intermediate variable
 const result = yield * db.query("items").first()
 return Option.getOrNull(result)
 
-// BETTER - use E.andThen in pipe
+// Option B - inline with E.andThen
 return yield * db.query("items").first().pipe(E.andThen(Option.getOrNull))
 ```
 
@@ -717,99 +743,4 @@ return Option.getOrNull(result)
 
 // BETTER - use E.andThen in pipe
 return yield * db.query("items").first().pipe(E.andThen(Option.getOrNull))
-```
-
-### Ordering without specifying an index
-
-```typescript
-// WRONG - implicit ordering on raw Convex query
-const items = yield * db.query("items").order("asc").collect()
-
-// CORRECT - explicit index
-const items = yield * db.query("items").withIndex("by_creation_time").order("asc").collect()
-```
-
-```typescript
-// WRONG - ordering Model query without index
-yield * pipe(yield * Item.query, Item.order("asc"), Item.collect)
-
-// CORRECT - specify index first
-yield *
-  pipe(yield * Item.query, Item.withIndex("by_creation_time"), Item.order("asc"), Item.collect)
-```
-
-```typescript
-// WRONG - orderStream requires StreamQuery, not StreamQueryInitializer
-yield * pipe(yield * Item.stream, Item.orderStream("asc"), Item.collectStream)
-
-// CORRECT - use withStreamIndex first
-yield *
-  pipe(
-    yield * Item.stream,
-    Item.withStreamIndex("by_creation_time"),
-    Item.orderStream("asc"),
-    Item.collectStream,
-  )
-```
-
-### Using model helpers after transforming the stream type
-
-```typescript
-// WRONG - Item.mapStream expects decoded Item type, but stream is now {name, value}
-yield *
-  pipe(
-    yield * Item.stream,
-    Item.withStreamIndex("by_creation_time"),
-    Item.orderStream("asc"),
-    Item.mapStream((item) => E.succeed({name: item.name, value: item.value})),
-    Item.mapStream((item) => E.succeed({...item, upper: item.name.toUpperCase()})), // Type error!
-    Item.collectStream,
-  )
-```
-
-```typescript
-// CORRECT - use generic helpers after type changes
-import {collectStream, mapStream} from "@apzelos/concave-helpers/server/stream"
-
-yield *
-  pipe(
-    yield * Item.stream,
-    Item.withStreamIndex("by_creation_time"),
-    Item.orderStream("asc"),
-    Item.mapStream((item) => E.succeed({name: item.name, value: item.value})),
-    mapStream((item) => E.succeed({...item, upper: item.name.toUpperCase()})),
-    collectStream,
-  )
-```
-
-### Using inline lambdas instead of curried helpers
-
-```typescript
-// VERBOSE
-yield *
-  pipe(
-    yield * Item.stream,
-    Item.withStreamIndex("by_creation_time"),
-    Item.orderStream("asc"),
-    Item.mapStream((item) => E.succeed({name: item.name})),
-    (stream) => stream.map((item) => E.succeed({...item, upper: item.name.toUpperCase()})),
-    (stream) => stream.filterWith((item) => E.succeed(item.name.length > 3)),
-    (stream) => stream.collect(),
-  )
-```
-
-```typescript
-// BETTER - use curried helpers
-import {collectStream, filterStreamWith, mapStream} from "@apzelos/concave-helpers/server/stream"
-
-yield *
-  pipe(
-    yield * Item.stream,
-    Item.withStreamIndex("by_creation_time"),
-    Item.orderStream("asc"),
-    Item.mapStream((item) => E.succeed({name: item.name})),
-    mapStream((item) => E.succeed({...item, upper: item.name.toUpperCase()})),
-    filterStreamWith((item) => E.succeed(item.name.length > 3)),
-    collectStream,
-  )
 ```
