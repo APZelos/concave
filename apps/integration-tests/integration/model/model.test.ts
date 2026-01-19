@@ -29,6 +29,15 @@ async function createTestItem(
   })
 }
 
+async function createTestDetail(t: ReturnType<typeof setup>, itemId: Id<"items">, info: string) {
+  return await t.run(async (ctx) => {
+    return await ctx.db.insert("details", {
+      itemId,
+      info,
+    })
+  })
+}
+
 describe("Model", () => {
   describe("normalizeId", () => {
     it("should return the normalized ID for a valid ID string", async () => {
@@ -747,6 +756,153 @@ describe("Model", () => {
           _id: id,
           name: "Real Item",
         })
+      })
+    })
+  })
+
+  describe("Model Stream Transformations", () => {
+    describe("chained transformations", () => {
+      it("should apply multiple sequential maps", async () => {
+        const t = setup()
+
+        await createTestItem(t, {name: "test", value: 10})
+        await createTestItem(t, {name: "item", value: 20})
+
+        const items = await t.query(api.functions.model.modelStreamChainedMaps, {})
+
+        expect(items).toHaveLength(2)
+        expect(items[0]).toHaveProperty("name")
+        expect(items[0]).toHaveProperty("value")
+        expect(items[0]).toHaveProperty("label")
+        expect(items[0]!.name).toBe("TEST")
+        expect(items[0]!.label).toBe("Item: TEST")
+      })
+
+      it("should apply map -> filter -> map pipeline", async () => {
+        const t = setup()
+
+        await createTestItem(t, {name: "Low", value: 5})
+        await createTestItem(t, {name: "High", value: 50})
+
+        const items = await t.query(api.functions.model.modelStreamMapFilterMap, {
+          minValue: 50,
+        })
+
+        expect(items).toHaveLength(1)
+        expect(items[0]!.doubled).toBe(100)
+        expect(items[0]!.label).toBe("[100] High")
+      })
+    })
+
+    describe("error propagation", () => {
+      it("should propagate error from map transformation", async () => {
+        const t = setup()
+
+        await createTestItem(t, {name: "Good Item", value: 10})
+        await createTestItem(t, {name: "Bad Item", value: 20})
+
+        await expect(
+          t.query(api.functions.model.modelStreamMapWithError, {failOnName: "Bad Item"}),
+        ).rejects.toThrow()
+      })
+
+      it("should propagate error from middle of chain", async () => {
+        const t = setup()
+
+        await createTestItem(t, {name: "Item A", value: 10})
+        await createTestItem(t, {name: "Item B", value: 42})
+
+        await expect(
+          t.query(api.functions.model.modelStreamChainedMapWithMiddleError, {failOnValue: 42}),
+        ).rejects.toThrow()
+      })
+
+      it("should allow error recovery with catchTag", async () => {
+        const t = setup()
+
+        await createTestItem(t, {name: "Good Item", value: 10})
+        await createTestItem(t, {name: "Bad Item", value: 20})
+
+        const items = await t.query(api.functions.model.modelStreamMapWithRecovery, {
+          failOnName: "Bad Item",
+        })
+
+        expect(items).toHaveLength(2)
+        const recoveredItem = items.find((item: {recovered: boolean}) => item.recovered === true)
+        expect(recoveredItem).toBeDefined()
+        expect(recoveredItem!.name).toBe("RECOVERED: Bad Item")
+      })
+    })
+
+    describe("Effect-based maps with DB lookups", () => {
+      it("should perform DB get in map", async () => {
+        const t = setup()
+
+        const itemId = await createTestItem(t, {name: "Parent Item"})
+        await createTestDetail(t, itemId, "Detail Info")
+
+        const results = await t.query(api.functions.model.modelStreamMapWithDbGet, {})
+
+        expect(results).toHaveLength(1)
+        expect(results[0]!.detailInfo).toBe("Detail Info")
+        expect(results[0]!.itemName).toBe("Parent Item")
+      })
+
+      it("should perform nested DB query in map", async () => {
+        const t = setup()
+
+        const item1Id = await createTestItem(t, {name: "Item with details"})
+        await createTestDetail(t, item1Id, "Detail 1")
+        await createTestDetail(t, item1Id, "Detail 2")
+        await createTestItem(t, {name: "Item without details"})
+
+        const results = await t.query(api.functions.model.modelStreamMapWithDbQuery, {})
+
+        expect(results).toHaveLength(2)
+        const itemWithDetails = results.find(
+          (item: {name: string}) => item.name === "Item with details",
+        )
+        const itemWithoutDetails = results.find(
+          (item: {name: string}) => item.name === "Item without details",
+        )
+        expect(itemWithDetails!.detailCount).toBe(2)
+        expect(itemWithoutDetails!.detailCount).toBe(0)
+      })
+    })
+
+    describe("edge cases", () => {
+      it("should return empty array when all map to null", async () => {
+        const t = setup()
+
+        await createTestItem(t, {name: "Item 1"})
+        await createTestItem(t, {name: "Item 2"})
+
+        const items = await t.query(api.functions.model.modelStreamMapAllToNull, {})
+
+        expect(items).toEqual([])
+      })
+
+      it("should filter out null mapped items", async () => {
+        const t = setup()
+
+        await createTestItem(t, {name: "Keep", category: "wanted"})
+        await createTestItem(t, {name: "Skip 1", category: "other"})
+        await createTestItem(t, {name: "Skip 2", category: "another"})
+
+        const items = await t.query(api.functions.model.modelStreamMapSomeToNull, {
+          keepCategory: "wanted",
+        })
+
+        expect(items).toHaveLength(1)
+        expect(items[0]!.name).toBe("Keep")
+      })
+
+      it("should handle empty stream through transformations", async () => {
+        const t = setup()
+
+        const items = await t.query(api.functions.model.modelStreamChainedMaps, {})
+
+        expect(items).toEqual([])
       })
     })
   })

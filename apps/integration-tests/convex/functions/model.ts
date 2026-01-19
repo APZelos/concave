@@ -1,10 +1,16 @@
+import {collectStream, filterStreamWith, mapStream} from "@apzelos/concave-helpers/server/stream"
 import {createModelFunction} from "@apzelos/concave-model"
 import {SDocId} from "@apzelos/concave/server"
-import {Effect as E, Option, pipe, Schema as S} from "effect"
+import {Data, Effect as E, Option, pipe, Schema as S} from "effect"
 
 import {mutation, MutationCtx, query, QueryCtx, schema} from "../concave"
 
 const {model} = createModelFunction({schema, QueryCtx, MutationCtx})
+
+export class ModelTransformError extends Data.TaggedError("ModelTransformError")<{
+  itemName: string
+  reason: string
+}> {}
 
 const Item = model(
   "items",
@@ -16,6 +22,14 @@ const Item = model(
     value: S.Number,
     content: S.optional(S.String),
     createdAt: S.Number,
+  }),
+)
+
+const Detail = model(
+  "details",
+  S.Struct({
+    itemId: SDocId("items"),
+    info: S.NonEmptyString,
   }),
 )
 
@@ -367,6 +381,174 @@ export const modelStreamPaginate = query({
       Item.withStreamIndex("by_creation_time"),
       Item.orderStream("asc"),
       Item.paginateStream(args.paginationOpts),
+    )
+  }),
+})
+
+export const modelStreamChainedMaps = query({
+  args: S.Struct({}),
+  handler: E.fn(function* () {
+    return yield* pipe(
+      yield* Item.stream,
+      Item.withStreamIndex("by_creation_time"),
+      Item.orderStream("asc"),
+      Item.mapStream((item) => E.succeed({name: item.name, value: item.value})),
+      mapStream((item) => E.succeed({...item, name: item.name.toUpperCase()})),
+      mapStream((item) => E.succeed({...item, label: `Item: ${item.name}`})),
+      collectStream,
+    )
+  }),
+})
+
+export const modelStreamMapFilterMap = query({
+  args: S.Struct({minValue: S.Number}),
+  handler: E.fn(function* (args) {
+    return yield* pipe(
+      yield* Item.stream,
+      Item.withStreamIndex("by_creation_time"),
+      Item.orderStream("asc"),
+      Item.mapStream((item) => E.succeed({id: item._id, doubled: item.value * 2, name: item.name})),
+      filterStreamWith((item) => E.succeed(item.doubled >= args.minValue)),
+      mapStream((item) => E.succeed({...item, label: `[${item.doubled}] ${item.name}`})),
+      collectStream,
+    )
+  }),
+})
+
+export const modelStreamMapWithError = query({
+  args: S.Struct({failOnName: S.String}),
+  handler: E.fn(function* (args) {
+    return yield* pipe(
+      yield* Item.stream,
+      Item.withStreamIndex("by_creation_time"),
+      Item.orderStream("asc"),
+      Item.mapStream(
+        E.fn(function* (item) {
+          if (item.name === args.failOnName) {
+            return yield* new ModelTransformError({
+              itemName: item.name,
+              reason: "Matched fail condition",
+            })
+          }
+          return {id: item._id, name: item.name}
+        }),
+      ),
+      collectStream,
+    )
+  }),
+})
+
+export const modelStreamChainedMapWithMiddleError = query({
+  args: S.Struct({failOnValue: S.Number}),
+  handler: E.fn(function* (args) {
+    return yield* pipe(
+      yield* Item.stream,
+      Item.withStreamIndex("by_creation_time"),
+      Item.orderStream("asc"),
+      Item.mapStream((item) => E.succeed({name: item.name, value: item.value})),
+      mapStream(
+        E.fn(function* (item) {
+          if (item.value === args.failOnValue) {
+            return yield* new ModelTransformError({itemName: item.name, reason: "Value matched"})
+          }
+          return {...item, doubled: item.value * 2}
+        }),
+      ),
+      mapStream((item) => E.succeed({...item, label: `Value: ${item.doubled}`})),
+      collectStream,
+    )
+  }),
+})
+
+export const modelStreamMapWithRecovery = query({
+  args: S.Struct({failOnName: S.String}),
+  handler: E.fn(function* (args) {
+    return yield* pipe(
+      yield* Item.stream,
+      Item.withStreamIndex("by_creation_time"),
+      Item.orderStream("asc"),
+      Item.mapStream(
+        E.fn(function* (item) {
+          if (item.name === args.failOnName) {
+            return yield* pipe(
+              new ModelTransformError({itemName: item.name, reason: "Matched"}),
+              E.catchTag("ModelTransformError", (err) =>
+                E.succeed({id: item._id, name: `RECOVERED: ${err.itemName}`, recovered: true}),
+              ),
+            )
+          }
+          return {id: item._id, name: item.name, recovered: false}
+        }),
+      ),
+      collectStream,
+    )
+  }),
+})
+
+export const modelStreamMapWithDbGet = query({
+  args: S.Struct({}),
+  handler: E.fn(function* () {
+    return yield* pipe(
+      yield* Detail.stream,
+      Detail.withStreamIndex("by_item"),
+      Detail.orderStream("asc"),
+      Detail.mapStream(
+        E.fn(function* (detail) {
+          const item = yield* Item.getByIdNullable(detail.itemId)
+          return {detailInfo: detail.info, itemName: item?.name ?? "Unknown"}
+        }),
+      ),
+      collectStream,
+    )
+  }),
+})
+
+export const modelStreamMapWithDbQuery = query({
+  args: S.Struct({}),
+  handler: E.fn(function* () {
+    return yield* pipe(
+      yield* Item.stream,
+      Item.withStreamIndex("by_creation_time"),
+      Item.orderStream("asc"),
+      Item.mapStream(
+        E.fn(function* (item) {
+          const details = yield* pipe(
+            yield* Detail.query,
+            Detail.withIndex("by_item", (q) => q.eq("itemId", item._id)),
+            Detail.collect,
+          )
+          return {id: item._id, name: item.name, detailCount: details.length}
+        }),
+      ),
+      collectStream,
+    )
+  }),
+})
+
+export const modelStreamMapAllToNull = query({
+  args: S.Struct({}),
+  handler: E.fn(function* () {
+    return yield* pipe(
+      yield* Item.stream,
+      Item.withStreamIndex("by_creation_time"),
+      Item.orderStream("asc"),
+      Item.mapStream(() => E.succeed(null)),
+      collectStream,
+    )
+  }),
+})
+
+export const modelStreamMapSomeToNull = query({
+  args: S.Struct({keepCategory: S.String}),
+  handler: E.fn(function* (args) {
+    return yield* pipe(
+      yield* Item.stream,
+      Item.withStreamIndex("by_creation_time"),
+      Item.orderStream("asc"),
+      Item.mapStream((item) =>
+        E.succeed(item.category === args.keepCategory ? {id: item._id, name: item.name} : null),
+      ),
+      collectStream,
     )
   }),
 })
