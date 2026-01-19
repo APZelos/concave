@@ -568,3 +568,74 @@ describe("Helper functions", () => {
     })
   })
 })
+
+describe("Chained map type preservation", () => {
+  test("should preserve transformed types through map().map() chain", () => {
+    const queryCtx = mockGenericQueryCtx<DataModel>()
+    const convexStream = mockConvexQueryStream<Doc<"user">>()
+    const queryStream = new QueryStream(QueryCtx, queryCtx, convexStream)
+
+    const result = queryStream
+      .map((doc) => E.succeed({name: doc.name, age: doc.age}))
+      .map((item) => E.succeed({...item, upper: item.name.toUpperCase()}))
+      .map((item) => E.succeed({label: `${item.upper}: ${item.age}`}))
+
+    expectTypeOf(result).toHaveProperty("collect")
+    expectTypeOf(result).toHaveProperty("map")
+  })
+
+  test("should accumulate error types through chained maps", () => {
+    class ErrorA {
+      readonly _tag = "ErrorA"
+    }
+    class ErrorB {
+      readonly _tag = "ErrorB"
+    }
+
+    const queryCtx = mockGenericQueryCtx<DataModel>()
+    const convexStream = mockConvexQueryStream<Doc<"user">>()
+    const queryStream = new QueryStream(QueryCtx, queryCtx, convexStream)
+
+    const result = queryStream
+      .map((doc) => (doc.age > 0 ? E.succeed({name: doc.name}) : E.fail(new ErrorA())))
+      .map((item) =>
+        item.name.length > 0 ? E.succeed({upper: item.name.toUpperCase()}) : E.fail(new ErrorB()),
+      )
+
+    const collected = result.collect()
+
+    expectTypeOf(collected).toEqualTypeOf<E.Effect<{upper: string}[], ErrorA | ErrorB>>()
+  })
+})
+
+describe("mapStream helper curried signature", () => {
+  test("should have correct curried type signature", () => {
+    const mapFn = mapStream<DataModel, Doc<"user">, {id: string}>((doc) => E.succeed({id: doc._id}))
+
+    expectTypeOf(mapFn).toBeFunction()
+
+    const queryCtx = mockGenericQueryCtx<DataModel>()
+    const convexStream = mockConvexQueryStream<Doc<"user">>()
+    const queryStream = new QueryStream(QueryCtx, queryCtx, convexStream)
+
+    const result = mapFn(queryStream)
+
+    expectTypeOf(result).toEqualTypeOf<QueryStream<DataModel, {id: string}, never>>()
+  })
+})
+
+describe("filterStreamWith helper type preservation", () => {
+  test("should preserve document type", () => {
+    const filterFn = filterStreamWith<DataModel, Doc<"user">>((doc) => E.succeed(doc.age > 18))
+
+    expectTypeOf(filterFn).toBeFunction()
+
+    const queryCtx = mockGenericQueryCtx<DataModel>()
+    const convexStream = mockConvexQueryStream<Doc<"user">>()
+    const queryStream = new QueryStream(QueryCtx, queryCtx, convexStream)
+
+    const result = filterFn(queryStream)
+
+    expectTypeOf(result).toEqualTypeOf<QueryStream<DataModel, Doc<"user">, never>>()
+  })
+})
