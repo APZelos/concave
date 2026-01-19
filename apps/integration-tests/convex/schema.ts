@@ -2,7 +2,6 @@ import {defineSchema, defineTable} from "convex/server"
 import {v} from "convex/values"
 
 export default defineSchema({
-  // Main table for query/mutation/stream tests
   items: defineTable({
     name: v.string(),
     category: v.string(),
@@ -24,20 +23,17 @@ export default defineSchema({
       filterFields: ["category", "status"],
     }),
 
-  // Child table for flatMap/relation tests
   details: defineTable({
     itemId: v.id("items"),
     info: v.string(),
   }).index("by_item", ["itemId"]),
 
-  // Storage tests
   files: defineTable({
     storageId: v.id("_storage"),
     filename: v.string(),
     size: v.number(),
   }),
 
-  // Scheduler tests
   tasks: defineTable({
     type: v.string(),
     status: v.union(v.literal("pending"), v.literal("completed"), v.literal("cancelled")),

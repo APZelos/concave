@@ -4,10 +4,8 @@ import {Effect as E, Option, pipe, Schema as S} from "effect"
 
 import {mutation, MutationCtx, query, QueryCtx, schema} from "../concave"
 
-// Create the model function factory
 const {model} = createModelFunction({schema, QueryCtx, MutationCtx})
 
-// Define the Item model with Effect Schema validation
 const Item = model(
   "items",
   S.Struct({
@@ -20,8 +18,6 @@ const Item = model(
     createdAt: S.Number,
   }),
 )
-
-// ============ ID Operations ============
 
 export const modelNormalizeId = query({
   args: S.Struct({idString: S.String}),
@@ -54,8 +50,6 @@ export const modelNormalizeIdWithFallback = query({
     )
   }),
 })
-
-// ============ Read Operations ============
 
 export const modelGetById = query({
   args: S.Struct({id: SDocId("items")}),
@@ -99,8 +93,6 @@ export const modelGetByIdWithFallback = query({
     )
   }),
 })
-
-// ============ Write Operations ============
 
 export const modelInsert = mutation({
   args: S.Struct({
@@ -205,8 +197,6 @@ export const modelDeleteById = mutation({
   }),
 })
 
-// ============ Query Operations ============
-
 export const modelCollect = query({
   args: S.Struct({}),
   handler: E.fn(function* () {
@@ -269,8 +259,6 @@ export const modelPaginate = query({
     return yield* pipe(yield* Item.query, Item.fullTableScan, Item.paginate(args.paginationOpts))
   }),
 })
-
-// ============ Stream Operations ============
 
 export const modelStreamCollect = query({
   args: S.Struct({}),
