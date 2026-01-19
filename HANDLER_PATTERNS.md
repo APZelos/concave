@@ -387,9 +387,32 @@ const validId =
 
 **Key insight**: Typed errors make error handling explicit in the type system. You can see what can fail and decide how to handle each case.
 
-### Streams Need an Index First
+### Always Index Before Ordering
 
-Unlike queries, streams require you to specify an index before you can order or collect. This is because streams are designed for efficient iteration over large datasets:
+Both queries and streams require an index before ordering. This makes explicit which index is being traversed. If you just want to order by insertion time, use Convex's default `by_creation_time` index:
+
+**Queries (raw Convex):**
+
+```typescript
+// WRONG - implicit ordering is unclear
+const items = yield * db.query("items").order("asc").collect()
+
+// CORRECT - explicit index
+const items = yield * db.query("items").withIndex("by_creation_time").order("asc").collect()
+```
+
+**Queries (with Model):**
+
+```typescript
+// WRONG - ordering without index
+yield * pipe(yield * Item.query, Item.order("asc"), Item.collect)
+
+// CORRECT - specify the index first
+yield *
+  pipe(yield * Item.query, Item.withIndex("by_creation_time"), Item.order("asc"), Item.collect)
+```
+
+**Streams (with Model):**
 
 ```typescript
 // WRONG - streams need an index
@@ -405,7 +428,7 @@ yield *
   )
 ```
 
-**Key insight**: Think of `withStreamIndex` as telling the stream "iterate over this index" before you can order or filter.
+**Key insight**: Always specify the index explicitly. Use `by_creation_time` when you want to order by insertion time. This makes the code self-documenting about which index is being traversed.
 
 ### When to Use Streams vs Queries
 
@@ -426,6 +449,145 @@ yield *
     ),
     Item.collectStream,
   )
+```
+
+### Stream Transformations
+
+When transforming stream documents to a different shape, use model helpers for the first transformation (they decode the document), then generic curried helpers for subsequent transformations:
+
+```typescript
+import {collectStream, filterStreamWith, mapStream} from "@apzelos/concave-helpers/server/stream"
+
+// Chained transformations - model helper first, then generic helpers
+yield *
+  pipe(
+    yield * Item.stream,
+    Item.withStreamIndex("by_creation_time"),
+    Item.orderStream("asc"),
+    Item.mapStream((item) => E.succeed({name: item.name, value: item.value})), // Model helper decodes
+    mapStream((item) => E.succeed({...item, name: item.name.toUpperCase()})), // Generic helper
+    mapStream((item) => E.succeed({...item, label: `Item: ${item.name}`})),
+    collectStream,
+  )
+
+// Map -> filter -> map pipeline
+yield *
+  pipe(
+    yield * Item.stream,
+    Item.withStreamIndex("by_creation_time"),
+    Item.orderStream("asc"),
+    Item.mapStream((item) => E.succeed({id: item._id, doubled: item.value * 2})),
+    filterStreamWith((item) => E.succeed(item.doubled >= minValue)),
+    mapStream((item) => E.succeed({...item, label: `Value: ${item.doubled}`})),
+    collectStream,
+  )
+```
+
+**Key insight**: After the first `Item.mapStream`, the type is no longer the decoded document type. Use `mapStream`/`filterStreamWith`/`collectStream` from `@apzelos/concave-helpers/server/stream` for subsequent transformations.
+
+### Effectful Maps with DB Lookups
+
+Use `E.fn` when your map function needs to yield Effects (for DB lookups or errors):
+
+```typescript
+// Look up related data in map
+yield *
+  pipe(
+    yield * Detail.stream,
+    Detail.withStreamIndex("by_item"),
+    Detail.orderStream("asc"),
+    Detail.mapStream(
+      E.fn(function* (detail) {
+        const item = yield* Item.getByIdNullable(detail.itemId)
+        return {detailInfo: detail.info, itemName: item?.name ?? "Unknown"}
+      }),
+    ),
+    collectStream,
+  )
+
+// Nested query in map
+yield *
+  pipe(
+    yield * Item.stream,
+    Item.withStreamIndex("by_creation_time"),
+    Item.orderStream("asc"),
+    Item.mapStream(
+      E.fn(function* (item) {
+        const details = yield* pipe(
+          yield* Detail.query,
+          Detail.withIndex("by_item", (q) => q.eq("itemId", item._id)),
+          Detail.collect,
+        )
+        return {id: item._id, name: item.name, detailCount: details.length}
+      }),
+    ),
+    collectStream,
+  )
+```
+
+### Error Handling in Stream Maps
+
+Errors thrown in map functions propagate and fail the entire stream. Recover inside the map if needed:
+
+```typescript
+class TransformError extends Data.TaggedError("TransformError")<{reason: string}> {}
+
+// Error propagates - fails entire stream
+yield *
+  pipe(
+    yield * Item.stream,
+    Item.withStreamIndex("by_creation_time"),
+    Item.orderStream("asc"),
+    Item.mapStream(
+      E.fn(function* (item) {
+        if (item.value < 0) {
+          return yield* new TransformError({reason: "Negative value"})
+        }
+        return {id: item._id, value: item.value}
+      }),
+    ),
+    collectStream,
+  )
+
+// Error recovery inside map - stream continues
+yield *
+  pipe(
+    yield * Item.stream,
+    Item.withStreamIndex("by_creation_time"),
+    Item.orderStream("asc"),
+    Item.mapStream(
+      E.fn(function* (item) {
+        if (item.value < 0) {
+          return yield* pipe(
+            new TransformError({reason: "Negative value"}),
+            E.catchTag("TransformError", () =>
+              E.succeed({id: item._id, value: 0, recovered: true}),
+            ),
+          )
+        }
+        return {id: item._id, value: item.value, recovered: false}
+      }),
+    ),
+    collectStream,
+  )
+```
+
+### Map to Null for Filtering
+
+Returning `null` from a map filters out that item:
+
+```typescript
+// Keep only items matching category, filter out others
+yield *
+  pipe(
+    yield * Item.stream,
+    Item.withStreamIndex("by_creation_time"),
+    Item.orderStream("asc"),
+    Item.mapStream((item) =>
+      E.succeed(item.category === "wanted" ? {id: item._id, name: item.name} : null),
+    ),
+    collectStream,
+  ) // Returns only matching items, nulls filtered out
 ```
 
 ## Anti-Patterns
@@ -557,27 +719,97 @@ return Option.getOrNull(result)
 return yield * db.query("items").first().pipe(E.andThen(Option.getOrNull))
 ```
 
-### Using orderStream without withStreamIndex (Model)
+### Ordering without specifying an index
+
+```typescript
+// WRONG - implicit ordering on raw Convex query
+const items = yield * db.query("items").order("asc").collect()
+
+// CORRECT - explicit index
+const items = yield * db.query("items").withIndex("by_creation_time").order("asc").collect()
+```
+
+```typescript
+// WRONG - ordering Model query without index
+yield * pipe(yield * Item.query, Item.order("asc"), Item.collect)
+
+// CORRECT - specify index first
+yield *
+  pipe(yield * Item.query, Item.withIndex("by_creation_time"), Item.order("asc"), Item.collect)
+```
 
 ```typescript
 // WRONG - orderStream requires StreamQuery, not StreamQueryInitializer
-return (
-  yield *
-  pipe(
-    yield * Item.stream,
-    Item.orderStream("asc"), // Type error!
-    Item.collectStream,
-  )
-)
+yield * pipe(yield * Item.stream, Item.orderStream("asc"), Item.collectStream)
 
 // CORRECT - use withStreamIndex first
-return (
-  yield *
+yield *
   pipe(
     yield * Item.stream,
     Item.withStreamIndex("by_creation_time"),
     Item.orderStream("asc"),
     Item.collectStream,
   )
-)
+```
+
+### Using model helpers after transforming the stream type
+
+```typescript
+// WRONG - Item.mapStream expects decoded Item type, but stream is now {name, value}
+yield *
+  pipe(
+    yield * Item.stream,
+    Item.withStreamIndex("by_creation_time"),
+    Item.orderStream("asc"),
+    Item.mapStream((item) => E.succeed({name: item.name, value: item.value})),
+    Item.mapStream((item) => E.succeed({...item, upper: item.name.toUpperCase()})), // Type error!
+    Item.collectStream,
+  )
+```
+
+```typescript
+// CORRECT - use generic helpers after type changes
+import {collectStream, mapStream} from "@apzelos/concave-helpers/server/stream"
+
+yield *
+  pipe(
+    yield * Item.stream,
+    Item.withStreamIndex("by_creation_time"),
+    Item.orderStream("asc"),
+    Item.mapStream((item) => E.succeed({name: item.name, value: item.value})),
+    mapStream((item) => E.succeed({...item, upper: item.name.toUpperCase()})),
+    collectStream,
+  )
+```
+
+### Using inline lambdas instead of curried helpers
+
+```typescript
+// VERBOSE
+yield *
+  pipe(
+    yield * Item.stream,
+    Item.withStreamIndex("by_creation_time"),
+    Item.orderStream("asc"),
+    Item.mapStream((item) => E.succeed({name: item.name})),
+    (stream) => stream.map((item) => E.succeed({...item, upper: item.name.toUpperCase()})),
+    (stream) => stream.filterWith((item) => E.succeed(item.name.length > 3)),
+    (stream) => stream.collect(),
+  )
+```
+
+```typescript
+// BETTER - use curried helpers
+import {collectStream, filterStreamWith, mapStream} from "@apzelos/concave-helpers/server/stream"
+
+yield *
+  pipe(
+    yield * Item.stream,
+    Item.withStreamIndex("by_creation_time"),
+    Item.orderStream("asc"),
+    Item.mapStream((item) => E.succeed({name: item.name})),
+    mapStream((item) => E.succeed({...item, upper: item.name.toUpperCase()})),
+    filterStreamWith((item) => E.succeed(item.name.length > 3)),
+    collectStream,
+  )
 ```
