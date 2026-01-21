@@ -1,0 +1,14 @@
+{
+  "mode": "pre",
+  "tag": "alpha",
+  "initialVersions": {
+    "integration-tests": "0.0.0",
+    "@apzelos/concave": "1.0.0-alpha.1",
+    "@apzelos/concave-helpers": "1.0.0-alpha.1",
+    "@apzelos/concave-internal": "1.0.0-alpha.1",
+    "@apzelos/concave-model": "1.0.0-alpha.1"
+  },
+  "changesets": [
+    "bumpy-onions-grab"
+  ]
+}
