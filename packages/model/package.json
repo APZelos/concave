@@ -1,6 +1,6 @@
 {
   "name": "@apzelos/concave-model",
-  "version": "1.0.0-alpha.1",
+  "version": "1.0.0-alpha.2",
   "description": "Schema-based model generation for Concave",
   "type": "module",
   "sideEffects": false,
@@ -34,6 +34,14 @@
   ],
   "author": "apzelos",
   "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/apzelos/concave.git",
+    "directory": "packages/model"
+  },
+  "publishConfig": {
+    "provenance": true
+  },
   "dependencies": {
     "@apzelos/concave": "workspace:*",
     "@apzelos/concave-helpers": "workspace:*",

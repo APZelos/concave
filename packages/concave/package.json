@@ -1,6 +1,6 @@
 {
   "name": "@apzelos/concave",
-  "version": "1.0.0-alpha.1",
+  "version": "1.0.0-alpha.2",
   "description": "Effect-based Convex backend integration",
   "type": "module",
   "sideEffects": false,
@@ -34,6 +34,14 @@
   ],
   "author": "apzelos",
   "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/apzelos/concave.git",
+    "directory": "packages/concave"
+  },
+  "publishConfig": {
+    "provenance": true
+  },
   "dependencies": {
     "@apzelos/concave-internal": "workspace:*"
   },
