@@ -1,0 +1,27 @@
+{
+  "name": "integration-tests",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest --run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint ."
+  },
+  "devDependencies": {
+    "@apzelos/concave": "workspace:*",
+    "@apzelos/concave-helpers": "workspace:*",
+    "@apzelos/concave-model": "workspace:*",
+    "@edge-runtime/vm": "^5.0.0",
+    "@effect/vitest": "^0.25.0",
+    "convex": "^1.31.0",
+    "convex-helpers": "^0.1.109",
+    "convex-test": "^0.0.35",
+    "effect": "^3.19.0",
+    "typescript": "^5.9.0",
+    "vite": "^7.1.5",
+    "vite-tsconfig-paths": "^5.1.4",
+    "vitest": "^3.2.4"
+  }
+}

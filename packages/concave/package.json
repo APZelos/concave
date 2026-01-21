@@ -1,0 +1,55 @@
+{
+  "name": "@apzelos/concave",
+  "version": "1.0.0-alpha.1",
+  "description": "Effect-based Convex backend integration",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    "./server": {
+      "types": "./dist/server/index.d.ts",
+      "import": "./dist/server/index.js"
+    },
+    "./testing": {
+      "types": "./dist/testing/index.d.ts",
+      "import": "./dist/testing/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "!**/*.test.*"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "convex",
+    "effect",
+    "functional-programming",
+    "backend"
+  ],
+  "author": "apzelos",
+  "license": "ISC",
+  "dependencies": {
+    "@apzelos/concave-internal": "workspace:*"
+  },
+  "peerDependencies": {
+    "convex": "^1.31.0",
+    "effect": "^3.19.0",
+    "typescript": "^5.9.0"
+  },
+  "devDependencies": {
+    "@effect/vitest": "^0.25.0",
+    "convex": "^1.31.0",
+    "convex-helpers": "^0.1.109",
+    "convex-test": "^0.0.35",
+    "effect": "^3.19.0",
+    "typescript": "^5.9.0",
+    "vite-tsconfig-paths": "^5.1.4",
+    "vitest": "^3.0.0"
+  }
+}
