@@ -13,6 +13,10 @@
       "types": "./dist/assert/index.d.ts",
       "import": "./dist/assert/index.js"
     },
+    "./effect": {
+      "types": "./dist/effect/index.d.ts",
+      "import": "./dist/effect/index.js"
+    },
     "./types": {
       "types": "./dist/types/index.d.ts",
       "import": "./dist/types/index.js"
