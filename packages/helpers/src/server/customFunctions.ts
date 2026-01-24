@@ -1,12 +1,21 @@
 import type {DeepMutable, LayerAnyNoContext, Prettify} from "@apzelos/concave-internal/types"
-import type {GenericQueryCtx, QueryBuilder, QueryCtxTag} from "@apzelos/concave/server"
+import type {
+  GenericMutationCtx,
+  GenericQueryCtx,
+  MutationBuilder,
+  MutationCtxTag,
+  QueryBuilder,
+  QueryCtxTag,
+} from "@apzelos/concave/server"
 import type {
   DefaultFunctionArgs,
   FunctionVisibility,
   GenericDataModel,
+  RegisteredMutation,
   RegisteredQuery,
 } from "convex/server"
 
+import {GenericQueryCtx as GenericQueryCtxClass} from "@apzelos/concave/server"
 import {Effect as E, Layer, Schema as S} from "effect"
 
 export function customQuery<
@@ -122,6 +131,166 @@ export type CustomQueryBuilder<
   Visibility,
   DeepMutable<Prettify<QueryArgs & QueryExtraArgs>>,
   Promise<DeepMutable<QueryReturns>>
+>
+
+export function customMutation<
+  Visibility extends FunctionVisibility,
+  DataModel extends GenericDataModel,
+  InputArgs,
+  MutationExtraArgs extends DefaultFunctionArgs,
+  HandlerExtraArgs,
+  Layers extends Array<LayerAnyNoContext> = [],
+  InputError = never,
+>(
+  mutationBuilder: MutationBuilder<Visibility, DataModel>,
+  {
+    QueryCtx,
+    MutationCtx,
+    args: extraArgs,
+    input = () => E.succeed({}),
+  }: {
+    QueryCtx: QueryCtxTag<DataModel>
+    MutationCtx: MutationCtxTag<DataModel>
+    args: S.Schema<InputArgs, MutationExtraArgs>
+    input?: (args: InputArgs) => E.Effect<
+      {
+        args?: HandlerExtraArgs
+        ctx?: GenericMutationCtx<DataModel>
+        layers?: Layers
+      },
+      InputError,
+      GenericMutationCtx<DataModel>
+    >
+  },
+): CustomMutationBuilder<
+  Visibility,
+  HandlerExtraArgs,
+  MutationExtraArgs,
+  LayersError<
+    [Layer.Layer<GenericQueryCtx<DataModel>>, Layer.Layer<GenericMutationCtx<DataModel>>, ...Layers]
+  >,
+  LayersSuccess<
+    [Layer.Layer<GenericQueryCtx<DataModel>>, Layer.Layer<GenericMutationCtx<DataModel>>, ...Layers]
+  >
+> {
+  function customMutationBuilder<
+    HandlerArgs,
+    MutationArgs extends DefaultFunctionArgs,
+    HandlerReturns,
+    MutationReturns = never,
+    HandlerError = never,
+  >(mutation: {
+    args: S.Schema<HandlerArgs & InputArgs, MutationArgs & MutationExtraArgs>
+    returns?: S.Schema<MutationReturns, HandlerReturns>
+    handler: (
+      args: HandlerArgs,
+    ) => E.Effect<
+      HandlerReturns | MutationReturns,
+      | HandlerError
+      | LayersError<
+          [
+            Layer.Layer<GenericQueryCtx<DataModel>>,
+            Layer.Layer<GenericMutationCtx<DataModel>>,
+            ...Layers,
+          ]
+        >,
+      LayersSuccess<
+        [
+          Layer.Layer<GenericQueryCtx<DataModel>>,
+          Layer.Layer<GenericMutationCtx<DataModel>>,
+          ...Layers,
+        ]
+      >
+    >
+  }): RegisteredMutation<Visibility, MutationArgs, Promise<HandlerReturns | MutationReturns>> {
+    return mutationBuilder({
+      args: S.extend(mutation.args, extraArgs),
+      handler: E.fn(function* (args: HandlerArgs & InputArgs) {
+        const mutationCtx = yield* MutationCtx
+        const {
+          ctx: customCtx,
+          args: customArgs = {},
+          layers = [],
+        } = yield* input(args).pipe(E.provideService(MutationCtx, mutationCtx))
+
+        const effectiveCtx = customCtx ?? mutationCtx
+        const QueryCtxLive = Layer.succeed(
+          QueryCtx,
+          new GenericQueryCtxClass(effectiveCtx.convexMutationCtx),
+        )
+        const MutationCtxLive = Layer.succeed(MutationCtx, effectiveCtx)
+        const mergedArgs = {...customArgs, ...args}
+
+        return yield* mutation
+          .handler(mergedArgs)
+          .pipe(E.provide(Layer.mergeAll(QueryCtxLive, MutationCtxLive, ...layers))) as E.Effect<
+          HandlerReturns | MutationReturns,
+          | HandlerError
+          | LayersError<
+              [
+                Layer.Layer<GenericQueryCtx<DataModel>>,
+                Layer.Layer<GenericMutationCtx<DataModel>>,
+                ...Layers,
+              ]
+            >,
+          never
+        >
+      }),
+    })
+  }
+
+  return customMutationBuilder as CustomMutationBuilder<
+    Visibility,
+    InputArgs,
+    MutationExtraArgs,
+    LayersError<
+      [
+        Layer.Layer<GenericQueryCtx<DataModel>>,
+        Layer.Layer<GenericMutationCtx<DataModel>>,
+        ...Layers,
+      ]
+    >,
+    LayersSuccess<
+      [
+        Layer.Layer<GenericQueryCtx<DataModel>>,
+        Layer.Layer<GenericMutationCtx<DataModel>>,
+        ...Layers,
+      ]
+    >
+  >
+}
+
+export type CustomMutationBuilder<
+  Visibility extends FunctionVisibility,
+  HandlerExtraArgs,
+  MutationExtraArgs extends DefaultFunctionArgs,
+  HandlerExtraError = never,
+  HandlerContext = never,
+> = <
+  HandlerArgs,
+  MutationArgs extends DefaultFunctionArgs,
+  HandlerReturns,
+  MutationReturns = never,
+  HandlerError = never,
+>(
+  mutation:
+    | {
+        args: S.Schema<HandlerArgs, MutationArgs>
+        returns: S.Schema<MutationReturns, HandlerReturns>
+        handler: (
+          args: Prettify<HandlerArgs & HandlerExtraArgs>,
+        ) => E.Effect<HandlerReturns, HandlerError | HandlerExtraError, HandlerContext>
+      }
+    | {
+        args: S.Schema<HandlerArgs, MutationArgs>
+        handler: (
+          args: Prettify<HandlerArgs & HandlerExtraArgs>,
+        ) => E.Effect<MutationReturns, HandlerError | HandlerExtraError, HandlerContext>
+      },
+) => RegisteredMutation<
+  Visibility,
+  DeepMutable<Prettify<MutationArgs & MutationExtraArgs>>,
+  Promise<DeepMutable<MutationReturns>>
 >
 
 type LayersTuple = readonly [LayerAnyNoContext, ...Array<LayerAnyNoContext>]

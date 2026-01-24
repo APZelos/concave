@@ -1,7 +1,7 @@
-import {customQuery} from "@apzelos/concave-helpers/server/customFunctions"
+import {customMutation, customQuery} from "@apzelos/concave-helpers/server/customFunctions"
 import {Context, Data, Effect as E, Layer, Schema as S} from "effect"
 
-import {query, QueryCtx} from "../concave"
+import {mutation, MutationCtx, query, QueryCtx} from "../concave"
 
 class SessionContext extends Context.Tag("SessionContext")<
   SessionContext,
@@ -345,6 +345,372 @@ export const customQueryComplex = complexQuery({
       metadata: args.metadata,
       queryParam: args.queryParam,
       itemCount,
+    }
+  }),
+})
+
+const basicMutation = customMutation(mutation, {
+  QueryCtx,
+  MutationCtx,
+  args: S.Struct({}),
+})
+
+export const customMutationBasic = basicMutation({
+  args: S.Struct({}),
+  handler: E.fn(function* () {
+    return "basic mutation result"
+  }),
+})
+
+export const customMutationBasicWithArgs = basicMutation({
+  args: S.Struct({
+    message: S.String,
+  }),
+  handler: E.fn(function* (args) {
+    return `received: ${args.message}`
+  }),
+})
+
+export const customMutationBasicWithDbWrite = basicMutation({
+  args: S.Struct({
+    name: S.String,
+  }),
+  handler: E.fn(function* (args) {
+    const {db} = yield* MutationCtx
+    const id = yield* db.insert("items", {
+      name: args.name,
+      category: "test",
+      status: "active",
+      priority: 1,
+      value: 0,
+      createdAt: Date.now(),
+    })
+    return id
+  }),
+})
+
+const mutationWithExtraArgs = customMutation(mutation, {
+  QueryCtx,
+  MutationCtx,
+  args: S.Struct({
+    optionalToken: S.optional(S.String),
+  }),
+})
+
+export const customMutationWithExtraArgs = mutationWithExtraArgs({
+  args: S.Struct({}),
+  handler: E.fn(function* () {
+    return "extra args accepted"
+  }),
+})
+
+export const customMutationWithMergedArgs = mutationWithExtraArgs({
+  args: S.Struct({
+    name: S.String,
+  }),
+  handler: E.fn(function* (args) {
+    return `name: ${args.name}`
+  }),
+})
+
+const mutationWithInputAddedArgs = customMutation(mutation, {
+  QueryCtx,
+  MutationCtx,
+  args: S.Struct({}),
+  input: E.fn(function* () {
+    return {
+      args: {
+        serverTimestamp: Date.now(),
+        requestId: "req-123",
+      } as const,
+    }
+  }),
+})
+
+export const customMutationWithInputAddedArgs = mutationWithInputAddedArgs({
+  args: S.Struct({}),
+  handler: E.fn(function* (args) {
+    return {
+      serverTimestamp: args.serverTimestamp,
+      requestId: args.requestId,
+    }
+  }),
+})
+
+export const customMutationWithInputAndHandlerArgs = mutationWithInputAddedArgs({
+  args: S.Struct({
+    clientData: S.String,
+  }),
+  handler: E.fn(function* (args) {
+    return {
+      serverTimestamp: args.serverTimestamp,
+      requestId: args.requestId,
+      clientData: args.clientData,
+    }
+  }),
+})
+
+const mutationWithCustomContext = customMutation(mutation, {
+  QueryCtx,
+  MutationCtx,
+  args: S.Struct({
+    contextValue: S.String,
+  }),
+  input: E.fn(function* (args) {
+    const ctx = yield* MutationCtx
+    return {ctx, args: {customValue: args.contextValue.toUpperCase()} as const}
+  }),
+})
+
+export const customMutationWithCustomContext = mutationWithCustomContext({
+  args: S.Struct({}),
+  handler: E.fn(function* (args) {
+    return args.customValue
+  }),
+})
+
+const mutationWithLayer = customMutation(mutation, {
+  QueryCtx,
+  MutationCtx,
+  args: S.Struct({
+    token: S.optional(S.String),
+  }),
+  input: E.fn(function* (args) {
+    const SessionLive = Layer.succeed(SessionContext, {token: args.token ?? null})
+    return {layers: [SessionLive]}
+  }),
+})
+
+export const customMutationWithLayer = mutationWithLayer({
+  args: S.Struct({}),
+  handler: E.fn(function* () {
+    const {token} = yield* SessionContext
+    return token ?? "no token"
+  }),
+})
+
+const mutationWithMultipleLayers = customMutation(mutation, {
+  QueryCtx,
+  MutationCtx,
+  args: S.Struct({
+    token: S.optional(S.String),
+    userId: S.optional(S.String),
+    role: S.optional(S.String),
+  }),
+  input: E.fn(function* (args) {
+    const SessionLive = Layer.succeed(SessionContext, {token: args.token ?? null})
+    const UserLive = Layer.succeed(UserContext, {
+      userId: args.userId ?? "anonymous",
+      role: args.role ?? "guest",
+    })
+    const TimestampLive = Layer.succeed(TimestampContext, {
+      serverTimestamp: Date.now(),
+    })
+    return {layers: [SessionLive, UserLive, TimestampLive]}
+  }),
+})
+
+export const customMutationWithMultipleLayers = mutationWithMultipleLayers({
+  args: S.Struct({}),
+  handler: E.fn(function* () {
+    const {token} = yield* SessionContext
+    const {userId, role} = yield* UserContext
+    const {serverTimestamp} = yield* TimestampContext
+    return {
+      token: token ?? "no token",
+      userId,
+      role,
+      hasTimestamp: serverTimestamp > 0,
+    }
+  }),
+})
+
+const mutationWithInputError = customMutation(mutation, {
+  QueryCtx,
+  MutationCtx,
+  args: S.Struct({
+    shouldFail: S.Boolean,
+  }),
+  input: E.fn(function* (args) {
+    if (args.shouldFail) {
+      return yield* new InputError({message: "Input validation failed"})
+    }
+    return {}
+  }),
+})
+
+export const customMutationInputErrorSuccess = mutationWithInputError({
+  args: S.Struct({}),
+  handler: E.fn(function* () {
+    return "input succeeded"
+  }),
+})
+
+export const customMutationInputErrorFail = mutationWithInputError({
+  args: S.Struct({}),
+  handler: E.fn(function* () {
+    return "this should not be reached"
+  }),
+})
+
+const mutationWithHandlerError = customMutation(mutation, {
+  QueryCtx,
+  MutationCtx,
+  args: S.Struct({}),
+})
+
+export const customMutationHandlerError = mutationWithHandlerError({
+  args: S.Struct({
+    shouldFail: S.Boolean,
+  }),
+  handler: E.fn(function* (args) {
+    if (args.shouldFail) {
+      return yield* new HandlerError({details: "Handler execution failed"})
+    }
+    return "handler succeeded"
+  }),
+})
+
+const authenticatedMutation = customMutation(mutation, {
+  QueryCtx,
+  MutationCtx,
+  args: S.Struct({
+    sessionToken: S.optional(S.String),
+  }),
+  input: E.fn(function* (args) {
+    if (!args.sessionToken) {
+      return yield* new NotAuthenticatedError({reason: "No session token provided"})
+    }
+
+    const {db} = yield* MutationCtx
+    const session = yield* db
+      .query("sessions")
+      .withIndex("by_token", (q) => q.eq("token", args.sessionToken!))
+      .unique()
+
+    if (!session) {
+      return yield* new SessionNotFoundError({token: args.sessionToken})
+    }
+
+    const UserLive = Layer.succeed(UserContext, {
+      userId: session.userId,
+      role: "authenticated",
+    })
+
+    return {
+      args: {authenticatedUserId: session.userId} as const,
+      layers: [UserLive],
+    }
+  }),
+})
+
+export const customMutationAuthenticated = authenticatedMutation({
+  args: S.Struct({}),
+  handler: E.fn(function* (args) {
+    const {userId, role} = yield* UserContext
+    return {
+      userId,
+      role,
+      authenticatedUserId: args.authenticatedUserId,
+    }
+  }),
+})
+
+export const customMutationAuthenticatedWithWrite = authenticatedMutation({
+  args: S.Struct({
+    itemName: S.String,
+  }),
+  handler: E.fn(function* (args) {
+    const {userId} = yield* UserContext
+    const {db} = yield* MutationCtx
+    const id = yield* db.insert("items", {
+      name: args.itemName,
+      category: "user-created",
+      status: "active",
+      priority: 1,
+      value: 0,
+      content: `Created by ${userId}`,
+      createdAt: Date.now(),
+    })
+    return {id, userId: args.authenticatedUserId}
+  }),
+})
+
+const complexMutation = customMutation(mutation, {
+  QueryCtx,
+  MutationCtx,
+  args: S.Struct({
+    sessionToken: S.optional(S.String),
+    optionalMetadata: S.optional(S.String),
+  }),
+  input: E.fn(function* (args) {
+    const {db} = yield* MutationCtx
+
+    let userId = "anonymous"
+    let role = "guest"
+
+    if (args.sessionToken) {
+      const session = yield* db
+        .query("sessions")
+        .withIndex("by_token", (q) => q.eq("token", args.sessionToken!))
+        .unique()
+
+      if (session) {
+        userId = session.userId
+        role = "authenticated"
+      }
+    }
+
+    const SessionLive = Layer.succeed(SessionContext, {token: args.sessionToken ?? null})
+    const UserLive = Layer.succeed(UserContext, {userId, role})
+    const TimestampLive = Layer.succeed(TimestampContext, {serverTimestamp: Date.now()})
+
+    return {
+      args: {
+        requestId: `req-${Date.now()}`,
+        metadata: args.optionalMetadata ?? "default",
+      } as const,
+      layers: [SessionLive, UserLive, TimestampLive],
+    }
+  }),
+})
+
+export const customMutationComplex = complexMutation({
+  args: S.Struct({
+    mutationParam: S.String,
+    itemName: S.String,
+  }),
+  handler: E.fn(function* (args) {
+    const {token} = yield* SessionContext
+    const {userId, role} = yield* UserContext
+    const {serverTimestamp} = yield* TimestampContext
+    const {db} = yield* MutationCtx
+
+    const itemId = yield* db.insert("items", {
+      name: args.itemName,
+      category: "complex",
+      status: "active",
+      priority: 1,
+      value: 0,
+      content: args.mutationParam,
+      createdAt: Date.now(),
+    })
+
+    const itemCount = yield* db
+      .query("items")
+      .collect()
+      .pipe(E.map((items) => items.length))
+
+    return {
+      token: token ?? "no token",
+      userId,
+      role,
+      hasTimestamp: serverTimestamp > 0,
+      requestId: args.requestId,
+      metadata: args.metadata,
+      mutationParam: args.mutationParam,
+      itemCount,
+      itemId,
     }
   }),
 })

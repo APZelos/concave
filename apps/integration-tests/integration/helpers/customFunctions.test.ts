@@ -307,3 +307,320 @@ describe("customQuery", () => {
     })
   })
 })
+
+describe("customMutation", () => {
+  describe("Basic usage without input overrides", () => {
+    it("should execute basic mutation without args", async () => {
+      const t = setup()
+
+      const result = await t.mutation(api.functions.customFunctions.customMutationBasic, {})
+
+      expect(result).toBe("basic mutation result")
+    })
+
+    it("should pass handler args correctly", async () => {
+      const t = setup()
+
+      const result = await t.mutation(api.functions.customFunctions.customMutationBasicWithArgs, {
+        message: "hello world",
+      })
+
+      expect(result).toBe("received: hello world")
+    })
+
+    it("should allow database writes via MutationCtx", async () => {
+      const t = setup()
+
+      const itemId = await t.mutation(
+        api.functions.customFunctions.customMutationBasicWithDbWrite,
+        {name: "New Item"},
+      )
+
+      expect(itemId).toBeDefined()
+
+      // Verify the item was actually written
+      const item = await t.run(async (ctx) => {
+        return await ctx.db.get(itemId)
+      })
+
+      expect(item).toBeDefined()
+      expect(item?.name).toBe("New Item")
+      expect(item?.category).toBe("test")
+    })
+  })
+
+  describe("Extra args merged with handler args", () => {
+    it("should accept extra args in API call", async () => {
+      const t = setup()
+
+      const result = await t.mutation(api.functions.customFunctions.customMutationWithExtraArgs, {
+        optionalToken: "my-token",
+      })
+
+      expect(result).toBe("extra args accepted")
+    })
+
+    it("should accept optional extra args", async () => {
+      const t = setup()
+
+      const result = await t.mutation(api.functions.customFunctions.customMutationWithExtraArgs, {})
+
+      expect(result).toBe("extra args accepted")
+    })
+
+    it("should merge extra args with handler args", async () => {
+      const t = setup()
+
+      const result = await t.mutation(api.functions.customFunctions.customMutationWithMergedArgs, {
+        optionalToken: "token-123",
+        name: "Test Name",
+      })
+
+      expect(result).toBe("name: Test Name")
+    })
+  })
+
+  describe("Input function adding args", () => {
+    it("should provide input-added args to handler", async () => {
+      const t = setup()
+
+      const result = await t.mutation(
+        api.functions.customFunctions.customMutationWithInputAddedArgs,
+        {},
+      )
+
+      expect(result).toHaveProperty("serverTimestamp")
+      expect(result).toHaveProperty("requestId", "req-123")
+      expect(typeof result.serverTimestamp).toBe("number")
+    })
+
+    it("should merge input args with handler args", async () => {
+      const t = setup()
+
+      const result = await t.mutation(
+        api.functions.customFunctions.customMutationWithInputAndHandlerArgs,
+        {clientData: "client-value"},
+      )
+
+      expect(result).toHaveProperty("serverTimestamp")
+      expect(result).toHaveProperty("requestId", "req-123")
+      expect(result).toHaveProperty("clientData", "client-value")
+    })
+  })
+
+  describe("Input function providing custom context", () => {
+    it("should use custom context in handler", async () => {
+      const t = setup()
+
+      const result = await t.mutation(
+        api.functions.customFunctions.customMutationWithCustomContext,
+        {
+          contextValue: "hello",
+        },
+      )
+
+      expect(result).toBe("HELLO")
+    })
+  })
+
+  describe("Input function injecting layers", () => {
+    it("should inject single layer and access it in handler", async () => {
+      const t = setup()
+
+      const result = await t.mutation(api.functions.customFunctions.customMutationWithLayer, {
+        token: "my-session-token",
+      })
+
+      expect(result).toBe("my-session-token")
+    })
+
+    it("should handle optional layer values", async () => {
+      const t = setup()
+
+      const result = await t.mutation(api.functions.customFunctions.customMutationWithLayer, {})
+
+      expect(result).toBe("no token")
+    })
+
+    it("should inject multiple layers", async () => {
+      const t = setup()
+
+      const result = await t.mutation(
+        api.functions.customFunctions.customMutationWithMultipleLayers,
+        {
+          token: "session-abc",
+          userId: "user-456",
+          role: "admin",
+        },
+      )
+
+      expect(result).toEqual({
+        token: "session-abc",
+        userId: "user-456",
+        role: "admin",
+        hasTimestamp: true,
+      })
+    })
+  })
+
+  describe("Error handling in input function", () => {
+    it("should succeed when input does not error", async () => {
+      const t = setup()
+
+      const result = await t.mutation(
+        api.functions.customFunctions.customMutationInputErrorSuccess,
+        {
+          shouldFail: false,
+        },
+      )
+
+      expect(result).toBe("input succeeded")
+    })
+
+    it("should propagate error from input function", async () => {
+      const t = setup()
+
+      await expect(
+        t.mutation(api.functions.customFunctions.customMutationInputErrorFail, {
+          shouldFail: true,
+        }),
+      ).rejects.toThrow()
+    })
+  })
+
+  describe("Error handling in handler", () => {
+    it("should succeed when handler does not error", async () => {
+      const t = setup()
+
+      const result = await t.mutation(api.functions.customFunctions.customMutationHandlerError, {
+        shouldFail: false,
+      })
+
+      expect(result).toBe("handler succeeded")
+    })
+
+    it("should propagate error from handler", async () => {
+      const t = setup()
+
+      await expect(
+        t.mutation(api.functions.customFunctions.customMutationHandlerError, {
+          shouldFail: true,
+        }),
+      ).rejects.toThrow()
+    })
+  })
+
+  describe("Authentication/session pattern", () => {
+    it("should fail when no session token provided", async () => {
+      const t = setup()
+
+      await expect(
+        t.mutation(api.functions.customFunctions.customMutationAuthenticated, {}),
+      ).rejects.toThrow()
+    })
+
+    it("should fail when session token is invalid", async () => {
+      const t = setup()
+
+      await expect(
+        t.mutation(api.functions.customFunctions.customMutationAuthenticated, {
+          sessionToken: "invalid-token",
+        }),
+      ).rejects.toThrow()
+    })
+
+    it("should succeed with valid session token", async () => {
+      const t = setup()
+
+      await createSession(t, {token: "valid-token", userId: "user-789"})
+
+      const result = await t.mutation(api.functions.customFunctions.customMutationAuthenticated, {
+        sessionToken: "valid-token",
+      })
+
+      expect(result).toEqual({
+        userId: "user-789",
+        role: "authenticated",
+        authenticatedUserId: "user-789",
+      })
+    })
+
+    it("should allow authenticated mutations with writes", async () => {
+      const t = setup()
+
+      await createSession(t, {token: "write-token", userId: "writer-user"})
+
+      const result = await t.mutation(
+        api.functions.customFunctions.customMutationAuthenticatedWithWrite,
+        {
+          sessionToken: "write-token",
+          itemName: "Authenticated Item",
+        },
+      )
+
+      expect(result.userId).toBe("writer-user")
+      expect(result.id).toBeDefined()
+
+      // Verify the item was written
+      const item = await t.run(async (ctx) => {
+        return await ctx.db.get(result.id)
+      })
+
+      expect(item?.name).toBe("Authenticated Item")
+      expect(item?.content).toBe("Created by writer-user")
+    })
+  })
+
+  describe("Complex scenario combining all features", () => {
+    it("should combine args, input args, layers, context, and db writes", async () => {
+      const t = setup()
+
+      await createSession(t, {token: "complex-token", userId: "complex-user"})
+      await createTestItem(t, {name: "Existing Item 1"})
+
+      const result = await t.mutation(api.functions.customFunctions.customMutationComplex, {
+        sessionToken: "complex-token",
+        optionalMetadata: "custom-metadata",
+        mutationParam: "mutation-value",
+        itemName: "New Complex Item",
+      })
+
+      expect(result.token).toBe("complex-token")
+      expect(result.userId).toBe("complex-user")
+      expect(result.role).toBe("authenticated")
+      expect(result.hasTimestamp).toBe(true)
+      expect(result.requestId).toMatch(/^req-\d+$/)
+      expect(result.metadata).toBe("custom-metadata")
+      expect(result.mutationParam).toBe("mutation-value")
+      expect(result.itemCount).toBe(2) // 1 existing + 1 new
+      expect(result.itemId).toBeDefined()
+
+      // Verify the item was written
+      const item = await t.run(async (ctx) => {
+        return await ctx.db.get(result.itemId)
+      })
+
+      expect(item?.name).toBe("New Complex Item")
+      expect(item?.content).toBe("mutation-value")
+    })
+
+    it("should work with default optional values", async () => {
+      const t = setup()
+
+      const result = await t.mutation(api.functions.customFunctions.customMutationComplex, {
+        mutationParam: "test-param",
+        itemName: "Default Item",
+      })
+
+      expect(result.token).toBe("no token")
+      expect(result.userId).toBe("anonymous")
+      expect(result.role).toBe("guest")
+      expect(result.hasTimestamp).toBe(true)
+      expect(result.requestId).toMatch(/^req-\d+$/)
+      expect(result.metadata).toBe("default")
+      expect(result.mutationParam).toBe("test-param")
+      expect(result.itemCount).toBe(1)
+      expect(result.itemId).toBeDefined()
+    })
+  })
+})
