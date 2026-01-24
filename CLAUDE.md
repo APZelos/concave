@@ -28,20 +28,14 @@ apps/
 
 This repo uses **pnpm** exclusively. Always use `pnpm` and `pnpx` instead of `npm`/`npx` or `yarn`.
 
-## Publishing
-
-Uses Changesets for version management:
-
-```bash
-pnpm changeset        # Create changeset
-pnpm version-packages # Update versions and changelogs
-pnpm release          # Build and publish to npm
-```
-
 ## After Making Changes
 
 Run these commands in order after making code changes. Fix any issues before proceeding to next steps.
 
 1. `pnpm format` — Format all files with Prettier
 2. `pnpm checks` — Run typecheck, lint, and prettier check
-3. `pnpm test:run` — Run the test suite
+3. `pnpm test` — Run the test suite
+
+# IMPORTANT NOTES
+
+- When exploring/studying the code don't read the dist/, always look at the actual implementation
