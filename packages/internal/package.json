@@ -9,6 +9,10 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
+    "./assert": {
+      "types": "./dist/assert/index.d.ts",
+      "import": "./dist/assert/index.js"
+    },
     "./types": {
       "types": "./dist/types/index.d.ts",
       "import": "./dist/types/index.js"
@@ -30,6 +34,8 @@
     "clean": "rm -rf dist"
   },
   "devDependencies": {
+    "@effect/vitest": "^0.25.0",
+    "convex": "^1.31.0",
     "effect": "^3.19.0"
   }
 }
