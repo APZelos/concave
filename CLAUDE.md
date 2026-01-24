@@ -39,3 +39,4 @@ Run these commands in order after making code changes. Fix any issues before pro
 # IMPORTANT NOTES
 
 - When exploring/studying the code don't read the dist/, always look at the actual implementation
+- Always run all tests and not specific tests, otherwise there is the danger of missing something that broke. The `pnpm test` command runs all test, unit and integration, and it's pretty fast
