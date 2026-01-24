@@ -1,3 +1,4 @@
+import type {DeepMutable} from "@apzelos/concave-internal/types"
 import type {
   GenericActionCtx as ConvexGenericActionCtx,
   GenericMutationCtx as ConvexGenericMutationCtx,
@@ -10,8 +11,6 @@ import type {
   RegisteredMutation,
   RegisteredQuery,
 } from "convex/server"
-import type {GenericId} from "convex/values"
-import type {Brand} from "effect"
 import type {ActionCtxTag, MutationCtxTag, QueryCtxTag} from "./context"
 
 import {
@@ -262,7 +261,7 @@ export type QueryBuilder<
           args: HandlerArgs,
         ) => E.Effect<QueryReturns, HandlerError, GenericQueryCtx<DataModel>>
       },
-) => RegisteredQuery<Visibility, QueryArgs, Promise<QueryReturns>>
+) => RegisteredQuery<Visibility, DeepMutable<QueryArgs>, Promise<DeepMutable<QueryReturns>>>
 
 export type MutationBuilder<
   Visibility extends FunctionVisibility,
@@ -296,7 +295,11 @@ export type MutationBuilder<
           GenericQueryCtx<DataModel> | GenericMutationCtx<DataModel>
         >
       },
-) => RegisteredMutation<Visibility, MutationArgs, Promise<MutationReturns>>
+) => RegisteredMutation<
+  Visibility,
+  DeepMutable<MutationArgs>,
+  Promise<DeepMutable<MutationReturns>>
+>
 
 export type ActionBuilder<
   Visibility extends FunctionVisibility,
@@ -322,13 +325,4 @@ export type ActionBuilder<
           args: HandlerArgs,
         ) => E.Effect<ActionReturns, HandlerError, GenericActionCtx<DataModel>>
       },
-) => RegisteredAction<Visibility, ActionArgs, Promise<ActionReturns>>
-
-/**
- * Recursively makes all properties mutable.
- * Preserves Brand types and GenericId types.
- */
-export type DeepMutable<T> =
-  T extends Brand.Brand<any> | GenericId<any> ? T
-  : [keyof T] extends [never] ? T
-  : {-readonly [K in keyof T]: DeepMutable<T[K]>}
+) => RegisteredAction<Visibility, DeepMutable<ActionArgs>, Promise<DeepMutable<ActionReturns>>>
