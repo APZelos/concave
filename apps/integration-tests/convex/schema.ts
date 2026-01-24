@@ -40,4 +40,10 @@ export default defineSchema({
     scheduledId: v.optional(v.id("_scheduled_functions")),
     data: v.any(),
   }).index("by_status", ["status"]),
+
+  sessions: defineTable({
+    token: v.string(),
+    userId: v.string(),
+    expiresAt: v.number(),
+  }).index("by_token", ["token"]),
 })
