@@ -5,6 +5,10 @@
   "type": "module",
   "sideEffects": false,
   "exports": {
+    "./server/customFunctions": {
+      "types": "./dist/server/customFunctions.d.ts",
+      "import": "./dist/server/customFunctions.js"
+    },
     "./server/filter": {
       "types": "./dist/server/filter.d.ts",
       "import": "./dist/server/filter.js"
