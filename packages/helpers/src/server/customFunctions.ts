@@ -1,4 +1,4 @@
-import type {DeepMutable, LayerAnyNoContext, Prettify} from "@apzelos/concave-internal/types"
+import type {DeepMutable, LayerAnyNoContext, Prettify} from "@apzelos/concave-internal/type"
 import type {
   ActionBuilder,
   ActionCtxTag,

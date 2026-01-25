@@ -1,4 +1,4 @@
-import type {SafeUnion} from "@apzelos/concave-internal/types"
+import type {SafeUnion} from "@apzelos/concave-internal/type"
 import type {GenericQueryCtx, QueryCtxTag} from "@apzelos/concave/server"
 import type {
   QueryStream as ConvexQueryStream,

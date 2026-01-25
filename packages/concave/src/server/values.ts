@@ -1,4 +1,4 @@
-import type {IsAny, IsLiteral, IsUnion, UnionToTuple} from "@apzelos/concave-internal/types"
+import type {IsAny, IsLiteral, IsUnion, UnionToTuple} from "@apzelos/concave-internal/type"
 import type {
   GenericId,
   Validator,

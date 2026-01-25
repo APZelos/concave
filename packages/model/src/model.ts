@@ -4,7 +4,7 @@ import type {
   StreamQuery,
   StreamQueryInitializer,
 } from "@apzelos/concave-helpers/server/stream"
-import type {SafeUnion} from "@apzelos/concave-internal/types"
+import type {SafeUnion} from "@apzelos/concave-internal/type"
 import type {
   DocNotUniqueError,
   GenericMutationCtx,

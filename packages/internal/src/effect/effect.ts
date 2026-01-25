@@ -1,4 +1,4 @@
-import type {ForceNullUnion} from "../types"
+import type {ForceNullUnion} from "../type"
 
 import {Effect as E} from "effect"
 
