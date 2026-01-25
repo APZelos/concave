@@ -5,10 +5,6 @@
   "type": "module",
   "sideEffects": false,
   "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    },
     "./assert": {
       "types": "./dist/assert/index.d.ts",
       "import": "./dist/assert/index.js"
@@ -20,10 +16,6 @@
     "./types": {
       "types": "./dist/types/index.d.ts",
       "import": "./dist/types/index.js"
-    },
-    "./option": {
-      "types": "./dist/option.d.ts",
-      "import": "./dist/option.js"
     }
   },
   "files": [

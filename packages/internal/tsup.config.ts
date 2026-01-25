@@ -1,13 +1,7 @@
 import {defineConfig} from "tsup"
 
 export default defineConfig({
-  entry: [
-    "src/index.ts",
-    "src/assert/index.ts",
-    "src/effect/index.ts",
-    "src/types/index.ts",
-    "src/option.ts",
-  ],
+  entry: ["src/assert/index.ts", "src/effect/index.ts", "src/types/index.ts"],
   dts: true,
   sourcemap: true,
   clean: true,

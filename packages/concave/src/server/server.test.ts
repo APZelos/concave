@@ -25,7 +25,7 @@
  * For Args/Returns type verification, use the integration tests in src/test/
  * which use FunctionReference - that type DOES properly encode all parameters.
  */
-import type {EmptyObject} from "@apzelos/concave-internal"
+import type {EmptyObject} from "@apzelos/concave-internal/types"
 import type {
   DataModelFromSchemaDefinition,
   PublicHttpAction,
