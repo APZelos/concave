@@ -39,7 +39,7 @@ import type {GenericId} from "convex/values"
 import type {ParseResult} from "effect"
 
 import {stream as streamHelper} from "@apzelos/concave-helpers/server/stream"
-import {OptionSucceedOrFail} from "@apzelos/concave-internal/option"
+import {fromNullableOrFail} from "@apzelos/concave-internal/effect"
 import {
   ConvexTableName,
   DocNotFoundError,
@@ -154,8 +154,7 @@ export function createModelFunction<Schema extends SchemaDefinition<any, boolean
         const {db} = yield* QueryCtx
         return yield* pipe(
           db.normalizeId(tableName, docId),
-          E.map(Option.fromNullable),
-          E.flatMap(OptionSucceedOrFail(() => new InvalidDocIdError({tableName, value: docId}))),
+          E.andThen(fromNullableOrFail(() => new InvalidDocIdError({tableName, value: docId}))),
         )
       },
     )
@@ -361,8 +360,7 @@ export function createModelFunction<Schema extends SchemaDefinition<any, boolean
       const {db} = yield* QueryCtx
       return yield* pipe(
         db.get(docId),
-        E.map(Option.fromNullable),
-        E.flatMap(OptionSucceedOrFail(() => new DocNotFoundError({tableName, metadata: {docId}}))),
+        E.andThen(fromNullableOrFail(() => new DocNotFoundError({tableName, metadata: {docId}}))),
         E.map(S.decodeSync(Document)),
       )
     })
