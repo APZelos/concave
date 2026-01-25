@@ -1,5 +1,8 @@
 import type {DeepMutable, LayerAnyNoContext, Prettify} from "@apzelos/concave-internal/types"
 import type {
+  ActionBuilder,
+  ActionCtxTag,
+  GenericActionCtx,
   GenericMutationCtx,
   GenericQueryCtx,
   MutationBuilder,
@@ -11,6 +14,7 @@ import type {
   DefaultFunctionArgs,
   FunctionVisibility,
   GenericDataModel,
+  RegisteredAction,
   RegisteredMutation,
   RegisteredQuery,
 } from "convex/server"
@@ -291,6 +295,121 @@ export type CustomMutationBuilder<
   Visibility,
   DeepMutable<Prettify<MutationArgs & MutationExtraArgs>>,
   Promise<DeepMutable<MutationReturns>>
+>
+
+export function customAction<
+  Visibility extends FunctionVisibility,
+  DataModel extends GenericDataModel,
+  InputArgs,
+  ActionExtraArgs extends DefaultFunctionArgs,
+  HandlerExtraArgs,
+  Layers extends Array<LayerAnyNoContext> = [],
+  InputError = never,
+>(
+  actionBuilder: ActionBuilder<Visibility, DataModel>,
+  {
+    ActionCtx,
+    args: extraArgs,
+    input = () => E.succeed({}),
+  }: {
+    ActionCtx: ActionCtxTag<DataModel>
+    args: S.Schema<InputArgs, ActionExtraArgs>
+    input?: (args: InputArgs) => E.Effect<
+      {
+        args?: HandlerExtraArgs
+        ctx?: GenericActionCtx<DataModel>
+        layers?: Layers
+      },
+      InputError,
+      GenericActionCtx<DataModel>
+    >
+  },
+): CustomActionBuilder<
+  Visibility,
+  HandlerExtraArgs,
+  ActionExtraArgs,
+  LayersError<[Layer.Layer<GenericActionCtx<DataModel>>, ...Layers]>,
+  LayersSuccess<[Layer.Layer<GenericActionCtx<DataModel>>, ...Layers]>
+> {
+  function customActionBuilder<
+    HandlerArgs,
+    ActionArgs extends DefaultFunctionArgs,
+    HandlerReturns,
+    ActionReturns = never,
+    HandlerError = never,
+  >(action: {
+    args: S.Schema<HandlerArgs & InputArgs, ActionArgs & ActionExtraArgs>
+    returns?: S.Schema<ActionReturns, HandlerReturns>
+    handler: (
+      args: HandlerArgs,
+    ) => E.Effect<
+      HandlerReturns | ActionReturns,
+      HandlerError | LayersError<[Layer.Layer<GenericActionCtx<DataModel>>, ...Layers]>,
+      LayersSuccess<[Layer.Layer<GenericActionCtx<DataModel>>, ...Layers]>
+    >
+  }): RegisteredAction<Visibility, ActionArgs, Promise<HandlerReturns | ActionReturns>> {
+    return actionBuilder({
+      args: S.extend(action.args, extraArgs),
+      handler: E.fn(function* (args: HandlerArgs & InputArgs) {
+        const actionCtx = yield* ActionCtx
+        const {
+          ctx: customCtx,
+          args: customArgs = {},
+          layers = [],
+        } = yield* input(args).pipe(E.provideService(ActionCtx, actionCtx))
+        const ActionCtxLive = Layer.succeed(ActionCtx, customCtx ?? actionCtx)
+        const mergedArgs = {...customArgs, ...args}
+        return yield* action
+          .handler(mergedArgs)
+          .pipe(E.provide(Layer.mergeAll(ActionCtxLive, ...layers))) as E.Effect<
+          HandlerReturns | ActionReturns,
+          HandlerError | LayersError<[Layer.Layer<GenericActionCtx<DataModel>>, ...Layers]>,
+          never
+        >
+      }),
+    })
+  }
+
+  return customActionBuilder as CustomActionBuilder<
+    Visibility,
+    InputArgs,
+    ActionExtraArgs,
+    LayersError<[Layer.Layer<GenericActionCtx<DataModel>>, ...Layers]>,
+    LayersSuccess<[Layer.Layer<GenericActionCtx<DataModel>>, ...Layers]>
+  >
+}
+
+export type CustomActionBuilder<
+  Visibility extends FunctionVisibility,
+  HandlerExtraArgs,
+  ActionExtraArgs extends DefaultFunctionArgs,
+  HandlerExtraError = never,
+  HandlerContext = never,
+> = <
+  HandlerArgs,
+  ActionArgs extends DefaultFunctionArgs,
+  HandlerReturns,
+  ActionReturns = never,
+  HandlerError = never,
+>(
+  action:
+    | {
+        args: S.Schema<HandlerArgs, ActionArgs>
+        returns: S.Schema<ActionReturns, HandlerReturns>
+        handler: (
+          args: Prettify<HandlerArgs & HandlerExtraArgs>,
+        ) => E.Effect<HandlerReturns, HandlerError | HandlerExtraError, HandlerContext>
+      }
+    | {
+        args: S.Schema<HandlerArgs, ActionArgs>
+        handler: (
+          args: Prettify<HandlerArgs & HandlerExtraArgs>,
+        ) => E.Effect<ActionReturns, HandlerError | HandlerExtraError, HandlerContext>
+      },
+) => RegisteredAction<
+  Visibility,
+  DeepMutable<Prettify<ActionArgs & ActionExtraArgs>>,
+  Promise<DeepMutable<ActionReturns>>
 >
 
 type LayersTuple = readonly [LayerAnyNoContext, ...Array<LayerAnyNoContext>]

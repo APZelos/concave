@@ -10,6 +10,8 @@ import type {
 import type {GenericId} from "convex/values"
 
 import {
+  expectTypeOfRegisteredActionArgs,
+  expectTypeOfRegisteredActionReturns,
   expectTypeOfRegisteredMutationArgs,
   expectTypeOfRegisteredMutationReturns,
   expectTypeOfRegisteredQueryArgs,
@@ -31,7 +33,7 @@ import {defineSchema, defineTable} from "convex/server"
 import {v} from "convex/values"
 import {Context, Effect as E, Layer, Schema as S} from "effect"
 
-import {customMutation, customQuery} from "./customFunctions"
+import {customAction, customMutation, customQuery} from "./customFunctions"
 
 const _schema = defineSchema({
   users: defineTable({
@@ -60,6 +62,8 @@ const {
   internalQuery: internalQueryBuilder,
   mutation: mutationBuilder,
   internalMutation: internalMutationBuilder,
+  action: actionBuilder,
+  internalAction: internalActionBuilder,
 } = createServerFunctions({
   QueryCtx,
   MutationCtx,
@@ -1664,6 +1668,472 @@ describe("customMutation", () => {
       }>()
       expectTypeOfRegisteredMutationReturns(mutationWithReturns).toEqualTypeOf<
         Promise<string | null>
+      >()
+    })
+  })
+})
+
+describe("customAction", () => {
+  describe("action", () => {
+    test('should create action without any "overrides"', () => {
+      const action = customAction(actionBuilder, {
+        ActionCtx,
+        args: S.Struct({}),
+        input: E.fn(function* (args) {
+          expectTypeOf(args).toEqualTypeOf<{}>()
+          return {}
+        }),
+      })
+
+      const actionWithNoArgs = action({
+        args: S.Struct({}),
+        handler: E.fn(function* (args) {
+          expectTypeOf(args).toEqualTypeOf<{}>()
+          return 1
+        }),
+      })
+
+      expectTypeOfRegisteredActionArgs(actionWithNoArgs).toEqualTypeOf<{}>()
+      expectTypeOfRegisteredActionReturns(actionWithNoArgs).toEqualTypeOf<Promise<number>>()
+
+      const actionWithArgs = action({
+        args: S.Struct({message: S.String}),
+        handler: E.fn(function* (args) {
+          expectTypeOf(args).toEqualTypeOf<{readonly message: string}>()
+          return "a value"
+        }),
+      })
+
+      expectTypeOfRegisteredActionArgs(actionWithArgs).toEqualTypeOf<{message: string}>()
+      expectTypeOfRegisteredActionReturns(actionWithArgs).toEqualTypeOf<Promise<string>>()
+
+      const actionWithReturns = action({
+        args: S.Struct({}),
+        returns: S.NumberFromString,
+        handler: E.fn(function* (args) {
+          expectTypeOf(args).toEqualTypeOf<{}>()
+          return "a value"
+        }),
+      })
+
+      expectTypeOfRegisteredActionArgs(actionWithReturns).toEqualTypeOf<{}>()
+      expectTypeOfRegisteredActionReturns(actionWithReturns).toEqualTypeOf<Promise<number>>()
+    })
+
+    test("should accept args", () => {
+      const action = customAction(actionBuilder, {
+        ActionCtx,
+        args: S.Struct({
+          sessionId: S.optional(S.String),
+          date: S.DateFromString,
+        }),
+        input: E.fn(function* (args) {
+          expectTypeOf(args).toEqualTypeOf<{
+            readonly sessionId?: string
+            readonly date: Date
+          }>()
+          return {}
+        }),
+      })
+
+      const actionWithNoArgs = action({
+        args: S.Struct({}),
+        handler: E.fn(function* (args) {
+          expectTypeOf(args).toEqualTypeOf<{}>()
+          return 1
+        }),
+      })
+
+      expectTypeOfRegisteredActionArgs(actionWithNoArgs).toEqualTypeOf<{
+        sessionId?: string | undefined
+        date: string
+      }>()
+      expectTypeOfRegisteredActionReturns(actionWithNoArgs).toEqualTypeOf<Promise<number>>()
+
+      const actionWithArgs = action({
+        args: S.Struct({message: S.String}),
+        handler: E.fn(function* (args) {
+          expectTypeOf(args).toEqualTypeOf<{readonly message: string}>()
+          return "a value"
+        }),
+      })
+
+      expectTypeOfRegisteredActionArgs(actionWithArgs).toEqualTypeOf<{
+        sessionId?: string | undefined
+        date: string
+        message: string
+      }>()
+      expectTypeOfRegisteredActionReturns(actionWithArgs).toEqualTypeOf<Promise<string>>()
+
+      const actionWithReturns = action({
+        args: S.Struct({}),
+        returns: S.NumberFromString,
+        handler: E.fn(function* (args) {
+          expectTypeOf(args).toEqualTypeOf<{}>()
+          return "a value"
+        }),
+      })
+
+      expectTypeOfRegisteredActionArgs(actionWithReturns).toEqualTypeOf<{
+        sessionId?: string | undefined
+        date: string
+      }>()
+      expectTypeOfRegisteredActionReturns(actionWithReturns).toEqualTypeOf<Promise<number>>()
+    })
+
+    test("should add args", () => {
+      const action = customAction(actionBuilder, {
+        ActionCtx,
+        args: S.Struct({}),
+        input: E.fn(function* (args) {
+          expectTypeOf(args).toEqualTypeOf<{}>()
+          return {args: {timestamp: Date.now()} as const}
+        }),
+      })
+
+      const actionWithNoArgs = action({
+        args: S.Struct({}),
+        handler: E.fn(function* (args) {
+          expectTypeOf(args).toEqualTypeOf<{readonly timestamp: number}>()
+          return 1
+        }),
+      })
+
+      expectTypeOfRegisteredActionArgs(actionWithNoArgs).toEqualTypeOf<{}>()
+      expectTypeOfRegisteredActionReturns(actionWithNoArgs).toEqualTypeOf<Promise<number>>()
+
+      const actionWithArgs = action({
+        args: S.Struct({message: S.String}),
+        handler: E.fn(function* (args) {
+          expectTypeOf(args).toEqualTypeOf<{
+            readonly timestamp: number
+            readonly message: string
+          }>()
+          return "a value"
+        }),
+      })
+
+      expectTypeOfRegisteredActionArgs(actionWithArgs).toEqualTypeOf<{message: string}>()
+      expectTypeOfRegisteredActionReturns(actionWithArgs).toEqualTypeOf<Promise<string>>()
+
+      const actionWithRedeclaredArgs = action({
+        args: S.Struct({timestamp: S.Number}),
+        handler: E.fn(function* (args) {
+          expectTypeOf(args).toEqualTypeOf<{readonly timestamp: number}>()
+          return "a value"
+        }),
+      })
+
+      expectTypeOfRegisteredActionArgs(actionWithRedeclaredArgs).toEqualTypeOf<{
+        timestamp: number
+      }>()
+      expectTypeOfRegisteredActionReturns(actionWithRedeclaredArgs).toEqualTypeOf<Promise<string>>()
+
+      const actionWithReturns = action({
+        args: S.Struct({}),
+        returns: S.NumberFromString,
+        handler: E.fn(function* (args) {
+          expectTypeOf(args).toEqualTypeOf<{readonly timestamp: number}>()
+          return "a value"
+        }),
+      })
+
+      expectTypeOfRegisteredActionArgs(actionWithReturns).toEqualTypeOf<{}>()
+      expectTypeOfRegisteredActionReturns(actionWithReturns).toEqualTypeOf<Promise<number>>()
+    })
+
+    test("should provide additional layers", () => {
+      const action = customAction(actionBuilder, {
+        ActionCtx,
+        args: S.Struct({}),
+        input: E.fn(function* (args) {
+          expectTypeOf(args).toEqualTypeOf<{}>()
+          const ctx = yield* ActionCtx
+          const id = yield* ctx.auth.getUserIdentity()
+          const SessionLive = Layer.succeed(SessionContext, {
+            sessionId: id?.subject as GenericId<"sessions"> | undefined,
+          })
+          return {layers: [SessionLive]}
+        }),
+      })
+
+      const actionWithNoArgs = action({
+        args: S.Struct({}),
+        handler: E.fn(function* (args) {
+          expectTypeOf(args).toEqualTypeOf<{}>()
+          const {sessionId} = yield* SessionContext
+          return sessionId ?? null
+        }),
+      })
+
+      expectTypeOfRegisteredActionArgs(actionWithNoArgs).toEqualTypeOf<{}>()
+      expectTypeOfRegisteredActionReturns(actionWithNoArgs).toEqualTypeOf<
+        Promise<GenericId<"sessions"> | null>
+      >()
+
+      const actionWithArgs = action({
+        args: S.Struct({message: S.String}),
+        handler: E.fn(function* (args) {
+          expectTypeOf(args).toEqualTypeOf<{readonly message: string}>()
+          const {sessionId} = yield* SessionContext
+          return sessionId ?? null
+        }),
+      })
+
+      expectTypeOfRegisteredActionArgs(actionWithArgs).toEqualTypeOf<{message: string}>()
+      expectTypeOfRegisteredActionReturns(actionWithArgs).toEqualTypeOf<
+        Promise<GenericId<"sessions"> | null>
+      >()
+
+      const actionWithReturns = action({
+        args: S.Struct({}),
+        returns: S.NullOr(SDocId("sessions")),
+        handler: E.fn(function* (args) {
+          expectTypeOf(args).toEqualTypeOf<{}>()
+          const {sessionId} = yield* SessionContext
+          return sessionId ?? null
+        }),
+      })
+
+      expectTypeOfRegisteredActionArgs(actionWithReturns).toEqualTypeOf<{}>()
+      expectTypeOfRegisteredActionReturns(actionWithReturns).toEqualTypeOf<
+        Promise<GenericId<"sessions"> | null>
+      >()
+    })
+  })
+
+  describe("internalAction", () => {
+    test('should create internalAction without any "overrides"', () => {
+      const internalAction = customAction(internalActionBuilder, {
+        ActionCtx,
+        args: S.Struct({}),
+        input: E.fn(function* (args) {
+          expectTypeOf(args).toEqualTypeOf<{}>()
+          return {}
+        }),
+      })
+
+      const internalActionWithNoArgs = internalAction({
+        args: S.Struct({}),
+        handler: E.fn(function* (args) {
+          expectTypeOf(args).toEqualTypeOf<{}>()
+          return 1
+        }),
+      })
+
+      expectTypeOfRegisteredActionArgs(internalActionWithNoArgs).toEqualTypeOf<{}>()
+      expectTypeOfRegisteredActionReturns(internalActionWithNoArgs).toEqualTypeOf<Promise<number>>()
+
+      const internalActionWithArgs = internalAction({
+        args: S.Struct({message: S.String}),
+        handler: E.fn(function* (args) {
+          expectTypeOf(args).toEqualTypeOf<{readonly message: string}>()
+          return "a value"
+        }),
+      })
+
+      expectTypeOfRegisteredActionArgs(internalActionWithArgs).toEqualTypeOf<{message: string}>()
+      expectTypeOfRegisteredActionReturns(internalActionWithArgs).toEqualTypeOf<Promise<string>>()
+
+      const internalActionWithReturns = internalAction({
+        args: S.Struct({}),
+        returns: S.NumberFromString,
+        handler: E.fn(function* (args) {
+          expectTypeOf(args).toEqualTypeOf<{}>()
+          return "a value"
+        }),
+      })
+
+      expectTypeOfRegisteredActionArgs(internalActionWithReturns).toEqualTypeOf<{}>()
+      expectTypeOfRegisteredActionReturns(internalActionWithReturns).toEqualTypeOf<
+        Promise<number>
+      >()
+    })
+
+    test("should accept args", () => {
+      const internalAction = customAction(internalActionBuilder, {
+        ActionCtx,
+        args: S.Struct({
+          sessionId: S.optional(S.String),
+          date: S.DateFromString,
+        }),
+        input: E.fn(function* (args) {
+          expectTypeOf(args).toEqualTypeOf<{
+            readonly sessionId?: string
+            readonly date: Date
+          }>()
+          return {}
+        }),
+      })
+
+      const internalActionWithNoArgs = internalAction({
+        args: S.Struct({}),
+        handler: E.fn(function* (args) {
+          expectTypeOf(args).toEqualTypeOf<{}>()
+          return 1
+        }),
+      })
+
+      expectTypeOfRegisteredActionArgs(internalActionWithNoArgs).toEqualTypeOf<{
+        sessionId?: string | undefined
+        date: string
+      }>()
+      expectTypeOfRegisteredActionReturns(internalActionWithNoArgs).toEqualTypeOf<Promise<number>>()
+
+      const internalActionWithArgs = internalAction({
+        args: S.Struct({message: S.String}),
+        handler: E.fn(function* (args) {
+          expectTypeOf(args).toEqualTypeOf<{readonly message: string}>()
+          return "a value"
+        }),
+      })
+
+      expectTypeOfRegisteredActionArgs(internalActionWithArgs).toEqualTypeOf<{
+        sessionId?: string | undefined
+        date: string
+        message: string
+      }>()
+      expectTypeOfRegisteredActionReturns(internalActionWithArgs).toEqualTypeOf<Promise<string>>()
+
+      const internalActionWithReturns = internalAction({
+        args: S.Struct({}),
+        returns: S.NumberFromString,
+        handler: E.fn(function* (args) {
+          expectTypeOf(args).toEqualTypeOf<{}>()
+          return "a value"
+        }),
+      })
+
+      expectTypeOfRegisteredActionArgs(internalActionWithReturns).toEqualTypeOf<{
+        sessionId?: string | undefined
+        date: string
+      }>()
+      expectTypeOfRegisteredActionReturns(internalActionWithReturns).toEqualTypeOf<
+        Promise<number>
+      >()
+    })
+
+    test("should add args", () => {
+      const internalAction = customAction(internalActionBuilder, {
+        ActionCtx,
+        args: S.Struct({}),
+        input: E.fn(function* (args) {
+          expectTypeOf(args).toEqualTypeOf<{}>()
+          return {args: {timestamp: Date.now()} as const}
+        }),
+      })
+
+      const internalActionWithNoArgs = internalAction({
+        args: S.Struct({}),
+        handler: E.fn(function* (args) {
+          expectTypeOf(args).toEqualTypeOf<{readonly timestamp: number}>()
+          return 1
+        }),
+      })
+
+      expectTypeOfRegisteredActionArgs(internalActionWithNoArgs).toEqualTypeOf<{}>()
+      expectTypeOfRegisteredActionReturns(internalActionWithNoArgs).toEqualTypeOf<Promise<number>>()
+
+      const internalActionWithArgs = internalAction({
+        args: S.Struct({message: S.String}),
+        handler: E.fn(function* (args) {
+          expectTypeOf(args).toEqualTypeOf<{
+            readonly timestamp: number
+            readonly message: string
+          }>()
+          return "a value"
+        }),
+      })
+
+      expectTypeOfRegisteredActionArgs(internalActionWithArgs).toEqualTypeOf<{message: string}>()
+      expectTypeOfRegisteredActionReturns(internalActionWithArgs).toEqualTypeOf<Promise<string>>()
+
+      const internalActionWithRedeclaredArgs = internalAction({
+        args: S.Struct({timestamp: S.Number}),
+        handler: E.fn(function* (args) {
+          expectTypeOf(args).toEqualTypeOf<{readonly timestamp: number}>()
+          return "a value"
+        }),
+      })
+
+      expectTypeOfRegisteredActionArgs(internalActionWithRedeclaredArgs).toEqualTypeOf<{
+        timestamp: number
+      }>()
+      expectTypeOfRegisteredActionReturns(internalActionWithRedeclaredArgs).toEqualTypeOf<
+        Promise<string>
+      >()
+
+      const internalActionWithReturns = internalAction({
+        args: S.Struct({}),
+        returns: S.NumberFromString,
+        handler: E.fn(function* (args) {
+          expectTypeOf(args).toEqualTypeOf<{readonly timestamp: number}>()
+          return "a value"
+        }),
+      })
+
+      expectTypeOfRegisteredActionArgs(internalActionWithReturns).toEqualTypeOf<{}>()
+      expectTypeOfRegisteredActionReturns(internalActionWithReturns).toEqualTypeOf<
+        Promise<number>
+      >()
+    })
+
+    test("should provide additional layers", () => {
+      const internalAction = customAction(internalActionBuilder, {
+        ActionCtx,
+        args: S.Struct({}),
+        input: E.fn(function* (args) {
+          expectTypeOf(args).toEqualTypeOf<{}>()
+          const ctx = yield* ActionCtx
+          const id = yield* ctx.auth.getUserIdentity()
+          const SessionLive = Layer.succeed(SessionContext, {
+            sessionId: id?.subject as GenericId<"sessions"> | undefined,
+          })
+          return {layers: [SessionLive]}
+        }),
+      })
+
+      const internalActionWithNoArgs = internalAction({
+        args: S.Struct({}),
+        handler: E.fn(function* (args) {
+          expectTypeOf(args).toEqualTypeOf<{}>()
+          const {sessionId} = yield* SessionContext
+          return sessionId ?? null
+        }),
+      })
+
+      expectTypeOfRegisteredActionArgs(internalActionWithNoArgs).toEqualTypeOf<{}>()
+      expectTypeOfRegisteredActionReturns(internalActionWithNoArgs).toEqualTypeOf<
+        Promise<GenericId<"sessions"> | null>
+      >()
+
+      const internalActionWithArgs = internalAction({
+        args: S.Struct({message: S.String}),
+        handler: E.fn(function* (args) {
+          expectTypeOf(args).toEqualTypeOf<{readonly message: string}>()
+          const {sessionId} = yield* SessionContext
+          return sessionId ?? null
+        }),
+      })
+
+      expectTypeOfRegisteredActionArgs(internalActionWithArgs).toEqualTypeOf<{message: string}>()
+      expectTypeOfRegisteredActionReturns(internalActionWithArgs).toEqualTypeOf<
+        Promise<GenericId<"sessions"> | null>
+      >()
+
+      const internalActionWithReturns = internalAction({
+        args: S.Struct({}),
+        returns: S.NullOr(SDocId("sessions")),
+        handler: E.fn(function* (args) {
+          expectTypeOf(args).toEqualTypeOf<{}>()
+          const {sessionId} = yield* SessionContext
+          return sessionId ?? null
+        }),
+      })
+
+      expectTypeOfRegisteredActionArgs(internalActionWithReturns).toEqualTypeOf<{}>()
+      expectTypeOfRegisteredActionReturns(internalActionWithReturns).toEqualTypeOf<
+        Promise<GenericId<"sessions"> | null>
       >()
     })
   })

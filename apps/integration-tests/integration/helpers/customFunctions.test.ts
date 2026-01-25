@@ -624,3 +624,223 @@ describe("customMutation", () => {
     })
   })
 })
+
+describe("customAction", () => {
+  describe("Basic usage without input overrides", () => {
+    it("should execute basic action without args", async () => {
+      const t = setup()
+
+      const result = await t.action(api.functions.customFunctions.customActionBasic, {})
+
+      expect(result).toBe("basic action result")
+    })
+
+    it("should pass handler args correctly", async () => {
+      const t = setup()
+
+      const result = await t.action(api.functions.customFunctions.customActionBasicWithArgs, {
+        message: "hello world",
+      })
+
+      expect(result).toBe("received: hello world")
+    })
+
+    it("should allow ActionCtx access", async () => {
+      const t = setup()
+
+      const result = await t.action(
+        api.functions.customFunctions.customActionBasicWithCtxAccess,
+        {},
+      )
+
+      expect(result).toBe("anonymous")
+    })
+  })
+
+  describe("Extra args merged with handler args", () => {
+    it("should accept extra args in API call", async () => {
+      const t = setup()
+
+      const result = await t.action(api.functions.customFunctions.customActionWithExtraArgs, {
+        optionalToken: "my-token",
+      })
+
+      expect(result).toBe("extra args accepted")
+    })
+
+    it("should accept optional extra args", async () => {
+      const t = setup()
+
+      const result = await t.action(api.functions.customFunctions.customActionWithExtraArgs, {})
+
+      expect(result).toBe("extra args accepted")
+    })
+
+    it("should merge extra args with handler args", async () => {
+      const t = setup()
+
+      const result = await t.action(api.functions.customFunctions.customActionWithMergedArgs, {
+        optionalToken: "token-123",
+        name: "Test Name",
+      })
+
+      expect(result).toBe("name: Test Name")
+    })
+  })
+
+  describe("Input function adding args", () => {
+    it("should provide input-added args to handler", async () => {
+      const t = setup()
+
+      const result = await t.action(
+        api.functions.customFunctions.customActionWithInputAddedArgs,
+        {},
+      )
+
+      expect(result).toHaveProperty("serverTimestamp")
+      expect(result).toHaveProperty("requestId", "req-123")
+      expect(typeof result.serverTimestamp).toBe("number")
+    })
+
+    it("should merge input args with handler args", async () => {
+      const t = setup()
+
+      const result = await t.action(
+        api.functions.customFunctions.customActionWithInputAndHandlerArgs,
+        {clientData: "client-value"},
+      )
+
+      expect(result).toHaveProperty("serverTimestamp")
+      expect(result).toHaveProperty("requestId", "req-123")
+      expect(result).toHaveProperty("clientData", "client-value")
+    })
+  })
+
+  describe("Input function providing custom context", () => {
+    it("should use custom context in handler", async () => {
+      const t = setup()
+
+      const result = await t.action(api.functions.customFunctions.customActionWithCustomContext, {
+        contextValue: "hello",
+      })
+
+      expect(result).toBe("HELLO")
+    })
+  })
+
+  describe("Input function injecting layers", () => {
+    it("should inject single layer and access it in handler", async () => {
+      const t = setup()
+
+      const result = await t.action(api.functions.customFunctions.customActionWithLayer, {
+        token: "my-session-token",
+      })
+
+      expect(result).toBe("my-session-token")
+    })
+
+    it("should handle optional layer values", async () => {
+      const t = setup()
+
+      const result = await t.action(api.functions.customFunctions.customActionWithLayer, {})
+
+      expect(result).toBe("no token")
+    })
+
+    it("should inject multiple layers", async () => {
+      const t = setup()
+
+      const result = await t.action(api.functions.customFunctions.customActionWithMultipleLayers, {
+        token: "session-abc",
+        userId: "user-456",
+        role: "admin",
+      })
+
+      expect(result).toEqual({
+        token: "session-abc",
+        userId: "user-456",
+        role: "admin",
+        hasTimestamp: true,
+      })
+    })
+  })
+
+  describe("Error handling in input function", () => {
+    it("should succeed when input does not error", async () => {
+      const t = setup()
+
+      const result = await t.action(api.functions.customFunctions.customActionInputErrorSuccess, {
+        shouldFail: false,
+      })
+
+      expect(result).toBe("input succeeded")
+    })
+
+    it("should propagate error from input function", async () => {
+      const t = setup()
+
+      await expect(
+        t.action(api.functions.customFunctions.customActionInputErrorFail, {
+          shouldFail: true,
+        }),
+      ).rejects.toThrow()
+    })
+  })
+
+  describe("Error handling in handler", () => {
+    it("should succeed when handler does not error", async () => {
+      const t = setup()
+
+      const result = await t.action(api.functions.customFunctions.customActionHandlerError, {
+        shouldFail: false,
+      })
+
+      expect(result).toBe("handler succeeded")
+    })
+
+    it("should propagate error from handler", async () => {
+      const t = setup()
+
+      await expect(
+        t.action(api.functions.customFunctions.customActionHandlerError, {
+          shouldFail: true,
+        }),
+      ).rejects.toThrow()
+    })
+  })
+
+  describe("Complex scenario combining all features", () => {
+    it("should combine args, input args, and layers", async () => {
+      const t = setup()
+
+      const result = await t.action(api.functions.customFunctions.customActionComplex, {
+        optionalMetadata: "custom-metadata",
+        actionParam: "action-value",
+      })
+
+      expect(result.token).toBe("no token")
+      expect(result.userId).toBe("anonymous")
+      expect(result.role).toBe("guest")
+      expect(result.hasTimestamp).toBe(true)
+      expect(result.requestId).toMatch(/^req-\d+$/)
+      expect(result.metadata).toBe("custom-metadata")
+      expect(result.actionParam).toBe("action-value")
+    })
+
+    it("should work with default optional values", async () => {
+      const t = setup()
+
+      const result = await t.action(api.functions.customFunctions.customActionComplex, {
+        actionParam: "test-param",
+      })
+
+      expect(result.token).toBe("no token")
+      expect(result.userId).toBe("anonymous")
+      expect(result.role).toBe("guest")
+      expect(result.hasTimestamp).toBe(true)
+      expect(result.requestId).toMatch(/^req-\d+$/)
+      expect(result.metadata).toBe("default")
+      expect(result.actionParam).toBe("test-param")
+    })
+  })
+})

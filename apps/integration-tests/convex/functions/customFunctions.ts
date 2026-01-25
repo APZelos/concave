@@ -1,7 +1,11 @@
-import {customMutation, customQuery} from "@apzelos/concave-helpers/server/customFunctions"
+import {
+  customAction,
+  customMutation,
+  customQuery,
+} from "@apzelos/concave-helpers/server/customFunctions"
 import {Context, Data, Effect as E, Layer, Schema as S} from "effect"
 
-import {mutation, MutationCtx, query, QueryCtx} from "../concave"
+import {action, ActionCtx, mutation, MutationCtx, query, QueryCtx} from "../concave"
 
 class SessionContext extends Context.Tag("SessionContext")<
   SessionContext,
@@ -711,6 +715,258 @@ export const customMutationComplex = complexMutation({
       mutationParam: args.mutationParam,
       itemCount,
       itemId,
+    }
+  }),
+})
+
+const basicAction = customAction(action, {
+  ActionCtx,
+  args: S.Struct({}),
+})
+
+export const customActionBasic = basicAction({
+  args: S.Struct({}),
+  handler: E.fn(function* () {
+    return "basic action result"
+  }),
+})
+
+export const customActionBasicWithArgs = basicAction({
+  args: S.Struct({
+    message: S.String,
+  }),
+  handler: E.fn(function* (args) {
+    return `received: ${args.message}`
+  }),
+})
+
+export const customActionBasicWithCtxAccess = basicAction({
+  args: S.Struct({}),
+  handler: E.fn(function* () {
+    const ctx = yield* ActionCtx
+    const identity = yield* ctx.auth.getUserIdentity()
+    return identity?.subject ?? "anonymous"
+  }),
+})
+
+const actionWithExtraArgs = customAction(action, {
+  ActionCtx,
+  args: S.Struct({
+    optionalToken: S.optional(S.String),
+  }),
+})
+
+export const customActionWithExtraArgs = actionWithExtraArgs({
+  args: S.Struct({}),
+  handler: E.fn(function* () {
+    return "extra args accepted"
+  }),
+})
+
+export const customActionWithMergedArgs = actionWithExtraArgs({
+  args: S.Struct({
+    name: S.String,
+  }),
+  handler: E.fn(function* (args) {
+    return `name: ${args.name}`
+  }),
+})
+
+const actionWithInputAddedArgs = customAction(action, {
+  ActionCtx,
+  args: S.Struct({}),
+  input: E.fn(function* () {
+    return {
+      args: {
+        serverTimestamp: Date.now(),
+        requestId: "req-123",
+      } as const,
+    }
+  }),
+})
+
+export const customActionWithInputAddedArgs = actionWithInputAddedArgs({
+  args: S.Struct({}),
+  handler: E.fn(function* (args) {
+    return {
+      serverTimestamp: args.serverTimestamp,
+      requestId: args.requestId,
+    }
+  }),
+})
+
+export const customActionWithInputAndHandlerArgs = actionWithInputAddedArgs({
+  args: S.Struct({
+    clientData: S.String,
+  }),
+  handler: E.fn(function* (args) {
+    return {
+      serverTimestamp: args.serverTimestamp,
+      requestId: args.requestId,
+      clientData: args.clientData,
+    }
+  }),
+})
+
+const actionWithCustomContext = customAction(action, {
+  ActionCtx,
+  args: S.Struct({
+    contextValue: S.String,
+  }),
+  input: E.fn(function* (args) {
+    const ctx = yield* ActionCtx
+    return {ctx, args: {customValue: args.contextValue.toUpperCase()} as const}
+  }),
+})
+
+export const customActionWithCustomContext = actionWithCustomContext({
+  args: S.Struct({}),
+  handler: E.fn(function* (args) {
+    return args.customValue
+  }),
+})
+
+const actionWithLayer = customAction(action, {
+  ActionCtx,
+  args: S.Struct({
+    token: S.optional(S.String),
+  }),
+  input: E.fn(function* (args) {
+    const SessionLive = Layer.succeed(SessionContext, {token: args.token ?? null})
+    return {layers: [SessionLive]}
+  }),
+})
+
+export const customActionWithLayer = actionWithLayer({
+  args: S.Struct({}),
+  handler: E.fn(function* () {
+    const {token} = yield* SessionContext
+    return token ?? "no token"
+  }),
+})
+
+const actionWithMultipleLayers = customAction(action, {
+  ActionCtx,
+  args: S.Struct({
+    token: S.optional(S.String),
+    userId: S.optional(S.String),
+    role: S.optional(S.String),
+  }),
+  input: E.fn(function* (args) {
+    const SessionLive = Layer.succeed(SessionContext, {token: args.token ?? null})
+    const UserLive = Layer.succeed(UserContext, {
+      userId: args.userId ?? "anonymous",
+      role: args.role ?? "guest",
+    })
+    const TimestampLive = Layer.succeed(TimestampContext, {
+      serverTimestamp: Date.now(),
+    })
+    return {layers: [SessionLive, UserLive, TimestampLive]}
+  }),
+})
+
+export const customActionWithMultipleLayers = actionWithMultipleLayers({
+  args: S.Struct({}),
+  handler: E.fn(function* () {
+    const {token} = yield* SessionContext
+    const {userId, role} = yield* UserContext
+    const {serverTimestamp} = yield* TimestampContext
+    return {
+      token: token ?? "no token",
+      userId,
+      role,
+      hasTimestamp: serverTimestamp > 0,
+    }
+  }),
+})
+
+const actionWithInputError = customAction(action, {
+  ActionCtx,
+  args: S.Struct({
+    shouldFail: S.Boolean,
+  }),
+  input: E.fn(function* (args) {
+    if (args.shouldFail) {
+      return yield* new InputError({message: "Input validation failed"})
+    }
+    return {}
+  }),
+})
+
+export const customActionInputErrorSuccess = actionWithInputError({
+  args: S.Struct({}),
+  handler: E.fn(function* () {
+    return "input succeeded"
+  }),
+})
+
+export const customActionInputErrorFail = actionWithInputError({
+  args: S.Struct({}),
+  handler: E.fn(function* () {
+    return "this should not be reached"
+  }),
+})
+
+const actionWithHandlerError = customAction(action, {
+  ActionCtx,
+  args: S.Struct({}),
+})
+
+export const customActionHandlerError = actionWithHandlerError({
+  args: S.Struct({
+    shouldFail: S.Boolean,
+  }),
+  handler: E.fn(function* (args) {
+    if (args.shouldFail) {
+      return yield* new HandlerError({details: "Handler execution failed"})
+    }
+    return "handler succeeded"
+  }),
+})
+
+const complexAction = customAction(action, {
+  ActionCtx,
+  args: S.Struct({
+    optionalMetadata: S.optional(S.String),
+  }),
+  input: E.fn(function* (args) {
+    const ctx = yield* ActionCtx
+    const identity = yield* ctx.auth.getUserIdentity()
+
+    const userId = identity?.subject ?? "anonymous"
+    const role = identity ? "authenticated" : "guest"
+
+    const SessionLive = Layer.succeed(SessionContext, {token: identity?.subject ?? null})
+    const UserLive = Layer.succeed(UserContext, {userId, role})
+    const TimestampLive = Layer.succeed(TimestampContext, {serverTimestamp: Date.now()})
+
+    return {
+      args: {
+        requestId: `req-${Date.now()}`,
+        metadata: args.optionalMetadata ?? "default",
+      } as const,
+      layers: [SessionLive, UserLive, TimestampLive],
+    }
+  }),
+})
+
+export const customActionComplex = complexAction({
+  args: S.Struct({
+    actionParam: S.String,
+  }),
+  handler: E.fn(function* (args) {
+    const {token} = yield* SessionContext
+    const {userId, role} = yield* UserContext
+    const {serverTimestamp} = yield* TimestampContext
+
+    return {
+      token: token ?? "no token",
+      userId,
+      role,
+      hasTimestamp: serverTimestamp > 0,
+      requestId: args.requestId,
+      metadata: args.metadata,
+      actionParam: args.actionParam,
     }
   }),
 })
