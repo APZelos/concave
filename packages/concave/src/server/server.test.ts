@@ -33,9 +33,6 @@ import type {
   RegisteredMutation,
   RegisteredQuery,
 } from "convex/server"
-import type {GenericId} from "convex/values"
-import type {Brand} from "effect"
-import type {DeepMutable} from "./server"
 
 import {describe, expect, expectTypeOf, test} from "@effect/vitest"
 import {defineSchema, defineTable} from "convex/server"
@@ -182,41 +179,5 @@ describe("httpAction", () => {
     )
 
     expectTypeOf(result).toEqualTypeOf<PublicHttpAction>()
-  })
-})
-
-describe("DeepMutable", () => {
-  test("should preserve Brand types", () => {
-    type Branded = string & Brand.Brand<"MyBrand">
-    type Result = DeepMutable<Branded>
-
-    expectTypeOf<Result>().toEqualTypeOf<Branded>()
-  })
-
-  test("should preserve GenericId types", () => {
-    type Result = DeepMutable<GenericId<"user">>
-
-    expectTypeOf<Result>().toEqualTypeOf<GenericId<"user">>()
-  })
-
-  test("should make readonly properties mutable", () => {
-    type Input = {readonly name: string; readonly age: number}
-    type Result = DeepMutable<Input>
-
-    expectTypeOf<Result>().toEqualTypeOf<{name: string; age: number}>()
-  })
-
-  test("should recursively make nested properties mutable", () => {
-    type Input = {readonly user: {readonly name: string}}
-    type Result = DeepMutable<Input>
-
-    expectTypeOf<Result>().toEqualTypeOf<{user: {name: string}}>()
-  })
-
-  test("should handle arrays", () => {
-    type Input = readonly string[]
-    type Result = DeepMutable<Input>
-
-    expectTypeOf<Result>().toEqualTypeOf<string[]>()
   })
 })

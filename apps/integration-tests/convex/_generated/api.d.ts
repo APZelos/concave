@@ -10,6 +10,7 @@
 
 import type * as concave from "../concave.js";
 import type * as functions_actions from "../functions/actions.js";
+import type * as functions_customFunctions from "../functions/customFunctions.js";
 import type * as functions_filter from "../functions/filter.js";
 import type * as functions_model from "../functions/model.js";
 import type * as functions_mutations from "../functions/mutations.js";
@@ -28,6 +29,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   concave: typeof concave;
   "functions/actions": typeof functions_actions;
+  "functions/customFunctions": typeof functions_customFunctions;
   "functions/filter": typeof functions_filter;
   "functions/model": typeof functions_model;
   "functions/mutations": typeof functions_mutations;

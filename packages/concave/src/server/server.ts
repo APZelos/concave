@@ -1,3 +1,4 @@
+import type {DeepMutable} from "@apzelos/concave-internal/types"
 import type {
   GenericActionCtx as ConvexGenericActionCtx,
   GenericMutationCtx as ConvexGenericMutationCtx,
@@ -10,8 +11,6 @@ import type {
   RegisteredMutation,
   RegisteredQuery,
 } from "convex/server"
-import type {GenericId} from "convex/values"
-import type {Brand} from "effect"
 import type {ActionCtxTag, MutationCtxTag, QueryCtxTag} from "./context"
 
 import {
@@ -92,8 +91,8 @@ export function createServerFunctions<DataModel extends GenericDataModel>({
    * @param func - The function handler that returns an Effect<Response>. Access services through `yield* HttpActionCtx` or your custom ActionCtx.
    * @returns The wrapped function. Import this function from `convex/http.js` and route it to hook it up.
    */
-  function httpAction<TError = never>(
-    func: (request: Request) => E.Effect<Response, TError, GenericActionCtx<GenericDataModel>>,
+  function httpAction<FuncError = never>(
+    func: (request: Request) => E.Effect<Response, FuncError, GenericActionCtx<GenericDataModel>>,
   ): PublicHttpAction {
     return httpActionGeneric(
       async (ctx: ConvexGenericActionCtx<GenericDataModel>, request: Request) => {
@@ -111,11 +110,11 @@ export function createServerFunctions<DataModel extends GenericDataModel>({
 
 function createQueryHandler<
   DataModel extends GenericDataModel,
-  SchemaArgs,
-  Args extends DefaultFunctionArgs,
-  SchemaReturns,
-  Returns = never,
-  TError = never,
+  HandlerArgs,
+  QueryArgs extends DefaultFunctionArgs,
+  HandlerReturns,
+  QueryReturns = never,
+  HandlerError = never,
 >(
   QueryCtx: QueryCtxTag<DataModel>,
   {
@@ -123,17 +122,17 @@ function createQueryHandler<
     returns,
     handler,
   }: {
-    args: S.Schema<SchemaArgs, Args>
-    returns?: S.Schema<Returns, SchemaReturns>
+    args: S.Schema<HandlerArgs, QueryArgs>
+    returns?: S.Schema<QueryReturns, HandlerReturns>
     handler: (
-      args: SchemaArgs,
-    ) => E.Effect<SchemaReturns | Returns, TError, GenericQueryCtx<DataModel>>
+      args: HandlerArgs,
+    ) => E.Effect<HandlerReturns | QueryReturns, HandlerError, GenericQueryCtx<DataModel>>
   },
 ) {
   return {
     args: mapAstToValidator(args.ast, "encode"),
     returns: returns ? mapAstToValidator(returns.ast, "encode") : undefined,
-    handler: async (ctx: ConvexGenericQueryCtx<DataModel>, convexArgs: Args) =>
+    handler: async (ctx: ConvexGenericQueryCtx<DataModel>, convexArgs: QueryArgs) =>
       pipe(
         convexArgs,
         S.decodeUnknown(args),
@@ -152,11 +151,11 @@ function createQueryHandler<
 
 function createMutationHandler<
   DataModel extends GenericDataModel,
-  SchemaArgs,
-  Args extends DefaultFunctionArgs,
-  SchemaReturns,
-  Returns = never,
-  TError = never,
+  HandlerArgs,
+  MutationArgs extends DefaultFunctionArgs,
+  HandlerReturns,
+  QueryReturns = never,
+  HandlerError = never,
 >(
   QueryCtx: QueryCtxTag<DataModel>,
   MutationCtx: MutationCtxTag<DataModel>,
@@ -165,13 +164,13 @@ function createMutationHandler<
     returns,
     handler,
   }: {
-    args: S.Schema<SchemaArgs, Args>
-    returns?: S.Schema<Returns, SchemaReturns>
+    args: S.Schema<HandlerArgs, MutationArgs>
+    returns?: S.Schema<QueryReturns, HandlerReturns>
     handler: (
-      args: SchemaArgs,
+      args: HandlerArgs,
     ) => E.Effect<
-      SchemaReturns | Returns,
-      TError,
+      HandlerReturns | QueryReturns,
+      HandlerError,
       GenericQueryCtx<DataModel> | GenericMutationCtx<DataModel>
     >
   },
@@ -179,7 +178,7 @@ function createMutationHandler<
   return {
     args: mapAstToValidator(args.ast, "encode"),
     returns: returns ? mapAstToValidator(returns.ast, "encode") : undefined,
-    handler: async (ctx: ConvexGenericMutationCtx<DataModel>, convexArgs: Args) =>
+    handler: async (ctx: ConvexGenericMutationCtx<DataModel>, convexArgs: MutationArgs) =>
       pipe(
         convexArgs,
         S.decodeUnknown(args),
@@ -199,11 +198,11 @@ function createMutationHandler<
 
 function createActionHandler<
   DataModel extends GenericDataModel,
-  SchemaArgs,
-  Args extends DefaultFunctionArgs,
-  SchemaReturns,
-  Returns = never,
-  TError = never,
+  HandlerArgs,
+  ActionArgs extends DefaultFunctionArgs,
+  HandlerReturns,
+  ActionReturns = never,
+  HandlerError = never,
 >(
   ActionCtx: ActionCtxTag<DataModel>,
   {
@@ -211,17 +210,17 @@ function createActionHandler<
     returns,
     handler,
   }: {
-    args: S.Schema<SchemaArgs, Args>
-    returns?: S.Schema<Returns, SchemaReturns>
+    args: S.Schema<HandlerArgs, ActionArgs>
+    returns?: S.Schema<ActionReturns, HandlerReturns>
     handler: (
-      args: SchemaArgs,
-    ) => E.Effect<SchemaReturns | Returns, TError, GenericActionCtx<DataModel>>
+      args: HandlerArgs,
+    ) => E.Effect<HandlerReturns | ActionReturns, HandlerError, GenericActionCtx<DataModel>>
   },
 ) {
   return {
     args: mapAstToValidator(args.ast, "encode"),
     returns: returns ? mapAstToValidator(returns.ast, "encode") : undefined,
-    handler: async (ctx: ConvexGenericActionCtx<DataModel>, convexArgs: Args) =>
+    handler: async (ctx: ConvexGenericActionCtx<DataModel>, convexArgs: ActionArgs) =>
       pipe(
         convexArgs,
         S.decodeUnknown(args),
@@ -238,76 +237,92 @@ function createActionHandler<
   }
 }
 
-type QueryBuilder<Visibility extends FunctionVisibility, DataModel extends GenericDataModel> = <
-  SchemaArgs,
-  Args extends DefaultFunctionArgs,
-  SchemaReturns,
-  Returns = never,
-  TError = never,
+export type QueryBuilder<
+  Visibility extends FunctionVisibility,
+  DataModel extends GenericDataModel,
+> = <
+  HandlerArgs,
+  QueryArgs extends DefaultFunctionArgs,
+  HandlerReturns,
+  QueryReturns = never,
+  HandlerError = never,
 >(
   query:
     | {
-        args: S.Schema<SchemaArgs, Args>
-        returns: S.Schema<Returns, SchemaReturns>
-        handler: (args: SchemaArgs) => E.Effect<SchemaReturns, TError, GenericQueryCtx<DataModel>>
+        args: S.Schema<HandlerArgs, QueryArgs>
+        returns: S.Schema<QueryReturns, HandlerReturns>
+        handler: (
+          args: HandlerArgs,
+        ) => E.Effect<HandlerReturns, HandlerError, GenericQueryCtx<DataModel>>
       }
     | {
-        args: S.Schema<SchemaArgs, Args>
-        handler: (args: SchemaArgs) => E.Effect<Returns, TError, GenericQueryCtx<DataModel>>
+        args: S.Schema<HandlerArgs, QueryArgs>
+        handler: (
+          args: HandlerArgs,
+        ) => E.Effect<QueryReturns, HandlerError, GenericQueryCtx<DataModel>>
       },
-) => RegisteredQuery<Visibility, Args, Promise<Returns>>
+) => RegisteredQuery<Visibility, DeepMutable<QueryArgs>, Promise<DeepMutable<QueryReturns>>>
 
-type MutationBuilder<Visibility extends FunctionVisibility, DataModel extends GenericDataModel> = <
-  SchemaArgs,
-  Args extends DefaultFunctionArgs,
-  SchemaReturns,
-  Returns = never,
-  TError = never,
+export type MutationBuilder<
+  Visibility extends FunctionVisibility,
+  DataModel extends GenericDataModel,
+> = <
+  HandlerArgs,
+  MutationArgs extends DefaultFunctionArgs,
+  HandlerReturns,
+  MutationReturns = never,
+  HandlerError = never,
 >(
   mutation:
     | {
-        args: S.Schema<SchemaArgs, Args>
-        returns: S.Schema<Returns, SchemaReturns>
+        args: S.Schema<HandlerArgs, MutationArgs>
+        returns: S.Schema<MutationReturns, HandlerReturns>
         handler: (
-          args: SchemaArgs,
+          args: HandlerArgs,
         ) => E.Effect<
-          SchemaReturns,
-          TError,
+          HandlerReturns,
+          HandlerError,
           GenericQueryCtx<DataModel> | GenericMutationCtx<DataModel>
         >
       }
     | {
-        args: S.Schema<SchemaArgs, Args>
+        args: S.Schema<HandlerArgs, MutationArgs>
         handler: (
-          args: SchemaArgs,
-        ) => E.Effect<Returns, TError, GenericQueryCtx<DataModel> | GenericMutationCtx<DataModel>>
+          args: HandlerArgs,
+        ) => E.Effect<
+          MutationReturns,
+          HandlerError,
+          GenericQueryCtx<DataModel> | GenericMutationCtx<DataModel>
+        >
       },
-) => RegisteredMutation<Visibility, Args, Promise<Returns>>
+) => RegisteredMutation<
+  Visibility,
+  DeepMutable<MutationArgs>,
+  Promise<DeepMutable<MutationReturns>>
+>
 
-type ActionBuilder<Visibility extends FunctionVisibility, DataModel extends GenericDataModel> = <
-  SchemaArgs,
-  Args extends DefaultFunctionArgs,
-  SchemaReturns,
-  Returns = never,
-  TError = never,
+export type ActionBuilder<
+  Visibility extends FunctionVisibility,
+  DataModel extends GenericDataModel,
+> = <
+  HandlerArgs,
+  ActionArgs extends DefaultFunctionArgs,
+  HandlerReturns,
+  ActionReturns = never,
+  HandlerError = never,
 >(
   action:
     | {
-        args: S.Schema<SchemaArgs, Args>
-        returns: S.Schema<Returns, SchemaReturns>
-        handler: (args: SchemaArgs) => E.Effect<SchemaReturns, TError, GenericActionCtx<DataModel>>
+        args: S.Schema<HandlerArgs, ActionArgs>
+        returns: S.Schema<ActionReturns, HandlerReturns>
+        handler: (
+          args: HandlerArgs,
+        ) => E.Effect<HandlerReturns, HandlerError, GenericActionCtx<DataModel>>
       }
     | {
-        args: S.Schema<SchemaArgs, Args>
-        handler: (args: SchemaArgs) => E.Effect<Returns, TError, GenericActionCtx<DataModel>>
+        args: S.Schema<HandlerArgs, ActionArgs>
+        handler: (
+          args: HandlerArgs,
+        ) => E.Effect<ActionReturns, HandlerError, GenericActionCtx<DataModel>>
       },
-) => RegisteredAction<Visibility, Args, Promise<Returns>>
-
-/**
- * Recursively makes all properties mutable.
- * Preserves Brand types and GenericId types.
- */
-export type DeepMutable<T> =
-  T extends Brand.Brand<any> | GenericId<any> ? T
-  : [keyof T] extends [never] ? T
-  : {-readonly [K in keyof T]: DeepMutable<T[K]>}
+) => RegisteredAction<Visibility, DeepMutable<ActionArgs>, Promise<DeepMutable<ActionReturns>>>
