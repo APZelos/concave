@@ -312,5 +312,5 @@ Co-location benefits:
 ```bash
 pnpm test           # Run all tests once
 pnpm test:watch     # Watch mode
-pnpm checks         # Run typecheck, lint, prettier
+pnpm check         # Run typecheck, lint, prettier
 ```

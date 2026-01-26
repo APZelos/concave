@@ -33,7 +33,7 @@ This repo uses **pnpm** exclusively. Always use `pnpm` and `pnpx` instead of `np
 Run these commands in order after making code changes. Fix any issues before proceeding to next steps.
 
 1. `pnpm format` — Format all files with Prettier
-2. `pnpm checks` — Run typecheck, lint, and prettier check
+2. `pnpm check` — Run typecheck, lint, and prettier check
 3. `pnpm test` — Run the test suite
 
 # IMPORTANT NOTES
