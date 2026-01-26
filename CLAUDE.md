@@ -12,7 +12,7 @@ Concave is an Effect-based integration library for Convex backend services. It p
 packages/
 ├── concave/          # Core Effect wrappers (@apzelos/concave)
 ├── concave-helpers/  # Stream query helpers and filter utilities (@apzelos/concave-helpers)
-├── model/            # Schema-based model generation (@apzelos/concave-model)
+├── concave-model/    # Schema-based model generation (@apzelos/concave-model)
 └── concave-internal/ # Shared utilities (not published, bundled into consumers)
 apps/
 └── integration-tests/ # End-to-end tests against simulated Convex backend

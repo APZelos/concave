@@ -10,7 +10,7 @@ Concave provides type-safe, composable abstractions over Convex's database opera
 | -------------------------------------------------------- | ----------------------------------------- |
 | [`@apzelos/concave`](./packages/concave)                 | Core Effect wrappers for Convex services  |
 | [`@apzelos/concave-helpers`](./packages/concave-helpers) | Stream query helpers and filter utilities |
-| [`@apzelos/concave-model`](./packages/model)             | Schema-based model generation             |
+| [`@apzelos/concave-model`](./packages/concave-model)     | Schema-based model generation             |
 | `@apzelos/concave-internal`                              | Private shared utilities (not published)  |
 
 ## Installation

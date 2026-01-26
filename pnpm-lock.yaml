@@ -55,7 +55,7 @@ importers:
         version: link:../../packages/concave-helpers
       '@apzelos/concave-model':
         specifier: workspace:*
-        version: link:../../packages/model
+        version: link:../../packages/concave-model
       '@edge-runtime/vm':
         specifier: ^5.0.0
         version: 5.0.0
@@ -161,7 +161,7 @@ importers:
         specifier: ^3.19.0
         version: 3.19.14
 
-  packages/model:
+  packages/concave-model:
     dependencies:
       '@apzelos/concave':
         specifier: workspace:*
