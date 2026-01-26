@@ -13,7 +13,7 @@ packages/
 ├── concave/          # Core Effect wrappers (@apzelos/concave)
 ├── helpers/          # Stream query helpers and filter utilities (@apzelos/concave-helpers)
 ├── model/            # Schema-based model generation (@apzelos/concave-model)
-└── internal/         # Shared utilities (not published, bundled into consumers)
+└── concave-internal/ # Shared utilities (not published, bundled into consumers)
 apps/
 └── integration-tests/ # End-to-end tests against simulated Convex backend
 ```

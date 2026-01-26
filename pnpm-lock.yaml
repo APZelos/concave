@@ -91,7 +91,7 @@ importers:
     dependencies:
       '@apzelos/concave-internal':
         specifier: workspace:*
-        version: link:../internal
+        version: link:../concave-internal
     devDependencies:
       '@effect/vitest':
         specifier: ^0.25.0
@@ -118,6 +118,18 @@ importers:
         specifier: ^3.0.0
         version: 3.2.4(@edge-runtime/vm@5.0.0)
 
+  packages/concave-internal:
+    devDependencies:
+      '@effect/vitest':
+        specifier: ^0.25.0
+        version: 0.25.1(effect@3.19.14)(vitest@3.2.4(@edge-runtime/vm@5.0.0))
+      convex:
+        specifier: ^1.31.0
+        version: 1.31.3
+      effect:
+        specifier: ^3.19.0
+        version: 3.19.14
+
   packages/helpers:
     dependencies:
       '@apzelos/concave':
@@ -125,7 +137,7 @@ importers:
         version: link:../concave
       '@apzelos/concave-internal':
         specifier: workspace:*
-        version: link:../internal
+        version: link:../concave-internal
     devDependencies:
       '@effect/vitest':
         specifier: ^0.25.0
@@ -149,18 +161,6 @@ importers:
         specifier: ^3.0.0
         version: 3.2.4(@edge-runtime/vm@5.0.0)
 
-  packages/internal:
-    devDependencies:
-      '@effect/vitest':
-        specifier: ^0.25.0
-        version: 0.25.1(effect@3.19.14)(vitest@3.2.4(@edge-runtime/vm@5.0.0))
-      convex:
-        specifier: ^1.31.0
-        version: 1.31.3
-      effect:
-        specifier: ^3.19.0
-        version: 3.19.14
-
   packages/model:
     dependencies:
       '@apzelos/concave':
@@ -171,7 +171,7 @@ importers:
         version: link:../helpers
       '@apzelos/concave-internal':
         specifier: workspace:*
-        version: link:../internal
+        version: link:../concave-internal
     devDependencies:
       '@effect/vitest':
         specifier: ^0.25.0
