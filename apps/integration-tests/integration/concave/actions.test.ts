@@ -1,6 +1,14 @@
-import {describe, expect, it} from "vitest"
+/* eslint-disable @typescript-eslint/no-empty-object-type */
+import type {Id} from "../../convex/_generated/dataModel"
+
+import {
+  expectTypeOfRegisteredActionArgs,
+  expectTypeOfRegisteredActionReturns,
+} from "@apzelos/concave-internal/assert"
+import {describe, expect, it, test} from "vitest"
 
 import {api, internal} from "../../convex/_generated/api"
+import * as actions from "../../convex/functions/actions"
 import {setup} from "../../setup"
 
 describe("Actions", () => {
@@ -29,6 +37,18 @@ describe("Actions", () => {
 
         expect(result).toBe("validated action return")
         expect(typeof result).toBe("string")
+      })
+
+      test("actionNoArgs types", () => {
+        expectTypeOfRegisteredActionArgs(actions.actionNoArgs).toEqualTypeOf<{}>()
+        expectTypeOfRegisteredActionReturns(actions.actionNoArgs).toEqualTypeOf<Promise<string>>()
+      })
+
+      test("actionNoArgsWithReturns types", () => {
+        expectTypeOfRegisteredActionArgs(actions.actionNoArgsWithReturns).toEqualTypeOf<{}>()
+        expectTypeOfRegisteredActionReturns(actions.actionNoArgsWithReturns).toEqualTypeOf<
+          Promise<string>
+        >()
       })
     })
 
@@ -62,6 +82,23 @@ describe("Actions", () => {
 
         expect(result).toEqual({quadrupled: 40, original: 10})
       })
+
+      test("actionWithArgs types", () => {
+        expectTypeOfRegisteredActionArgs(actions.actionWithArgs).toEqualTypeOf<{
+          name: string
+          count: number
+        }>()
+        expectTypeOfRegisteredActionReturns(actions.actionWithArgs).toEqualTypeOf<Promise<string>>()
+      })
+
+      test("actionWithArgsWithReturns types", () => {
+        expectTypeOfRegisteredActionArgs(actions.actionWithArgsWithReturns).toEqualTypeOf<{
+          value: number
+        }>()
+        expectTypeOfRegisteredActionReturns(actions.actionWithArgsWithReturns).toEqualTypeOf<
+          Promise<{quadrupled: number; original: number}>
+        >()
+      })
     })
   })
 
@@ -86,6 +123,13 @@ describe("Actions", () => {
         const result = await authedT.action(api.functions.actions.actionNoAuthRequired, {})
 
         expect(result).toBe("public action")
+      })
+
+      test("actionNoAuthRequired types", () => {
+        expectTypeOfRegisteredActionArgs(actions.actionNoAuthRequired).toEqualTypeOf<{}>()
+        expectTypeOfRegisteredActionReturns(actions.actionNoAuthRequired).toEqualTypeOf<
+          Promise<string>
+        >()
       })
     })
 
@@ -126,6 +170,21 @@ describe("Actions", () => {
         expect(identity?.tokenIdentifier).toBe("auth-token-789")
         expect(identity?.name).toBe("Auth User")
       })
+
+      test("actionAuthRequired types", () => {
+        expectTypeOfRegisteredActionArgs(actions.actionAuthRequired).toEqualTypeOf<{}>()
+        expectTypeOfRegisteredActionReturns(actions.actionAuthRequired).toEqualTypeOf<
+          Promise<{tokenIdentifier: string; name: string | undefined}>
+        >()
+      })
+
+      test("actionGetIdentity types", () => {
+        expectTypeOfRegisteredActionArgs(actions.actionGetIdentity).toEqualTypeOf<{}>()
+        // Use toMatchTypeOf since UserIdentity has many optional fields
+        expectTypeOfRegisteredActionReturns(actions.actionGetIdentity).toMatchTypeOf<
+          Promise<{tokenIdentifier: string} | null>
+        >()
+      })
     })
   })
 
@@ -144,6 +203,18 @@ describe("Actions", () => {
       await expect(
         t.action(api.functions.actions.actionThrowsRegularError, {message: "regular error"}),
       ).rejects.toThrow("regular error")
+    })
+
+    test("actionThrowsTaggedError types", () => {
+      expectTypeOfRegisteredActionArgs(actions.actionThrowsTaggedError).toEqualTypeOf<{
+        message: string
+      }>()
+    })
+
+    test("actionThrowsRegularError types", () => {
+      expectTypeOfRegisteredActionArgs(actions.actionThrowsRegularError).toEqualTypeOf<{
+        message: string
+      }>()
     })
   })
 
@@ -178,6 +249,25 @@ describe("Actions", () => {
 
       expect(result).toBe("action called action: internal action: 12")
     })
+
+    test("actionCallsQuery types", () => {
+      expectTypeOfRegisteredActionArgs(actions.actionCallsQuery).toEqualTypeOf<{value: number}>()
+      expectTypeOfRegisteredActionReturns(actions.actionCallsQuery).toEqualTypeOf<Promise<string>>()
+    })
+
+    test("actionCallsMutation types", () => {
+      expectTypeOfRegisteredActionArgs(actions.actionCallsMutation).toEqualTypeOf<{name: string}>()
+      expectTypeOfRegisteredActionReturns(actions.actionCallsMutation).toEqualTypeOf<
+        Promise<Id<"items">>
+      >()
+    })
+
+    test("actionCallsAction types", () => {
+      expectTypeOfRegisteredActionArgs(actions.actionCallsAction).toEqualTypeOf<{value: number}>()
+      expectTypeOfRegisteredActionReturns(actions.actionCallsAction).toEqualTypeOf<
+        Promise<string>
+      >()
+    })
   })
 
   describe("External HTTP", () => {
@@ -203,6 +293,13 @@ describe("Actions", () => {
 
       expect(result.status).toBe(404)
       expect(result.ok).toBe(false)
+    })
+
+    test("actionFetchExternal types", () => {
+      expectTypeOfRegisteredActionArgs(actions.actionFetchExternal).toEqualTypeOf<{url: string}>()
+      expectTypeOfRegisteredActionReturns(actions.actionFetchExternal).toEqualTypeOf<
+        Promise<{status: number; ok: boolean}>
+      >()
     })
   })
 
@@ -232,6 +329,22 @@ describe("Actions", () => {
 
       expect(result).toBe("internal action: 28")
     })
+
+    test("internalActionNoArgs types", () => {
+      expectTypeOfRegisteredActionArgs(actions.internalActionNoArgs).toEqualTypeOf<{}>()
+      expectTypeOfRegisteredActionReturns(actions.internalActionNoArgs).toEqualTypeOf<
+        Promise<string>
+      >()
+    })
+
+    test("internalActionWithArgs types", () => {
+      expectTypeOfRegisteredActionArgs(actions.internalActionWithArgs).toEqualTypeOf<{
+        value: number
+      }>()
+      expectTypeOfRegisteredActionReturns(actions.internalActionWithArgs).toEqualTypeOf<
+        Promise<string>
+      >()
+    })
   })
 
   describe("Schema Transformations", () => {
@@ -250,6 +363,16 @@ describe("Actions", () => {
           year: 2024,
         })
       })
+
+      test("actionWithTransformations types", () => {
+        expectTypeOfRegisteredActionArgs(actions.actionWithTransformations).toEqualTypeOf<{
+          count: string
+          timestamp: string
+        }>()
+        expectTypeOfRegisteredActionReturns(actions.actionWithTransformations).toEqualTypeOf<
+          Promise<{doubled: number; year: number}>
+        >()
+      })
     })
 
     describe("returns transformations", () => {
@@ -262,6 +385,15 @@ describe("Actions", () => {
 
         expect(typeof result.result).toBe("number")
         expect(result.result).toBe(42)
+      })
+
+      test("actionReturnsWithTransformation types", () => {
+        expectTypeOfRegisteredActionArgs(actions.actionReturnsWithTransformation).toEqualTypeOf<{
+          value: number
+        }>()
+        expectTypeOfRegisteredActionReturns(actions.actionReturnsWithTransformation).toEqualTypeOf<
+          Promise<{result: number}>
+        >()
       })
     })
   })

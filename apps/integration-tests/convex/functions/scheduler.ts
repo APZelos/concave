@@ -133,13 +133,18 @@ export const scheduleAuthCheck = mutation({
   }),
 })
 
-// Explicit type annotations break circular type inference
 export const processChainStep = internalMutation({
   args: S.Struct({
     chainId: S.String,
     taskId: SDocId("tasks"),
     currentStep: S.Number,
     totalSteps: S.Number,
+  }),
+  returns: S.Struct({
+    step: S.Number,
+    nextTaskId: S.optional(SDocId("tasks")),
+    completed: S.Boolean,
+    chainComplete: S.Boolean,
   }),
   handler: E.fn(function* (args) {
     const {db, scheduler} = yield* MutationCtx
@@ -168,7 +173,7 @@ export const processChainStep = internalMutation({
       )
       yield* EScheduled
 
-      return {step: args.currentStep, completed: true, nextTaskId}
+      return {step: args.currentStep, completed: true, nextTaskId, chainComplete: false}
     }
 
     return {step: args.currentStep, completed: true, chainComplete: true}

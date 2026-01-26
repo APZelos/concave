@@ -1,6 +1,17 @@
-import {afterEach, beforeEach, describe, expect, it, vi} from "vitest"
+/* eslint-disable @typescript-eslint/no-empty-object-type */
+import type {GenericId} from "convex/values"
+import type {Doc, Id} from "../../convex/_generated/dataModel"
+
+import {
+  expectTypeOfRegisteredMutationArgs,
+  expectTypeOfRegisteredMutationReturns,
+  expectTypeOfRegisteredQueryArgs,
+  expectTypeOfRegisteredQueryReturns,
+} from "@apzelos/concave-internal/assert"
+import {afterEach, beforeEach, describe, expect, it, test, vi} from "vitest"
 
 import {api} from "../../convex/_generated/api"
+import * as scheduler from "../../convex/functions/scheduler"
 import {setup} from "../../setup"
 
 describe("Scheduler", () => {
@@ -58,6 +69,20 @@ describe("Scheduler", () => {
       expect(result.scheduledId).toBeDefined()
       expect(typeof result.scheduledId).toBe("string")
     })
+
+    test("schedulerRunAfter types", () => {
+      expectTypeOfRegisteredMutationArgs(scheduler.schedulerRunAfter).toEqualTypeOf<{
+        delayMs: number
+        type: string
+        data: unknown
+      }>()
+      expectTypeOfRegisteredMutationReturns(scheduler.schedulerRunAfter).toEqualTypeOf<
+        Promise<{
+          taskId: Id<"tasks">
+          scheduledId: Id<"_scheduled_functions">
+        }>
+      >()
+    })
   })
 
   describe("runAt", () => {
@@ -94,6 +119,20 @@ describe("Scheduler", () => {
 
       const task = await t.query(api.functions.scheduler.getTask, {id: result.taskId})
       expect(task?.data).toEqual({timestamp: futureTime, extra: "data"})
+    })
+
+    test("schedulerRunAt types", () => {
+      expectTypeOfRegisteredMutationArgs(scheduler.schedulerRunAt).toEqualTypeOf<{
+        timestamp: number
+        type: string
+        data: unknown
+      }>()
+      expectTypeOfRegisteredMutationReturns(scheduler.schedulerRunAt).toEqualTypeOf<
+        Promise<{
+          taskId: Id<"tasks">
+          scheduledId: Id<"_scheduled_functions">
+        }>
+      >()
     })
   })
 
@@ -142,6 +181,25 @@ describe("Scheduler", () => {
           scheduledId: result.scheduledId,
         }),
       ).resolves.not.toThrow()
+    })
+
+    test("schedulerCancel types", () => {
+      expectTypeOfRegisteredMutationArgs(scheduler.schedulerCancel).toEqualTypeOf<{
+        scheduledId: GenericId<"_scheduled_functions">
+      }>()
+      expectTypeOfRegisteredMutationReturns(scheduler.schedulerCancel).toEqualTypeOf<
+        Promise<void>
+      >()
+    })
+
+    test("updateTaskStatus types", () => {
+      expectTypeOfRegisteredMutationArgs(scheduler.updateTaskStatus).toEqualTypeOf<{
+        id: GenericId<"tasks">
+        status: "pending" | "completed" | "cancelled"
+      }>()
+      expectTypeOfRegisteredMutationReturns(scheduler.updateTaskStatus).toEqualTypeOf<
+        Promise<void>
+      >()
     })
   })
 
@@ -207,6 +265,19 @@ describe("Scheduler", () => {
       // We verify it was scheduled and executed without error
       expect(scheduledId).toBeDefined()
     })
+
+    test("scheduleAuthCheck types", () => {
+      expectTypeOfRegisteredMutationArgs(scheduler.scheduleAuthCheck).toEqualTypeOf<{
+        delayMs: number
+      }>()
+      expectTypeOfRegisteredMutationReturns(scheduler.scheduleAuthCheck).toEqualTypeOf<
+        Promise<Id<"_scheduled_functions">>
+      >()
+    })
+
+    test("schedulerGetAuthInScheduled types", () => {
+      expectTypeOfRegisteredMutationArgs(scheduler.schedulerGetAuthInScheduled).toEqualTypeOf<{}>()
+    })
   })
 
   describe("Task Management", () => {
@@ -230,6 +301,24 @@ describe("Scheduler", () => {
 
       expect(pendingTasks.length).toBeGreaterThanOrEqual(2)
       expect(pendingTasks.every((task: {status: string}) => task.status === "pending")).toBe(true)
+    })
+
+    test("getTask types", () => {
+      expectTypeOfRegisteredQueryArgs(scheduler.getTask).toEqualTypeOf<{
+        id: GenericId<"tasks">
+      }>()
+      expectTypeOfRegisteredQueryReturns(scheduler.getTask).toEqualTypeOf<
+        Promise<Doc<"tasks"> | null>
+      >()
+    })
+
+    test("listTasksByStatus types", () => {
+      expectTypeOfRegisteredQueryArgs(scheduler.listTasksByStatus).toEqualTypeOf<{
+        status: "pending" | "completed" | "cancelled"
+      }>()
+      expectTypeOfRegisteredQueryReturns(scheduler.listTasksByStatus).toEqualTypeOf<
+        Promise<Doc<"tasks">[]>
+      >()
     })
   })
 
@@ -309,6 +398,59 @@ describe("Scheduler", () => {
       expect(chainBTasks).toHaveLength(3)
       expect(chainATasks.every((task: {status: string}) => task.status === "completed")).toBe(true)
       expect(chainBTasks.every((task: {status: string}) => task.status === "completed")).toBe(true)
+    })
+
+    test("scheduleChainedTask types", () => {
+      expectTypeOfRegisteredMutationArgs(scheduler.scheduleChainedTask).toEqualTypeOf<{
+        delayMs: number
+        chainId: string
+      }>()
+      expectTypeOfRegisteredMutationReturns(scheduler.scheduleChainedTask).toEqualTypeOf<
+        Promise<{
+          taskId: Id<"tasks">
+          scheduledId: Id<"_scheduled_functions">
+        }>
+      >()
+    })
+
+    test("getChainTasks types", () => {
+      expectTypeOfRegisteredQueryArgs(scheduler.getChainTasks).toEqualTypeOf<{
+        chainId: string
+      }>()
+      expectTypeOfRegisteredQueryReturns(scheduler.getChainTasks).toEqualTypeOf<
+        Promise<Doc<"tasks">[]>
+      >()
+    })
+
+    test("processChainStep types", () => {
+      expectTypeOfRegisteredMutationArgs(scheduler.processChainStep).toEqualTypeOf<{
+        chainId: string
+        taskId: GenericId<"tasks">
+        currentStep: number
+        totalSteps: number
+      }>()
+      expectTypeOfRegisteredMutationReturns(scheduler.processChainStep).toEqualTypeOf<
+        Promise<{
+          completed: boolean
+          step: number
+          nextTaskId?: GenericId<"tasks"> | undefined
+          chainComplete: boolean
+        }>
+      >()
+    })
+
+    test("processScheduledTask types", () => {
+      expectTypeOfRegisteredMutationArgs(scheduler.processScheduledTask).toEqualTypeOf<{
+        type: string
+        data: unknown
+      }>()
+      expectTypeOfRegisteredMutationReturns(scheduler.processScheduledTask).toEqualTypeOf<
+        Promise<{
+          processed: boolean
+          type: string
+          data: unknown
+        }>
+      >()
     })
   })
 })

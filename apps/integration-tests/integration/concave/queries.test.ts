@@ -1,6 +1,16 @@
-import {describe, expect, it} from "vitest"
+/* eslint-disable @typescript-eslint/no-empty-object-type */
+import type {PaginationResult} from "convex/server"
+import type {GenericId} from "convex/values"
+import type {Doc} from "../../convex/_generated/dataModel"
+
+import {
+  expectTypeOfRegisteredQueryArgs,
+  expectTypeOfRegisteredQueryReturns,
+} from "@apzelos/concave-internal/assert"
+import {describe, expect, it, test} from "vitest"
 
 import {api, internal} from "../../convex/_generated/api"
+import * as queries from "../../convex/functions/queries"
 import {setup} from "../../setup"
 
 async function createItem(t: ReturnType<typeof setup>, name: string, category: string) {
@@ -43,6 +53,18 @@ describe("Queries", () => {
         expect(result).toBe("validated return")
         expect(typeof result).toBe("string")
       })
+
+      test("queryNoArgs types", () => {
+        expectTypeOfRegisteredQueryArgs(queries.queryNoArgs).toEqualTypeOf<{}>()
+        expectTypeOfRegisteredQueryReturns(queries.queryNoArgs).toEqualTypeOf<Promise<string>>()
+      })
+
+      test("queryNoArgsWithReturns types", () => {
+        expectTypeOfRegisteredQueryArgs(queries.queryNoArgsWithReturns).toEqualTypeOf<{}>()
+        expectTypeOfRegisteredQueryReturns(queries.queryNoArgsWithReturns).toEqualTypeOf<
+          Promise<string>
+        >()
+      })
     })
 
     describe("with args", () => {
@@ -75,6 +97,23 @@ describe("Queries", () => {
 
         expect(result).toEqual({doubled: 20, original: 10})
       })
+
+      test("queryWithArgs types", () => {
+        expectTypeOfRegisteredQueryArgs(queries.queryWithArgs).toEqualTypeOf<{
+          name: string
+          count: number
+        }>()
+        expectTypeOfRegisteredQueryReturns(queries.queryWithArgs).toEqualTypeOf<Promise<string>>()
+      })
+
+      test("queryWithArgsWithReturns types", () => {
+        expectTypeOfRegisteredQueryArgs(queries.queryWithArgsWithReturns).toEqualTypeOf<{
+          value: number
+        }>()
+        expectTypeOfRegisteredQueryReturns(queries.queryWithArgsWithReturns).toEqualTypeOf<
+          Promise<{doubled: number; original: number}>
+        >()
+      })
     })
   })
 
@@ -99,6 +138,13 @@ describe("Queries", () => {
         const result = await authedT.query(api.functions.queries.queryNoAuthRequired, {})
 
         expect(result).toBe("public query")
+      })
+
+      test("queryNoAuthRequired types", () => {
+        expectTypeOfRegisteredQueryArgs(queries.queryNoAuthRequired).toEqualTypeOf<{}>()
+        expectTypeOfRegisteredQueryReturns(queries.queryNoAuthRequired).toEqualTypeOf<
+          Promise<string>
+        >()
       })
     })
 
@@ -139,6 +185,21 @@ describe("Queries", () => {
         expect(identity?.tokenIdentifier).toBe("auth-token-123")
         expect(identity?.name).toBe("Auth User")
       })
+
+      test("queryAuthRequired types", () => {
+        expectTypeOfRegisteredQueryArgs(queries.queryAuthRequired).toEqualTypeOf<{}>()
+        expectTypeOfRegisteredQueryReturns(queries.queryAuthRequired).toEqualTypeOf<
+          Promise<{tokenIdentifier: string; name: string | undefined}>
+        >()
+      })
+
+      test("queryGetIdentity types", () => {
+        expectTypeOfRegisteredQueryArgs(queries.queryGetIdentity).toEqualTypeOf<{}>()
+        // Returns UserIdentity | null - use toMatchTypeOf since UserIdentity has many optional fields
+        expectTypeOfRegisteredQueryReturns(queries.queryGetIdentity).toMatchTypeOf<
+          Promise<{tokenIdentifier: string} | null>
+        >()
+      })
     })
   })
 
@@ -158,6 +219,18 @@ describe("Queries", () => {
         t.query(api.functions.queries.queryThrowsRegularError, {message: "regular error"}),
       ).rejects.toThrow("regular error")
     })
+
+    test("queryThrowsTaggedError types", () => {
+      expectTypeOfRegisteredQueryArgs(queries.queryThrowsTaggedError).toEqualTypeOf<{
+        message: string
+      }>()
+    })
+
+    test("queryThrowsRegularError types", () => {
+      expectTypeOfRegisteredQueryArgs(queries.queryThrowsRegularError).toEqualTypeOf<{
+        message: string
+      }>()
+    })
   })
 
   describe("Cross-Function Calls", () => {
@@ -167,6 +240,11 @@ describe("Queries", () => {
       const result = await t.query(api.functions.queries.queryCallsQuery, {value: 5})
 
       expect(result).toBe("called: internal: 10")
+    })
+
+    test("queryCallsQuery types", () => {
+      expectTypeOfRegisteredQueryArgs(queries.queryCallsQuery).toEqualTypeOf<{value: number}>()
+      expectTypeOfRegisteredQueryReturns(queries.queryCallsQuery).toEqualTypeOf<Promise<string>>()
     })
   })
 
@@ -190,6 +268,13 @@ describe("Queries", () => {
         const items = await t.query(api.functions.queries.queryFullTableScan, {})
 
         expect(items).toEqual([])
+      })
+
+      test("queryFullTableScan types", () => {
+        expectTypeOfRegisteredQueryArgs(queries.queryFullTableScan).toEqualTypeOf<{}>()
+        expectTypeOfRegisteredQueryReturns(queries.queryFullTableScan).toEqualTypeOf<
+          Promise<Doc<"items">[]>
+        >()
       })
     })
 
@@ -217,6 +302,20 @@ describe("Queries", () => {
         expect(items.length).toBeGreaterThanOrEqual(2)
         expect(items[0]!._creationTime).toBeGreaterThanOrEqual(items[1]!._creationTime)
       })
+
+      test("queryWithOrderAsc types", () => {
+        expectTypeOfRegisteredQueryArgs(queries.queryWithOrderAsc).toEqualTypeOf<{}>()
+        expectTypeOfRegisteredQueryReturns(queries.queryWithOrderAsc).toEqualTypeOf<
+          Promise<Doc<"items">[]>
+        >()
+      })
+
+      test("queryWithOrderDesc types", () => {
+        expectTypeOfRegisteredQueryArgs(queries.queryWithOrderDesc).toEqualTypeOf<{}>()
+        expectTypeOfRegisteredQueryReturns(queries.queryWithOrderDesc).toEqualTypeOf<
+          Promise<Doc<"items">[]>
+        >()
+      })
     })
 
     describe("take", () => {
@@ -241,6 +340,13 @@ describe("Queries", () => {
 
         expect(items).toHaveLength(1)
       })
+
+      test("queryWithTake types", () => {
+        expectTypeOfRegisteredQueryArgs(queries.queryWithTake).toEqualTypeOf<{count: number}>()
+        expectTypeOfRegisteredQueryReturns(queries.queryWithTake).toEqualTypeOf<
+          Promise<Doc<"items">[]>
+        >()
+      })
     })
 
     describe("first", () => {
@@ -262,6 +368,13 @@ describe("Queries", () => {
         const item = await t.query(api.functions.queries.queryFirst, {})
 
         expect(item).toBeNull()
+      })
+
+      test("queryFirst types", () => {
+        expectTypeOfRegisteredQueryArgs(queries.queryFirst).toEqualTypeOf<{}>()
+        expectTypeOfRegisteredQueryReturns(queries.queryFirst).toEqualTypeOf<
+          Promise<Doc<"items"> | null>
+        >()
       })
     })
 
@@ -291,6 +404,13 @@ describe("Queries", () => {
         })
 
         expect(items).toEqual([])
+      })
+
+      test("queryWithIndex types", () => {
+        expectTypeOfRegisteredQueryArgs(queries.queryWithIndex).toEqualTypeOf<{category: string}>()
+        expectTypeOfRegisteredQueryReturns(queries.queryWithIndex).toEqualTypeOf<
+          Promise<Doc<"items">[]>
+        >()
       })
     })
 
@@ -327,6 +447,13 @@ describe("Queries", () => {
         await expect(
           t.query(api.functions.queries.queryUnique, {category: "duplicate"}),
         ).rejects.toThrow()
+      })
+
+      test("queryUnique types", () => {
+        expectTypeOfRegisteredQueryArgs(queries.queryUnique).toEqualTypeOf<{category: string}>()
+        expectTypeOfRegisteredQueryReturns(queries.queryUnique).toEqualTypeOf<
+          Promise<Doc<"items"> | null>
+        >()
       })
     })
 
@@ -379,6 +506,15 @@ describe("Queries", () => {
 
         expect(result.page).toHaveLength(1)
         expect(result.isDone).toBe(true)
+      })
+
+      test("queryPaginate types", () => {
+        expectTypeOfRegisteredQueryArgs(queries.queryPaginate).toEqualTypeOf<{
+          paginationOpts: {numItems: number; cursor: string | null}
+        }>()
+        expectTypeOfRegisteredQueryReturns(queries.queryPaginate).toEqualTypeOf<
+          Promise<PaginationResult<Doc<"items">>>
+        >()
       })
     })
 
@@ -460,6 +596,25 @@ describe("Queries", () => {
         expect(items).toHaveLength(2)
         expect(items.every((item: {category: string}) => item.category === "tech")).toBe(true)
       })
+
+      test("queryCompoundIndex types", () => {
+        expectTypeOfRegisteredQueryArgs(queries.queryCompoundIndex).toEqualTypeOf<{
+          category: string
+          status: "active" | "inactive"
+        }>()
+        expectTypeOfRegisteredQueryReturns(queries.queryCompoundIndex).toEqualTypeOf<
+          Promise<Doc<"items">[]>
+        >()
+      })
+
+      test("queryCompoundIndexPartial types", () => {
+        expectTypeOfRegisteredQueryArgs(queries.queryCompoundIndexPartial).toEqualTypeOf<{
+          category: string
+        }>()
+        expectTypeOfRegisteredQueryReturns(queries.queryCompoundIndexPartial).toEqualTypeOf<
+          Promise<Doc<"items">[]>
+        >()
+      })
     })
 
     describe("search", () => {
@@ -515,6 +670,23 @@ describe("Queries", () => {
 
         expect(results).toEqual([])
       })
+
+      test("querySearch types", () => {
+        expectTypeOfRegisteredQueryArgs(queries.querySearch).toEqualTypeOf<{searchText: string}>()
+        expectTypeOfRegisteredQueryReturns(queries.querySearch).toEqualTypeOf<
+          Promise<Doc<"items">[]>
+        >()
+      })
+
+      test("querySearchWithFilter types", () => {
+        expectTypeOfRegisteredQueryArgs(queries.querySearchWithFilter).toEqualTypeOf<{
+          searchText: string
+          category: string
+        }>()
+        expectTypeOfRegisteredQueryReturns(queries.querySearchWithFilter).toEqualTypeOf<
+          Promise<Doc<"items">[]>
+        >()
+      })
     })
 
     describe("filter", () => {
@@ -555,6 +727,15 @@ describe("Queries", () => {
         expect(highPriorityItems).toHaveLength(2)
         expect(highPriorityItems.every((item: {priority: number}) => item.priority >= 5)).toBe(true)
       })
+
+      test("queryWithFilter types", () => {
+        expectTypeOfRegisteredQueryArgs(queries.queryWithFilter).toEqualTypeOf<{
+          minPriority: number
+        }>()
+        expectTypeOfRegisteredQueryReturns(queries.queryWithFilter).toEqualTypeOf<
+          Promise<Doc<"items">[]>
+        >()
+      })
     })
 
     describe("get", () => {
@@ -582,6 +763,15 @@ describe("Queries", () => {
 
         expect(item).toBeNull()
       })
+
+      test("queryGet types", () => {
+        expectTypeOfRegisteredQueryArgs(queries.queryGet).toEqualTypeOf<{
+          id: GenericId<"items">
+        }>()
+        expectTypeOfRegisteredQueryReturns(queries.queryGet).toEqualTypeOf<
+          Promise<Doc<"items"> | null>
+        >()
+      })
     })
 
     describe("normalizeId", () => {
@@ -605,6 +795,15 @@ describe("Queries", () => {
         })
 
         expect(normalized).toBeNull()
+      })
+
+      test("queryNormalizeId types", () => {
+        expectTypeOfRegisteredQueryArgs(queries.queryNormalizeId).toEqualTypeOf<{
+          idString: string
+        }>()
+        expectTypeOfRegisteredQueryReturns(queries.queryNormalizeId).toEqualTypeOf<
+          Promise<GenericId<"items"> | null>
+        >()
       })
     })
   })
@@ -635,6 +834,22 @@ describe("Queries", () => {
 
       expect(result).toBe("internal: 14")
     })
+
+    test("internalQueryNoArgs types", () => {
+      expectTypeOfRegisteredQueryArgs(queries.internalQueryNoArgs).toEqualTypeOf<{}>()
+      expectTypeOfRegisteredQueryReturns(queries.internalQueryNoArgs).toEqualTypeOf<
+        Promise<string>
+      >()
+    })
+
+    test("internalQueryWithArgs types", () => {
+      expectTypeOfRegisteredQueryArgs(queries.internalQueryWithArgs).toEqualTypeOf<{
+        value: number
+      }>()
+      expectTypeOfRegisteredQueryReturns(queries.internalQueryWithArgs).toEqualTypeOf<
+        Promise<string>
+      >()
+    })
   })
 
   describe("Schema Transformations", () => {
@@ -659,6 +874,15 @@ describe("Queries", () => {
         ).rejects.toThrow()
       })
 
+      test("queryWithNumberFromString types", () => {
+        expectTypeOfRegisteredQueryArgs(queries.queryWithNumberFromString).toEqualTypeOf<{
+          value: string
+        }>()
+        expectTypeOfRegisteredQueryReturns(queries.queryWithNumberFromString).toEqualTypeOf<
+          Promise<number>
+        >()
+      })
+
       it("should decode DateFromString - ISO string to Date", async () => {
         const t = setup()
         const isoDate = "2024-01-15T10:30:00.000Z"
@@ -680,6 +904,15 @@ describe("Queries", () => {
         expect(result).toBeNaN()
       })
 
+      test("queryWithDateFromString types", () => {
+        expectTypeOfRegisteredQueryArgs(queries.queryWithDateFromString).toEqualTypeOf<{
+          date: string
+        }>()
+        expectTypeOfRegisteredQueryReturns(queries.queryWithDateFromString).toEqualTypeOf<
+          Promise<number>
+        >()
+      })
+
       it("should decode nested struct with multiple transformations", async () => {
         const t = setup()
         const isoDate = "2024-01-15T10:30:00.000Z"
@@ -697,6 +930,15 @@ describe("Queries", () => {
         })
       })
 
+      test("queryWithNestedTransformations types", () => {
+        expectTypeOfRegisteredQueryArgs(queries.queryWithNestedTransformations).toEqualTypeOf<{
+          user: {age: string; birthDate: string}
+        }>()
+        expectTypeOfRegisteredQueryReturns(queries.queryWithNestedTransformations).toEqualTypeOf<
+          Promise<{age: number; timestamp: number}>
+        >()
+      })
+
       it("should decode array of transformed values", async () => {
         const t = setup()
         const dates = ["2024-01-01T00:00:00.000Z", "2024-06-15T12:00:00.000Z"]
@@ -706,6 +948,15 @@ describe("Queries", () => {
         })
 
         expect(result).toEqual(dates.map((d) => new Date(d).getTime()))
+      })
+
+      test("queryWithArrayOfDates types", () => {
+        expectTypeOfRegisteredQueryArgs(queries.queryWithArrayOfDates).toEqualTypeOf<{
+          dates: string[]
+        }>()
+        expectTypeOfRegisteredQueryReturns(queries.queryWithArrayOfDates).toEqualTypeOf<
+          Promise<number[]>
+        >()
       })
 
       it("should decode optional transformed value when present", async () => {
@@ -724,6 +975,15 @@ describe("Queries", () => {
         const result = await t.query(api.functions.queries.queryWithOptionalTransformation, {})
 
         expect(result).toBeNull()
+      })
+
+      test("queryWithOptionalTransformation types", () => {
+        expectTypeOfRegisteredQueryArgs(queries.queryWithOptionalTransformation).toEqualTypeOf<{
+          value?: string | undefined
+        }>()
+        expectTypeOfRegisteredQueryReturns(queries.queryWithOptionalTransformation).toEqualTypeOf<
+          Promise<number | null>
+        >()
       })
 
       it("should decode deeply nested transformations (3+ levels)", async () => {
@@ -747,6 +1007,17 @@ describe("Queries", () => {
         })
       })
 
+      test("queryWithDeeplyNestedTransformations types", () => {
+        expectTypeOfRegisteredQueryArgs(
+          queries.queryWithDeeplyNestedTransformations,
+        ).toEqualTypeOf<{
+          level1: {level2: {level3: {value: string; date: string}}}
+        }>()
+        expectTypeOfRegisteredQueryReturns(
+          queries.queryWithDeeplyNestedTransformations,
+        ).toEqualTypeOf<Promise<{value: number; timestamp: number}>>()
+      })
+
       it("should decode nullable transformation when value is present", async () => {
         const t = setup()
 
@@ -765,6 +1036,15 @@ describe("Queries", () => {
         })
 
         expect(result).toBeNull()
+      })
+
+      test("queryWithNullableTransformation types", () => {
+        expectTypeOfRegisteredQueryArgs(queries.queryWithNullableTransformation).toEqualTypeOf<{
+          value: string | null
+        }>()
+        expectTypeOfRegisteredQueryReturns(queries.queryWithNullableTransformation).toEqualTypeOf<
+          Promise<number | null>
+        >()
       })
 
       it("should decode union type with number transformation", async () => {
@@ -788,6 +1068,15 @@ describe("Queries", () => {
         expect(result).toEqual({type: "date", result: new Date(isoDate).getTime()})
       })
 
+      test("queryWithUnionTransformation types", () => {
+        expectTypeOfRegisteredQueryArgs(queries.queryWithUnionTransformation).toEqualTypeOf<{
+          value: {type: "number"; data: string} | {type: "date"; data: string}
+        }>()
+        expectTypeOfRegisteredQueryReturns(queries.queryWithUnionTransformation).toEqualTypeOf<
+          Promise<{type: "number"; result: number} | {type: "date"; result: number}>
+        >()
+      })
+
       it("should decode array of nested objects with multiple transformations", async () => {
         const t = setup()
         const date1 = "2024-01-01T00:00:00.000Z"
@@ -805,6 +1094,17 @@ describe("Queries", () => {
           {id: 2, timestamp: new Date(date2).getTime(), nestedValue: 20},
         ])
       })
+
+      test("queryWithArrayOfNestedTransformations types", () => {
+        expectTypeOfRegisteredQueryArgs(
+          queries.queryWithArrayOfNestedTransformations,
+        ).toEqualTypeOf<{
+          items: {id: string; timestamp: string; nested: {value: string}}[]
+        }>()
+        expectTypeOfRegisteredQueryReturns(
+          queries.queryWithArrayOfNestedTransformations,
+        ).toEqualTypeOf<Promise<{id: number; timestamp: number; nestedValue: number}[]>>()
+      })
     })
 
     describe("returns transformations", () => {
@@ -819,6 +1119,13 @@ describe("Queries", () => {
         expect(result).toBe(42)
       })
 
+      test("queryReturnsNumber types", () => {
+        expectTypeOfRegisteredQueryArgs(queries.queryReturnsNumber).toEqualTypeOf<{value: number}>()
+        expectTypeOfRegisteredQueryReturns(queries.queryReturnsNumber).toEqualTypeOf<
+          Promise<number>
+        >()
+      })
+
       it("should return struct with transformed fields", async () => {
         const t = setup()
 
@@ -830,6 +1137,17 @@ describe("Queries", () => {
         expect(result.doubledValue).toBe(42)
         expect(typeof result.original).toBe("number")
         expect(result.original).toBe(21)
+      })
+
+      test("queryReturnsStructWithTransformations types", () => {
+        expectTypeOfRegisteredQueryArgs(
+          queries.queryReturnsStructWithTransformations,
+        ).toEqualTypeOf<{
+          value: number
+        }>()
+        expectTypeOfRegisteredQueryReturns(
+          queries.queryReturnsStructWithTransformations,
+        ).toEqualTypeOf<Promise<{doubledValue: number; original: number}>>()
       })
 
       it("should return deeply nested struct with transformations", async () => {
@@ -850,6 +1168,15 @@ describe("Queries", () => {
           },
         })
         expect(typeof result.level1.level2.transformed).toBe("number")
+      })
+
+      test("queryReturnsDeeplyNestedTransformations types", () => {
+        expectTypeOfRegisteredQueryArgs(
+          queries.queryReturnsDeeplyNestedTransformations,
+        ).toEqualTypeOf<{value: number}>()
+        expectTypeOfRegisteredQueryReturns(
+          queries.queryReturnsDeeplyNestedTransformations,
+        ).toEqualTypeOf<Promise<{level1: {level2: {transformed: number}}}>>()
       })
     })
   })

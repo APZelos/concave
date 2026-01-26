@@ -1,6 +1,18 @@
-import {describe, expect, it} from "vitest"
+/* eslint-disable @typescript-eslint/no-empty-object-type */
+import type {Id} from "../../convex/_generated/dataModel"
+
+import {
+  expectTypeOfRegisteredActionArgs,
+  expectTypeOfRegisteredActionReturns,
+  expectTypeOfRegisteredMutationArgs,
+  expectTypeOfRegisteredMutationReturns,
+  expectTypeOfRegisteredQueryArgs,
+  expectTypeOfRegisteredQueryReturns,
+} from "@apzelos/concave-internal/assert"
+import {describe, expect, it, test} from "vitest"
 
 import {api} from "../../convex/_generated/api"
+import * as customFunctions from "../../convex/functions/customFunctions"
 import {setup} from "../../setup"
 
 async function createTestItem(
@@ -78,6 +90,31 @@ describe("customQuery", () => {
       expect(result).toContain("Item B")
       expect(result).toContain("Item C")
     })
+
+    test("customQueryBasic types", () => {
+      expectTypeOfRegisteredQueryArgs(customFunctions.customQueryBasic).toEqualTypeOf<{}>()
+      expectTypeOfRegisteredQueryReturns(customFunctions.customQueryBasic).toEqualTypeOf<
+        Promise<string>
+      >()
+    })
+
+    test("customQueryBasicWithArgs types", () => {
+      expectTypeOfRegisteredQueryArgs(customFunctions.customQueryBasicWithArgs).toEqualTypeOf<{
+        message: string
+      }>()
+      expectTypeOfRegisteredQueryReturns(customFunctions.customQueryBasicWithArgs).toEqualTypeOf<
+        Promise<string>
+      >()
+    })
+
+    test("customQueryBasicWithDbAccess types", () => {
+      expectTypeOfRegisteredQueryArgs(
+        customFunctions.customQueryBasicWithDbAccess,
+      ).toEqualTypeOf<{}>()
+      expectTypeOfRegisteredQueryReturns(
+        customFunctions.customQueryBasicWithDbAccess,
+      ).toEqualTypeOf<Promise<string[]>>()
+    })
   })
 
   describe("Extra args merged with handler args", () => {
@@ -109,6 +146,25 @@ describe("customQuery", () => {
 
       expect(result).toBe("name: Test Name")
     })
+
+    test("customQueryWithExtraArgs types", () => {
+      expectTypeOfRegisteredQueryArgs(customFunctions.customQueryWithExtraArgs).toEqualTypeOf<{
+        optionalToken?: string | undefined
+      }>()
+      expectTypeOfRegisteredQueryReturns(customFunctions.customQueryWithExtraArgs).toEqualTypeOf<
+        Promise<string>
+      >()
+    })
+
+    test("customQueryWithMergedArgs types", () => {
+      expectTypeOfRegisteredQueryArgs(customFunctions.customQueryWithMergedArgs).toEqualTypeOf<{
+        optionalToken?: string | undefined
+        name: string
+      }>()
+      expectTypeOfRegisteredQueryReturns(customFunctions.customQueryWithMergedArgs).toEqualTypeOf<
+        Promise<string>
+      >()
+    })
   })
 
   describe("Input function adding args", () => {
@@ -134,6 +190,28 @@ describe("customQuery", () => {
       expect(result).toHaveProperty("requestId", "req-123")
       expect(result).toHaveProperty("clientData", "client-value")
     })
+
+    test("customQueryWithInputAddedArgs types", () => {
+      expectTypeOfRegisteredQueryArgs(
+        customFunctions.customQueryWithInputAddedArgs,
+      ).toEqualTypeOf<{}>()
+      expectTypeOfRegisteredQueryReturns(
+        customFunctions.customQueryWithInputAddedArgs,
+      ).toEqualTypeOf<Promise<{serverTimestamp: number; requestId: "req-123"}>>()
+    })
+
+    test("customQueryWithInputAndHandlerArgs types", () => {
+      expectTypeOfRegisteredQueryArgs(
+        customFunctions.customQueryWithInputAndHandlerArgs,
+      ).toEqualTypeOf<{
+        clientData: string
+      }>()
+      expectTypeOfRegisteredQueryReturns(
+        customFunctions.customQueryWithInputAndHandlerArgs,
+      ).toEqualTypeOf<
+        Promise<{serverTimestamp: number; requestId: "req-123"; clientData: string}>
+      >()
+    })
   })
 
   describe("Input function providing custom context", () => {
@@ -145,6 +223,15 @@ describe("customQuery", () => {
       })
 
       expect(result).toBe("HELLO")
+    })
+
+    test("customQueryWithCustomContext types", () => {
+      expectTypeOfRegisteredQueryArgs(customFunctions.customQueryWithCustomContext).toEqualTypeOf<{
+        contextValue: string
+      }>()
+      expectTypeOfRegisteredQueryReturns(
+        customFunctions.customQueryWithCustomContext,
+      ).toEqualTypeOf<Promise<string>>()
     })
   })
 
@@ -183,6 +270,28 @@ describe("customQuery", () => {
         hasTimestamp: true,
       })
     })
+
+    test("customQueryWithLayer types", () => {
+      expectTypeOfRegisteredQueryArgs(customFunctions.customQueryWithLayer).toEqualTypeOf<{
+        token?: string | undefined
+      }>()
+      expectTypeOfRegisteredQueryReturns(customFunctions.customQueryWithLayer).toEqualTypeOf<
+        Promise<string>
+      >()
+    })
+
+    test("customQueryWithMultipleLayers types", () => {
+      expectTypeOfRegisteredQueryArgs(customFunctions.customQueryWithMultipleLayers).toEqualTypeOf<{
+        token?: string | undefined
+        userId?: string | undefined
+        role?: string | undefined
+      }>()
+      expectTypeOfRegisteredQueryReturns(
+        customFunctions.customQueryWithMultipleLayers,
+      ).toEqualTypeOf<
+        Promise<{token: string; userId: string; role: string; hasTimestamp: boolean}>
+      >()
+    })
   })
 
   describe("Error handling in input function", () => {
@@ -205,6 +314,24 @@ describe("customQuery", () => {
         }),
       ).rejects.toThrow()
     })
+
+    test("customQueryInputErrorSuccess types", () => {
+      expectTypeOfRegisteredQueryArgs(customFunctions.customQueryInputErrorSuccess).toEqualTypeOf<{
+        shouldFail: boolean
+      }>()
+      expectTypeOfRegisteredQueryReturns(
+        customFunctions.customQueryInputErrorSuccess,
+      ).toEqualTypeOf<Promise<string>>()
+    })
+
+    test("customQueryInputErrorFail types", () => {
+      expectTypeOfRegisteredQueryArgs(customFunctions.customQueryInputErrorFail).toEqualTypeOf<{
+        shouldFail: boolean
+      }>()
+      expectTypeOfRegisteredQueryReturns(customFunctions.customQueryInputErrorFail).toEqualTypeOf<
+        Promise<string>
+      >()
+    })
   })
 
   describe("Error handling in handler", () => {
@@ -226,6 +353,12 @@ describe("customQuery", () => {
           shouldFail: true,
         }),
       ).rejects.toThrow()
+    })
+
+    test("customQueryHandlerError types", () => {
+      expectTypeOfRegisteredQueryArgs(customFunctions.customQueryHandlerError).toEqualTypeOf<{
+        shouldFail: boolean
+      }>()
     })
   })
 
@@ -262,6 +395,15 @@ describe("customQuery", () => {
         role: "authenticated",
         authenticatedUserId: "user-789",
       })
+    })
+
+    test("customQueryAuthenticated types", () => {
+      expectTypeOfRegisteredQueryArgs(customFunctions.customQueryAuthenticated).toEqualTypeOf<{
+        sessionToken?: string | undefined
+      }>()
+      expectTypeOfRegisteredQueryReturns(customFunctions.customQueryAuthenticated).toEqualTypeOf<
+        Promise<{userId: string; role: string; authenticatedUserId: string}>
+      >()
     })
   })
 
@@ -305,6 +447,26 @@ describe("customQuery", () => {
       expect(result.queryParam).toBe("test-param")
       expect(result.itemCount).toBe(0)
     })
+
+    test("customQueryComplex types", () => {
+      expectTypeOfRegisteredQueryArgs(customFunctions.customQueryComplex).toEqualTypeOf<{
+        sessionToken?: string | undefined
+        optionalMetadata?: string | undefined
+        queryParam: string
+      }>()
+      expectTypeOfRegisteredQueryReturns(customFunctions.customQueryComplex).toEqualTypeOf<
+        Promise<{
+          token: string
+          userId: string
+          role: string
+          hasTimestamp: boolean
+          requestId: `req-${number}`
+          metadata: string
+          queryParam: string
+          itemCount: number
+        }>
+      >()
+    })
   })
 })
 
@@ -347,6 +509,35 @@ describe("customMutation", () => {
       expect(item?.name).toBe("New Item")
       expect(item?.category).toBe("test")
     })
+
+    test("customMutationBasic types", () => {
+      expectTypeOfRegisteredMutationArgs(customFunctions.customMutationBasic).toEqualTypeOf<{}>()
+      expectTypeOfRegisteredMutationReturns(customFunctions.customMutationBasic).toEqualTypeOf<
+        Promise<string>
+      >()
+    })
+
+    test("customMutationBasicWithArgs types", () => {
+      expectTypeOfRegisteredMutationArgs(
+        customFunctions.customMutationBasicWithArgs,
+      ).toEqualTypeOf<{
+        message: string
+      }>()
+      expectTypeOfRegisteredMutationReturns(
+        customFunctions.customMutationBasicWithArgs,
+      ).toEqualTypeOf<Promise<string>>()
+    })
+
+    test("customMutationBasicWithDbWrite types", () => {
+      expectTypeOfRegisteredMutationArgs(
+        customFunctions.customMutationBasicWithDbWrite,
+      ).toEqualTypeOf<{
+        name: string
+      }>()
+      expectTypeOfRegisteredMutationReturns(
+        customFunctions.customMutationBasicWithDbWrite,
+      ).toEqualTypeOf<Promise<Id<"items">>>()
+    })
   })
 
   describe("Extra args merged with handler args", () => {
@@ -378,6 +569,29 @@ describe("customMutation", () => {
 
       expect(result).toBe("name: Test Name")
     })
+
+    test("customMutationWithExtraArgs types", () => {
+      expectTypeOfRegisteredMutationArgs(
+        customFunctions.customMutationWithExtraArgs,
+      ).toEqualTypeOf<{
+        optionalToken?: string | undefined
+      }>()
+      expectTypeOfRegisteredMutationReturns(
+        customFunctions.customMutationWithExtraArgs,
+      ).toEqualTypeOf<Promise<string>>()
+    })
+
+    test("customMutationWithMergedArgs types", () => {
+      expectTypeOfRegisteredMutationArgs(
+        customFunctions.customMutationWithMergedArgs,
+      ).toEqualTypeOf<{
+        optionalToken?: string | undefined
+        name: string
+      }>()
+      expectTypeOfRegisteredMutationReturns(
+        customFunctions.customMutationWithMergedArgs,
+      ).toEqualTypeOf<Promise<string>>()
+    })
   })
 
   describe("Input function adding args", () => {
@@ -406,6 +620,28 @@ describe("customMutation", () => {
       expect(result).toHaveProperty("requestId", "req-123")
       expect(result).toHaveProperty("clientData", "client-value")
     })
+
+    test("customMutationWithInputAddedArgs types", () => {
+      expectTypeOfRegisteredMutationArgs(
+        customFunctions.customMutationWithInputAddedArgs,
+      ).toEqualTypeOf<{}>()
+      expectTypeOfRegisteredMutationReturns(
+        customFunctions.customMutationWithInputAddedArgs,
+      ).toEqualTypeOf<Promise<{serverTimestamp: number; requestId: "req-123"}>>()
+    })
+
+    test("customMutationWithInputAndHandlerArgs types", () => {
+      expectTypeOfRegisteredMutationArgs(
+        customFunctions.customMutationWithInputAndHandlerArgs,
+      ).toEqualTypeOf<{
+        clientData: string
+      }>()
+      expectTypeOfRegisteredMutationReturns(
+        customFunctions.customMutationWithInputAndHandlerArgs,
+      ).toEqualTypeOf<
+        Promise<{serverTimestamp: number; requestId: "req-123"; clientData: string}>
+      >()
+    })
   })
 
   describe("Input function providing custom context", () => {
@@ -420,6 +656,17 @@ describe("customMutation", () => {
       )
 
       expect(result).toBe("HELLO")
+    })
+
+    test("customMutationWithCustomContext types", () => {
+      expectTypeOfRegisteredMutationArgs(
+        customFunctions.customMutationWithCustomContext,
+      ).toEqualTypeOf<{
+        contextValue: string
+      }>()
+      expectTypeOfRegisteredMutationReturns(
+        customFunctions.customMutationWithCustomContext,
+      ).toEqualTypeOf<Promise<string>>()
     })
   })
 
@@ -461,6 +708,30 @@ describe("customMutation", () => {
         hasTimestamp: true,
       })
     })
+
+    test("customMutationWithLayer types", () => {
+      expectTypeOfRegisteredMutationArgs(customFunctions.customMutationWithLayer).toEqualTypeOf<{
+        token?: string | undefined
+      }>()
+      expectTypeOfRegisteredMutationReturns(customFunctions.customMutationWithLayer).toEqualTypeOf<
+        Promise<string>
+      >()
+    })
+
+    test("customMutationWithMultipleLayers types", () => {
+      expectTypeOfRegisteredMutationArgs(
+        customFunctions.customMutationWithMultipleLayers,
+      ).toEqualTypeOf<{
+        token?: string | undefined
+        userId?: string | undefined
+        role?: string | undefined
+      }>()
+      expectTypeOfRegisteredMutationReturns(
+        customFunctions.customMutationWithMultipleLayers,
+      ).toEqualTypeOf<
+        Promise<{token: string; userId: string; role: string; hasTimestamp: boolean}>
+      >()
+    })
   })
 
   describe("Error handling in input function", () => {
@@ -486,6 +757,28 @@ describe("customMutation", () => {
         }),
       ).rejects.toThrow()
     })
+
+    test("customMutationInputErrorSuccess types", () => {
+      expectTypeOfRegisteredMutationArgs(
+        customFunctions.customMutationInputErrorSuccess,
+      ).toEqualTypeOf<{
+        shouldFail: boolean
+      }>()
+      expectTypeOfRegisteredMutationReturns(
+        customFunctions.customMutationInputErrorSuccess,
+      ).toEqualTypeOf<Promise<string>>()
+    })
+
+    test("customMutationInputErrorFail types", () => {
+      expectTypeOfRegisteredMutationArgs(
+        customFunctions.customMutationInputErrorFail,
+      ).toEqualTypeOf<{
+        shouldFail: boolean
+      }>()
+      expectTypeOfRegisteredMutationReturns(
+        customFunctions.customMutationInputErrorFail,
+      ).toEqualTypeOf<Promise<string>>()
+    })
   })
 
   describe("Error handling in handler", () => {
@@ -507,6 +800,12 @@ describe("customMutation", () => {
           shouldFail: true,
         }),
       ).rejects.toThrow()
+    })
+
+    test("customMutationHandlerError types", () => {
+      expectTypeOfRegisteredMutationArgs(customFunctions.customMutationHandlerError).toEqualTypeOf<{
+        shouldFail: boolean
+      }>()
     })
   })
 
@@ -569,6 +868,29 @@ describe("customMutation", () => {
       expect(item?.name).toBe("Authenticated Item")
       expect(item?.content).toBe("Created by writer-user")
     })
+
+    test("customMutationAuthenticated types", () => {
+      expectTypeOfRegisteredMutationArgs(
+        customFunctions.customMutationAuthenticated,
+      ).toEqualTypeOf<{
+        sessionToken?: string | undefined
+      }>()
+      expectTypeOfRegisteredMutationReturns(
+        customFunctions.customMutationAuthenticated,
+      ).toEqualTypeOf<Promise<{userId: string; role: string; authenticatedUserId: string}>>()
+    })
+
+    test("customMutationAuthenticatedWithWrite types", () => {
+      expectTypeOfRegisteredMutationArgs(
+        customFunctions.customMutationAuthenticatedWithWrite,
+      ).toEqualTypeOf<{
+        sessionToken?: string | undefined
+        itemName: string
+      }>()
+      expectTypeOfRegisteredMutationReturns(
+        customFunctions.customMutationAuthenticatedWithWrite,
+      ).toEqualTypeOf<Promise<{id: Id<"items">; userId: string}>>()
+    })
   })
 
   describe("Complex scenario combining all features", () => {
@@ -622,6 +944,28 @@ describe("customMutation", () => {
       expect(result.itemCount).toBe(1)
       expect(result.itemId).toBeDefined()
     })
+
+    test("customMutationComplex types", () => {
+      expectTypeOfRegisteredMutationArgs(customFunctions.customMutationComplex).toEqualTypeOf<{
+        sessionToken?: string | undefined
+        optionalMetadata?: string | undefined
+        mutationParam: string
+        itemName: string
+      }>()
+      expectTypeOfRegisteredMutationReturns(customFunctions.customMutationComplex).toEqualTypeOf<
+        Promise<{
+          token: string
+          userId: string
+          role: string
+          hasTimestamp: boolean
+          requestId: `req-${number}`
+          metadata: string
+          mutationParam: string
+          itemCount: number
+          itemId: Id<"items">
+        }>
+      >()
+    })
   })
 })
 
@@ -655,6 +999,31 @@ describe("customAction", () => {
 
       expect(result).toBe("anonymous")
     })
+
+    test("customActionBasic types", () => {
+      expectTypeOfRegisteredActionArgs(customFunctions.customActionBasic).toEqualTypeOf<{}>()
+      expectTypeOfRegisteredActionReturns(customFunctions.customActionBasic).toEqualTypeOf<
+        Promise<string>
+      >()
+    })
+
+    test("customActionBasicWithArgs types", () => {
+      expectTypeOfRegisteredActionArgs(customFunctions.customActionBasicWithArgs).toEqualTypeOf<{
+        message: string
+      }>()
+      expectTypeOfRegisteredActionReturns(customFunctions.customActionBasicWithArgs).toEqualTypeOf<
+        Promise<string>
+      >()
+    })
+
+    test("customActionBasicWithCtxAccess types", () => {
+      expectTypeOfRegisteredActionArgs(
+        customFunctions.customActionBasicWithCtxAccess,
+      ).toEqualTypeOf<{}>()
+      expectTypeOfRegisteredActionReturns(
+        customFunctions.customActionBasicWithCtxAccess,
+      ).toEqualTypeOf<Promise<string>>()
+    })
   })
 
   describe("Extra args merged with handler args", () => {
@@ -686,6 +1055,25 @@ describe("customAction", () => {
 
       expect(result).toBe("name: Test Name")
     })
+
+    test("customActionWithExtraArgs types", () => {
+      expectTypeOfRegisteredActionArgs(customFunctions.customActionWithExtraArgs).toEqualTypeOf<{
+        optionalToken?: string | undefined
+      }>()
+      expectTypeOfRegisteredActionReturns(customFunctions.customActionWithExtraArgs).toEqualTypeOf<
+        Promise<string>
+      >()
+    })
+
+    test("customActionWithMergedArgs types", () => {
+      expectTypeOfRegisteredActionArgs(customFunctions.customActionWithMergedArgs).toEqualTypeOf<{
+        optionalToken?: string | undefined
+        name: string
+      }>()
+      expectTypeOfRegisteredActionReturns(customFunctions.customActionWithMergedArgs).toEqualTypeOf<
+        Promise<string>
+      >()
+    })
   })
 
   describe("Input function adding args", () => {
@@ -714,6 +1102,28 @@ describe("customAction", () => {
       expect(result).toHaveProperty("requestId", "req-123")
       expect(result).toHaveProperty("clientData", "client-value")
     })
+
+    test("customActionWithInputAddedArgs types", () => {
+      expectTypeOfRegisteredActionArgs(
+        customFunctions.customActionWithInputAddedArgs,
+      ).toEqualTypeOf<{}>()
+      expectTypeOfRegisteredActionReturns(
+        customFunctions.customActionWithInputAddedArgs,
+      ).toEqualTypeOf<Promise<{serverTimestamp: number; requestId: "req-123"}>>()
+    })
+
+    test("customActionWithInputAndHandlerArgs types", () => {
+      expectTypeOfRegisteredActionArgs(
+        customFunctions.customActionWithInputAndHandlerArgs,
+      ).toEqualTypeOf<{
+        clientData: string
+      }>()
+      expectTypeOfRegisteredActionReturns(
+        customFunctions.customActionWithInputAndHandlerArgs,
+      ).toEqualTypeOf<
+        Promise<{serverTimestamp: number; requestId: "req-123"; clientData: string}>
+      >()
+    })
   })
 
   describe("Input function providing custom context", () => {
@@ -725,6 +1135,17 @@ describe("customAction", () => {
       })
 
       expect(result).toBe("HELLO")
+    })
+
+    test("customActionWithCustomContext types", () => {
+      expectTypeOfRegisteredActionArgs(
+        customFunctions.customActionWithCustomContext,
+      ).toEqualTypeOf<{
+        contextValue: string
+      }>()
+      expectTypeOfRegisteredActionReturns(
+        customFunctions.customActionWithCustomContext,
+      ).toEqualTypeOf<Promise<string>>()
     })
   })
 
@@ -763,6 +1184,30 @@ describe("customAction", () => {
         hasTimestamp: true,
       })
     })
+
+    test("customActionWithLayer types", () => {
+      expectTypeOfRegisteredActionArgs(customFunctions.customActionWithLayer).toEqualTypeOf<{
+        token?: string | undefined
+      }>()
+      expectTypeOfRegisteredActionReturns(customFunctions.customActionWithLayer).toEqualTypeOf<
+        Promise<string>
+      >()
+    })
+
+    test("customActionWithMultipleLayers types", () => {
+      expectTypeOfRegisteredActionArgs(
+        customFunctions.customActionWithMultipleLayers,
+      ).toEqualTypeOf<{
+        token?: string | undefined
+        userId?: string | undefined
+        role?: string | undefined
+      }>()
+      expectTypeOfRegisteredActionReturns(
+        customFunctions.customActionWithMultipleLayers,
+      ).toEqualTypeOf<
+        Promise<{token: string; userId: string; role: string; hasTimestamp: boolean}>
+      >()
+    })
   })
 
   describe("Error handling in input function", () => {
@@ -785,6 +1230,26 @@ describe("customAction", () => {
         }),
       ).rejects.toThrow()
     })
+
+    test("customActionInputErrorSuccess types", () => {
+      expectTypeOfRegisteredActionArgs(
+        customFunctions.customActionInputErrorSuccess,
+      ).toEqualTypeOf<{
+        shouldFail: boolean
+      }>()
+      expectTypeOfRegisteredActionReturns(
+        customFunctions.customActionInputErrorSuccess,
+      ).toEqualTypeOf<Promise<string>>()
+    })
+
+    test("customActionInputErrorFail types", () => {
+      expectTypeOfRegisteredActionArgs(customFunctions.customActionInputErrorFail).toEqualTypeOf<{
+        shouldFail: boolean
+      }>()
+      expectTypeOfRegisteredActionReturns(customFunctions.customActionInputErrorFail).toEqualTypeOf<
+        Promise<string>
+      >()
+    })
   })
 
   describe("Error handling in handler", () => {
@@ -806,6 +1271,12 @@ describe("customAction", () => {
           shouldFail: true,
         }),
       ).rejects.toThrow()
+    })
+
+    test("customActionHandlerError types", () => {
+      expectTypeOfRegisteredActionArgs(customFunctions.customActionHandlerError).toEqualTypeOf<{
+        shouldFail: boolean
+      }>()
     })
   })
 
@@ -841,6 +1312,24 @@ describe("customAction", () => {
       expect(result.requestId).toMatch(/^req-\d+$/)
       expect(result.metadata).toBe("default")
       expect(result.actionParam).toBe("test-param")
+    })
+
+    test("customActionComplex types", () => {
+      expectTypeOfRegisteredActionArgs(customFunctions.customActionComplex).toEqualTypeOf<{
+        optionalMetadata?: string | undefined
+        actionParam: string
+      }>()
+      expectTypeOfRegisteredActionReturns(customFunctions.customActionComplex).toEqualTypeOf<
+        Promise<{
+          token: string
+          userId: string
+          role: string
+          hasTimestamp: boolean
+          requestId: `req-${number}`
+          metadata: string
+          actionParam: string
+        }>
+      >()
     })
   })
 })

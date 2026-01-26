@@ -467,6 +467,52 @@ Cron jobs are not supported by convex-test. Test scheduled functions directly us
 
 Only mock identity injection is available. Real auth provider integration cannot be tested in this environment.
 
+## Testing Convex Phantom Types
+
+Convex's `RegisteredQuery`/`RegisteredMutation`/`RegisteredAction` have phantom type parameters (`Args` and `Returns`) that are declared but unused in the type structure. Standard `expectTypeOf().toEqualTypeOf<>()` assertions cannot extract these types.
+
+**Solution: Assert Helpers**
+
+The `@apzelos/concave-internal/assert` package provides helpers that use TypeScript's conditional type inference (`infer`) to extract phantom type parameters at compile time:
+
+```typescript
+import {
+  expectTypeOfRegisteredActionArgs,
+  expectTypeOfRegisteredActionReturns,
+  expectTypeOfRegisteredMutationArgs,
+  expectTypeOfRegisteredMutationReturns,
+  expectTypeOfRegisteredQueryArgs,
+  expectTypeOfRegisteredQueryReturns,
+} from "@apzelos/concave-internal/assert"
+
+import * as queries from "../../convex/functions/queries"
+```
+
+**Co-location Pattern**
+
+Type tests should be co-located with their related behavior tests, not in a separate "Type Tests" describe block:
+
+```typescript
+describe("fullTableScan", () => {
+  it("should return all documents", async () => {
+    const t = setup()
+    expectTypeOfRegisteredQueryArgs(queries.queryFullTableScan).toEqualTypeOf<{}>()
+    expectTypeOfRegisteredQueryReturns(queries.queryFullTableScan).toEqualTypeOf<
+      Promise<Doc<"items">[]>
+    >()
+    // ... behavior test setup and assertions
+  })
+})
+```
+
+Co-location benefits:
+
+- **Maintainability** - when adding a new handler, add both behavior and type tests in one place
+- **Discoverability** - related tests are grouped together
+- **Locality** - keeps related things close together
+
+**Note:** Type tests use `test()` blocks (not `it.effect()`) since they're compile-time only and don't need async execution.
+
 ## Running Tests
 
 ```bash

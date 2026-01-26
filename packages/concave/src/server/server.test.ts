@@ -1,30 +1,4 @@
-/**
- * Type Testing Limitations for RegisteredQuery/RegisteredMutation
- *
- * Convex's RegisteredQuery and RegisteredMutation types are defined as:
- *
- *   type RegisteredQuery<Visibility, Args, Returns> = {
- *     isConvexFunction: true;
- *     isQuery: true;
- *   } & VisibilityProperties<Visibility>;
- *
- * The Args and Returns type parameters are declared but NEVER USED in the type
- * structure. This makes them "phantom types" - they exist only for documentation
- * but have no structural impact.
- *
- * This means:
- *   RegisteredQuery<"public", {id: string}, Promise<User>>
- *   RegisteredQuery<"public", {foo: number}, boolean>
- *
- * Are structurally IDENTICAL to TypeScript. Only Visibility affects the type.
- *
- * Implications for testing:
- * - We CAN test Visibility ("public" vs "internal")
- * - We CANNOT test Args or Returns - any assertion will pass regardless of the types
- *
- * For Args/Returns type verification, use the integration tests in src/test/
- * which use FunctionReference - that type DOES properly encode all parameters.
- */
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 import type {EmptyObject} from "@apzelos/concave-internal/type"
 import type {
   DataModelFromSchemaDefinition,
@@ -34,6 +8,14 @@ import type {
   RegisteredQuery,
 } from "convex/server"
 
+import {
+  expectTypeOfRegisteredActionArgs,
+  expectTypeOfRegisteredActionReturns,
+  expectTypeOfRegisteredMutationArgs,
+  expectTypeOfRegisteredMutationReturns,
+  expectTypeOfRegisteredQueryArgs,
+  expectTypeOfRegisteredQueryReturns,
+} from "@apzelos/concave-internal/assert"
 import {describe, expect, expectTypeOf, test} from "@effect/vitest"
 import {defineSchema, defineTable} from "convex/server"
 import {v} from "convex/values"
@@ -88,8 +70,32 @@ describe("query", () => {
       }),
     })
 
-    // Note: We can only verify Visibility, not Args or Returns (see file header comment)
     expectTypeOf(result).toEqualTypeOf<RegisteredQuery<"public", EmptyObject, any>>()
+  })
+
+  test("should properly type Args and Returns", () => {
+    const result = query({
+      args: S.Struct({name: S.String}),
+      handler: E.fn(function* () {
+        return "greeting"
+      }),
+    })
+
+    expectTypeOfRegisteredQueryArgs(result).toEqualTypeOf<{name: string}>()
+    expectTypeOfRegisteredQueryReturns(result).toEqualTypeOf<Promise<string>>()
+  })
+
+  test("should properly type Returns with schema transformation", () => {
+    const result = query({
+      args: S.Struct({}),
+      returns: S.NumberFromString,
+      handler: E.fn(function* () {
+        return "42"
+      }),
+    })
+
+    expectTypeOfRegisteredQueryArgs(result).toEqualTypeOf<{}>()
+    expectTypeOfRegisteredQueryReturns(result).toEqualTypeOf<Promise<number>>()
   })
 })
 
@@ -102,8 +108,21 @@ describe("internalQuery", () => {
       }),
     })
 
-    // Note: We can only verify Visibility, not Args or Returns (see file header comment)
     expectTypeOf(result).toEqualTypeOf<RegisteredQuery<"internal", EmptyObject, any>>()
+  })
+
+  test("should properly type Args and Returns", () => {
+    const result = internalQuery({
+      args: S.Struct({userId: S.String, limit: S.Number}),
+      handler: E.fn(function* () {
+        return [{id: "1", name: "User"}]
+      }),
+    })
+
+    expectTypeOfRegisteredQueryArgs(result).toEqualTypeOf<{userId: string; limit: number}>()
+    expectTypeOfRegisteredQueryReturns(result).toEqualTypeOf<
+      Promise<{id: string; name: string}[]>
+    >()
   })
 })
 
@@ -116,8 +135,32 @@ describe("mutation", () => {
       }),
     })
 
-    // Note: We can only verify Visibility, not Args or Returns (see file header comment)
     expectTypeOf(result).toEqualTypeOf<RegisteredMutation<"public", EmptyObject, any>>()
+  })
+
+  test("should properly type Args and Returns", () => {
+    const result = mutation({
+      args: S.Struct({name: S.String, email: S.String}),
+      handler: E.fn(function* () {
+        return "user-id-123"
+      }),
+    })
+
+    expectTypeOfRegisteredMutationArgs(result).toEqualTypeOf<{name: string; email: string}>()
+    expectTypeOfRegisteredMutationReturns(result).toEqualTypeOf<Promise<string>>()
+  })
+
+  test("should properly type Returns with schema transformation", () => {
+    const result = mutation({
+      args: S.Struct({value: S.String}),
+      returns: S.NumberFromString,
+      handler: E.fn(function* () {
+        return "100"
+      }),
+    })
+
+    expectTypeOfRegisteredMutationArgs(result).toEqualTypeOf<{value: string}>()
+    expectTypeOfRegisteredMutationReturns(result).toEqualTypeOf<Promise<number>>()
   })
 })
 
@@ -130,8 +173,22 @@ describe("internalMutation", () => {
       }),
     })
 
-    // Note: We can only verify Visibility, not Args or Returns (see file header comment)
     expectTypeOf(result).toEqualTypeOf<RegisteredMutation<"internal", EmptyObject, any>>()
+  })
+
+  test("should properly type Args and Returns", () => {
+    const result = internalMutation({
+      args: S.Struct({documentId: S.String, updates: S.Struct({title: S.String})}),
+      handler: E.fn(function* () {
+        return true
+      }),
+    })
+
+    expectTypeOfRegisteredMutationArgs(result).toEqualTypeOf<{
+      documentId: string
+      updates: {title: string}
+    }>()
+    expectTypeOfRegisteredMutationReturns(result).toEqualTypeOf<Promise<boolean>>()
   })
 })
 
@@ -144,8 +201,34 @@ describe("action", () => {
       }),
     })
 
-    // Note: We can only verify Visibility, not Args or Returns (see file header comment)
     expectTypeOf(result).toEqualTypeOf<RegisteredAction<"public", EmptyObject, any>>()
+  })
+
+  test("should properly type Args and Returns", () => {
+    const result = action({
+      args: S.Struct({url: S.String, method: S.String}),
+      handler: E.fn(function* () {
+        return {status: 200, body: "OK"}
+      }),
+    })
+
+    expectTypeOfRegisteredActionArgs(result).toEqualTypeOf<{url: string; method: string}>()
+    expectTypeOfRegisteredActionReturns(result).toEqualTypeOf<
+      Promise<{status: number; body: string}>
+    >()
+  })
+
+  test("should properly type Returns with schema transformation", () => {
+    const result = action({
+      args: S.Struct({input: S.String}),
+      returns: S.NumberFromString,
+      handler: E.fn(function* () {
+        return "42"
+      }),
+    })
+
+    expectTypeOfRegisteredActionArgs(result).toEqualTypeOf<{input: string}>()
+    expectTypeOfRegisteredActionReturns(result).toEqualTypeOf<Promise<number>>()
   })
 })
 
@@ -158,8 +241,21 @@ describe("internalAction", () => {
       }),
     })
 
-    // Note: We can only verify Visibility, not Args or Returns (see file header comment)
     expectTypeOf(result).toEqualTypeOf<RegisteredAction<"internal", EmptyObject, any>>()
+  })
+
+  test("should properly type Args and Returns", () => {
+    const result = internalAction({
+      args: S.Struct({jobId: S.String, payload: S.Unknown}),
+      handler: E.fn(function* () {
+        return {success: true, processedAt: Date.now()}
+      }),
+    })
+
+    expectTypeOfRegisteredActionArgs(result).toEqualTypeOf<{jobId: string; payload: unknown}>()
+    expectTypeOfRegisteredActionReturns(result).toEqualTypeOf<
+      Promise<{success: boolean; processedAt: number}>
+    >()
   })
 })
 

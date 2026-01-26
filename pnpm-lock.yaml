@@ -53,6 +53,9 @@ importers:
       '@apzelos/concave-helpers':
         specifier: workspace:*
         version: link:../../packages/concave-helpers
+      '@apzelos/concave-internal':
+        specifier: workspace:*
+        version: link:../../packages/concave-internal
       '@apzelos/concave-model':
         specifier: workspace:*
         version: link:../../packages/concave-model

@@ -90,21 +90,23 @@ export const modelGetByIdOption = query({
 export const modelGetByIdWithFallback = query({
   args: S.Struct({id: SDocId("items")}),
   handler: E.fn(function* (args) {
-    return yield* pipe(
+    let item = yield* pipe(
       Item.getById(args.id),
-      E.catchTag("DocNotFoundError", () =>
-        E.succeed({
-          _id: args.id,
-          _creationTime: 0,
-          name: "Fallback Item",
-          category: "fallback",
-          status: "inactive" as const,
-          priority: 1,
-          value: 0,
-          createdAt: 0,
-        }),
-      ),
+      E.catchTag("DocNotFoundError", () => E.succeed(null)),
     )
+
+    item ??= yield* S.decode(Item.Document)({
+      _id: args.id,
+      _creationTime: 0,
+      name: "Fallback Item",
+      category: "fallback",
+      status: "inactive",
+      priority: 1,
+      value: 0,
+      createdAt: 0,
+    })
+
+    return item
   }),
 })
 
@@ -520,19 +522,6 @@ export const modelStreamMapWithDbQuery = query({
           return {id: item._id, name: item.name, detailCount: details.length}
         }),
       ),
-      collectStream,
-    )
-  }),
-})
-
-export const modelStreamMapAllToNull = query({
-  args: S.Struct({}),
-  handler: E.fn(function* () {
-    return yield* pipe(
-      yield* Item.stream,
-      Item.withStreamIndex("by_creation_time"),
-      Item.orderStream("asc"),
-      Item.mapStream(() => E.succeed(null)),
       collectStream,
     )
   }),

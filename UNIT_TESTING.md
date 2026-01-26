@@ -260,13 +260,51 @@ Skip behavior tests for pure delegation - type tests already prove these work.
 - End-to-end flows with real database operations
 - Testing handler → Convex runtime → database roundtrips
 
-### Convex Phantom Type Limitations
+### Testing Convex Phantom Types
 
-Convex's `RegisteredQuery`/`RegisteredMutation` have phantom type parameters that TypeScript cannot verify. `Args` and `Returns` are declared but unused in type structure.
+Convex's `RegisteredQuery`/`RegisteredMutation`/`RegisteredAction` have phantom type parameters (`Args` and `Returns`) that are declared but unused in the type structure. Standard `expectTypeOf().toEqualTypeOf<>()` assertions cannot extract these types.
 
-**Workarounds:**
+**Solution: Assert Helpers**
 
-- Use integration tests with `FunctionReference`
+The `@apzelos/concave-internal/assert` package provides helpers that use TypeScript's conditional type inference (`infer`) to extract phantom type parameters at compile time:
+
+```typescript
+import {
+  expectTypeOfRegisteredActionArgs,
+  expectTypeOfRegisteredActionReturns,
+  expectTypeOfRegisteredMutationArgs,
+  expectTypeOfRegisteredMutationReturns,
+  expectTypeOfRegisteredQueryArgs,
+  expectTypeOfRegisteredQueryReturns,
+} from "@apzelos/concave-internal/assert"
+```
+
+**Co-location Pattern**
+
+Type tests should be co-located with their related behavior tests, not in a separate "Type Tests" describe block:
+
+```typescript
+describe("without args", () => {
+  it("should execute without args schema", async () => {
+    const t = setup()
+    // Type test co-located with related behavior test
+    expectTypeOfRegisteredQueryArgs(queries.queryNoArgs).toEqualTypeOf<{}>()
+    expectTypeOfRegisteredQueryReturns(queries.queryNoArgs).toEqualTypeOf<Promise<string>>()
+    const result = await t.query(api.queries.queryNoArgs, {})
+    expect(result).toBe("no args result")
+  })
+})
+```
+
+Co-location benefits:
+
+- **Maintainability** - when adding a new handler, add both behavior and type tests in one place
+- **Discoverability** - related tests are grouped together
+- **Locality** - keeps related things close together
+
+**Alternative Approaches:**
+
+- Use integration tests with `FunctionReference` for runtime verification
 - Test handler types directly via `E.Effect.Success<ReturnType<typeof handler>>`
 
 ## Running Tests

@@ -1,6 +1,13 @@
-import {describe, expect, it} from "vitest"
+import type {Doc} from "../../convex/_generated/dataModel"
+
+import {
+  expectTypeOfRegisteredQueryArgs,
+  expectTypeOfRegisteredQueryReturns,
+} from "@apzelos/concave-internal/assert"
+import {describe, expect, it, test} from "vitest"
 
 import {api} from "../../convex/_generated/api"
+import * as filter from "../../convex/functions/filter"
 import {setup} from "../../setup"
 
 async function createTestItem(
@@ -68,6 +75,15 @@ describe("Filter Queries", () => {
 
       expect(items).toEqual([])
     })
+
+    test("filterByPriority types", () => {
+      expectTypeOfRegisteredQueryArgs(filter.filterByPriority).toEqualTypeOf<{
+        minPriority: number
+      }>()
+      expectTypeOfRegisteredQueryReturns(filter.filterByPriority).toEqualTypeOf<
+        Promise<Doc<"items">[]>
+      >()
+    })
   })
 
   describe("filter by status", () => {
@@ -98,6 +114,15 @@ describe("Filter Queries", () => {
       expect(inactiveItems).toHaveLength(1)
       expect(inactiveItems[0]!.status).toBe("inactive")
     })
+
+    test("filterByStatus types", () => {
+      expectTypeOfRegisteredQueryArgs(filter.filterByStatus).toEqualTypeOf<{
+        status: "active" | "inactive"
+      }>()
+      expectTypeOfRegisteredQueryReturns(filter.filterByStatus).toEqualTypeOf<
+        Promise<Doc<"items">[]>
+      >()
+    })
   })
 
   describe("filter by category", () => {
@@ -114,6 +139,15 @@ describe("Filter Queries", () => {
 
       expect(techItems).toHaveLength(2)
       expect(techItems.every((item: {category: string}) => item.category === "tech")).toBe(true)
+    })
+
+    test("filterByCategory types", () => {
+      expectTypeOfRegisteredQueryArgs(filter.filterByCategory).toEqualTypeOf<{
+        category: string
+      }>()
+      expectTypeOfRegisteredQueryReturns(filter.filterByCategory).toEqualTypeOf<
+        Promise<Doc<"items">[]>
+      >()
     })
   })
 
@@ -160,6 +194,17 @@ describe("Filter Queries", () => {
 
       expect(items).toEqual([])
     })
+
+    test("filterByMultipleConditions types", () => {
+      expectTypeOfRegisteredQueryArgs(filter.filterByMultipleConditions).toEqualTypeOf<{
+        category: string
+        minPriority: number
+        status: "active" | "inactive"
+      }>()
+      expectTypeOfRegisteredQueryReturns(filter.filterByMultipleConditions).toEqualTypeOf<
+        Promise<Doc<"items">[]>
+      >()
+    })
   })
 
   describe("filter with content search", () => {
@@ -189,6 +234,15 @@ describe("Filter Queries", () => {
 
       expect(items).toEqual([])
     })
+
+    test("filterWithContentSearch types", () => {
+      expectTypeOfRegisteredQueryArgs(filter.filterWithContentSearch).toEqualTypeOf<{
+        searchTerm: string
+      }>()
+      expectTypeOfRegisteredQueryReturns(filter.filterWithContentSearch).toEqualTypeOf<
+        Promise<Doc<"items">[]>
+      >()
+    })
   })
 
   describe("filter chained with collect", () => {
@@ -205,6 +259,15 @@ describe("Filter Queries", () => {
 
       expect(items).toHaveLength(2)
       expect(items.every((item: {value: number}) => item.value >= 50)).toBe(true)
+    })
+
+    test("filterChainedWithCollect types", () => {
+      expectTypeOfRegisteredQueryArgs(filter.filterChainedWithCollect).toEqualTypeOf<{
+        minValue: number
+      }>()
+      expectTypeOfRegisteredQueryReturns(filter.filterChainedWithCollect).toEqualTypeOf<
+        Promise<Doc<"items">[]>
+      >()
     })
   })
 })
