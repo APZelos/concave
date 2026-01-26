@@ -4,7 +4,7 @@ import type {
   StreamQuery,
   StreamQueryInitializer,
 } from "@apzelos/concave-helpers/server/stream"
-import type {SafeUnion} from "@apzelos/concave-internal/type"
+import type {Prettify, SafeUnion} from "@apzelos/concave-internal/type"
 import type {
   DocNotUniqueError,
   GenericMutationCtx,
@@ -115,10 +115,12 @@ export function createModelFunction<Schema extends SchemaDefinition<any, boolean
       description:
         "A schema representing a Convex document with optional the Convex system fields (_id, _creationTime, etc.)",
     }) as any as S.Schema<
-      Output & {
-        readonly _id?: GenericId<TableName> | undefined
-        readonly _creationTime?: number | undefined
-      },
+      Prettify<
+        Output & {
+          readonly _id?: GenericId<TableName> | undefined
+          readonly _creationTime?: number | undefined
+        }
+      >,
       WithOptionalSystemFields<Doc<TableName>>
     >
 
@@ -129,7 +131,7 @@ export function createModelFunction<Schema extends SchemaDefinition<any, boolean
       title: `${tableName} document`,
       description: "A schema representing a Convex document",
     }) as any as S.Schema<
-      Output & {readonly _id: GenericId<TableName>; readonly _creationTime: number},
+      Prettify<Output & {readonly _id: GenericId<TableName>; readonly _creationTime: number}>,
       Doc<TableName>
     >
 
