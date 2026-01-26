@@ -1,4 +1,7 @@
 import type {
+  GenericActionCtx as ConvexGenericActionCtx,
+  GenericMutationCtx as ConvexGenericMutationCtx,
+  GenericQueryCtx as ConvexGenericQueryCtx,
   DataModelFromSchemaDefinition,
   DocumentByName,
   TableNamesInDataModel,
@@ -6,6 +9,7 @@ import type {
 import type {GenericId} from "convex/values"
 import type {Effect as E} from "effect"
 import type {Auth} from "./auth"
+import type {ActionCtxTag, MutationCtxTag, QueryCtxTag} from "./context"
 import type {GenericDatabaseReader, GenericDatabaseWriter} from "./database"
 import type {Scheduler} from "./scheduler"
 import type {StorageActionWriter, StorageReader, StorageWriter} from "./storage"
@@ -48,6 +52,7 @@ describe("GenericQueryCtx", () => {
     test("should store convex query context", () => {
       const queryCtx = mockGenericQueryCtx<DataModel>()
 
+      expectTypeOf(queryCtx.convexQueryCtx).toEqualTypeOf<ConvexGenericQueryCtx<DataModel>>()
       expect(queryCtx.convexQueryCtx).toBeDefined()
     })
   })
@@ -80,6 +85,9 @@ describe("GenericMutationCtx", () => {
     test("should store convex mutation context", () => {
       const mutationCtx = mockGenericMutationCtx<DataModel>()
 
+      expectTypeOf(mutationCtx.convexMutationCtx).toEqualTypeOf<
+        ConvexGenericMutationCtx<DataModel>
+      >()
       expect(mutationCtx.convexMutationCtx).toBeDefined()
     })
   })
@@ -178,6 +186,7 @@ describe("GenericActionCtx", () => {
     test("should store convex action context", () => {
       const actionCtx = mockGenericActionCtx<DataModel>()
 
+      expectTypeOf(actionCtx.convexActionCtx).toEqualTypeOf<ConvexGenericActionCtx<DataModel>>()
       expect(actionCtx.convexActionCtx).toBeDefined()
     })
   })
@@ -187,6 +196,7 @@ describe("createQueryCtx", () => {
   test("should return a Context tag", () => {
     const QueryCtx = createQueryCtx<DataModel>()
 
+    expectTypeOf(QueryCtx).toEqualTypeOf<QueryCtxTag<DataModel>>()
     expect(QueryCtx).toBeDefined()
     expect(typeof QueryCtx).toBe("object")
     expect(QueryCtx.key).toBe("QueryCtx")
@@ -197,6 +207,7 @@ describe("createMutationCtx", () => {
   test("should return a Context tag", () => {
     const MutationCtx = createMutationCtx<DataModel>()
 
+    expectTypeOf(MutationCtx).toEqualTypeOf<MutationCtxTag<DataModel>>()
     expect(MutationCtx).toBeDefined()
     expect(typeof MutationCtx).toBe("object")
     expect(MutationCtx.key).toBe("MutationCtx")
@@ -207,6 +218,7 @@ describe("createActionCtx", () => {
   test("should return a Context tag", () => {
     const ActionCtx = createActionCtx<DataModel>()
 
+    expectTypeOf(ActionCtx).toEqualTypeOf<ActionCtxTag<DataModel>>()
     expect(ActionCtx).toBeDefined()
     expect(typeof ActionCtx).toBe("object")
     expect(ActionCtx.key).toBe("ActionCtx")

@@ -7,6 +7,7 @@ import type {
   RegisteredMutation,
   RegisteredQuery,
 } from "convex/server"
+import type {ActionBuilder, MutationBuilder, QueryBuilder} from "./server"
 
 import {
   expectTypeOfRegisteredActionArgs,
@@ -16,7 +17,7 @@ import {
   expectTypeOfRegisteredQueryArgs,
   expectTypeOfRegisteredQueryReturns,
 } from "@apzelos/concave-internal/assert"
-import {describe, expect, expectTypeOf, test} from "@effect/vitest"
+import {describe, expectTypeOf, test} from "@effect/vitest"
 import {defineSchema, defineTable} from "convex/server"
 import {v} from "convex/values"
 import {Effect as E, Schema as S} from "effect"
@@ -42,22 +43,15 @@ const {query, internalQuery, mutation, internalMutation, action, internalAction,
 
 describe("createServerFunctions", () => {
   test("should return object with all builder functions", () => {
-    const result = createServerFunctions({QueryCtx, MutationCtx, ActionCtx})
+    const {query, internalQuery, mutation, internalMutation, action, internalAction} =
+      createServerFunctions({QueryCtx, MutationCtx, ActionCtx})
 
-    expect(result).toHaveProperty("query")
-    expect(result).toHaveProperty("internalQuery")
-    expect(result).toHaveProperty("mutation")
-    expect(result).toHaveProperty("internalMutation")
-    expect(result).toHaveProperty("action")
-    expect(result).toHaveProperty("internalAction")
-    expect(result).toHaveProperty("httpAction")
-    expect(typeof result.query).toBe("function")
-    expect(typeof result.internalQuery).toBe("function")
-    expect(typeof result.mutation).toBe("function")
-    expect(typeof result.internalMutation).toBe("function")
-    expect(typeof result.action).toBe("function")
-    expect(typeof result.internalAction).toBe("function")
-    expect(typeof result.httpAction).toBe("function")
+    expectTypeOf(query).toEqualTypeOf<QueryBuilder<"public", DataModel>>()
+    expectTypeOf(internalQuery).toEqualTypeOf<QueryBuilder<"internal", DataModel>>()
+    expectTypeOf(mutation).toEqualTypeOf<MutationBuilder<"public", DataModel>>()
+    expectTypeOf(internalMutation).toEqualTypeOf<MutationBuilder<"internal", DataModel>>()
+    expectTypeOf(action).toEqualTypeOf<ActionBuilder<"public", DataModel>>()
+    expectTypeOf(internalAction).toEqualTypeOf<ActionBuilder<"internal", DataModel>>()
   })
 })
 

@@ -48,19 +48,15 @@ import {
 } from "@apzelos/concave/server"
 import {Effect as E, Option, pipe, Schema as S} from "effect"
 
-export interface CreateModleFunctionArgs<Schema extends SchemaDefinition<any, boolean>> {
-  /** Context tag for query operations */
-  QueryCtx: QueryCtxTag<DataModelFromSchemaDefinition<Schema>>
-  /** Context tag for mutation operations */
-  MutationCtx: MutationCtxTag<DataModelFromSchemaDefinition<Schema>>
-  schema: Schema
-}
-
 export function createModelFunction<Schema extends SchemaDefinition<any, boolean>>({
   QueryCtx,
   MutationCtx,
   schema,
-}: CreateModleFunctionArgs<Schema>) {
+}: {
+  QueryCtx: QueryCtxTag<DataModelFromSchemaDefinition<Schema>>
+  MutationCtx: MutationCtxTag<DataModelFromSchemaDefinition<Schema>>
+  schema: Schema
+}) {
   type DataModel = DataModelFromSchemaDefinition<Schema>
   type TableNames = TableNamesInDataModel<DataModel>
   type Doc<TableName extends TableNames> = DocumentByName<DataModel, TableName>
