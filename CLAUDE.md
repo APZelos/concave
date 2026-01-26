@@ -40,4 +40,3 @@ Run these commands in order after making code changes. Fix any issues before pro
 
 - When exploring/studying the code don't read the dist/, always look at the actual implementation
 - Always run all tests and not specific tests, otherwise there is the danger of missing something that broke. The `pnpm test` command runs all test, unit and integration, and it's pretty fast
-- Only add comments when you need to explain WHY. Do not add comments for defining "sections" or comments that describe the what. The vast majority of the time comments should not be needed because code should be self-documented. Only add comments for those rare occasions that the WHAT is not clear and the code cannot be righten in a way that indicates the WHAT
