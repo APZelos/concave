@@ -12,6 +12,7 @@
   "devDependencies": {
     "@apzelos/concave": "workspace:*",
     "@apzelos/concave-helpers": "workspace:*",
+    "@apzelos/concave-internal": "workspace:*",
     "@apzelos/concave-model": "workspace:*",
     "@edge-runtime/vm": "^5.0.0",
     "@effect/vitest": "^0.25.0",

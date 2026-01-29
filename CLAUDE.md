@@ -11,9 +11,9 @@ Concave is an Effect-based integration library for Convex backend services. It p
 ```
 packages/
 ├── concave/          # Core Effect wrappers (@apzelos/concave)
-├── helpers/          # Stream query helpers and filter utilities (@apzelos/concave-helpers)
-├── model/            # Schema-based model generation (@apzelos/concave-model)
-└── internal/         # Shared utilities (not published, bundled into consumers)
+├── concave-helpers/  # Stream query helpers and filter utilities (@apzelos/concave-helpers)
+├── concave-model/    # Schema-based model generation (@apzelos/concave-model)
+└── concave-internal/ # Shared utilities (not published, bundled into consumers)
 apps/
 └── integration-tests/ # End-to-end tests against simulated Convex backend
 ```
@@ -33,11 +33,10 @@ This repo uses **pnpm** exclusively. Always use `pnpm` and `pnpx` instead of `np
 Run these commands in order after making code changes. Fix any issues before proceeding to next steps.
 
 1. `pnpm format` — Format all files with Prettier
-2. `pnpm checks` — Run typecheck, lint, and prettier check
+2. `pnpm check` — Run typecheck, lint, and prettier check
 3. `pnpm test` — Run the test suite
 
 # IMPORTANT NOTES
 
 - When exploring/studying the code don't read the dist/, always look at the actual implementation
 - Always run all tests and not specific tests, otherwise there is the danger of missing something that broke. The `pnpm test` command runs all test, unit and integration, and it's pretty fast
-- Only add comments when you need to explain WHY. Do not add comments for defining "sections" or comments that describe the what. The vast majority of the time comments should not be needed because code should be self-documented. Only add comments for those rare occasions that the WHAT is not clear and the code cannot be righten in a way that indicates the WHAT

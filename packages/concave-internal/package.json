@@ -5,10 +5,6 @@
   "type": "module",
   "sideEffects": false,
   "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    },
     "./assert": {
       "types": "./dist/assert/index.d.ts",
       "import": "./dist/assert/index.js"
@@ -17,13 +13,9 @@
       "types": "./dist/effect/index.d.ts",
       "import": "./dist/effect/index.js"
     },
-    "./types": {
-      "types": "./dist/types/index.d.ts",
-      "import": "./dist/types/index.js"
-    },
-    "./option": {
-      "types": "./dist/option.d.ts",
-      "import": "./dist/option.js"
+    "./type": {
+      "types": "./dist/type/index.d.ts",
+      "import": "./dist/type/index.js"
     }
   },
   "files": [
@@ -34,7 +26,7 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src",
+    "lint": "eslint .",
     "clean": "rm -rf dist"
   },
   "devDependencies": {

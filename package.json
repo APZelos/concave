@@ -9,7 +9,7 @@
     "test:watch": "vitest",
     "typecheck": "turbo run typecheck",
     "lint": "turbo run lint",
-    "checks": "turbo run typecheck lint && pnpx prettier . --check",
+    "check": "turbo run typecheck lint && pnpx prettier . --check",
     "format": "pnpx prettier . --write",
     "clean": "turbo run clean && rm -rf node_modules",
     "changeset": "changeset",

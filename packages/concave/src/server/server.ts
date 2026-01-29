@@ -1,4 +1,4 @@
-import type {DeepMutable} from "@apzelos/concave-internal/types"
+import type {DeepMutable} from "@apzelos/concave-internal/type"
 import type {
   GenericActionCtx as ConvexGenericActionCtx,
   GenericMutationCtx as ConvexGenericMutationCtx,

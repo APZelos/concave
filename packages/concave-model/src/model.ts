@@ -4,7 +4,7 @@ import type {
   StreamQuery,
   StreamQueryInitializer,
 } from "@apzelos/concave-helpers/server/stream"
-import type {SafeUnion} from "@apzelos/concave-internal/types"
+import type {Prettify, SafeUnion} from "@apzelos/concave-internal/type"
 import type {
   DocNotUniqueError,
   GenericMutationCtx,
@@ -39,7 +39,7 @@ import type {GenericId} from "convex/values"
 import type {ParseResult} from "effect"
 
 import {stream as streamHelper} from "@apzelos/concave-helpers/server/stream"
-import {OptionSucceedOrFail} from "@apzelos/concave-internal/option"
+import {fromNullableOrFail} from "@apzelos/concave-internal/effect"
 import {
   ConvexTableName,
   DocNotFoundError,
@@ -48,19 +48,15 @@ import {
 } from "@apzelos/concave/server"
 import {Effect as E, Option, pipe, Schema as S} from "effect"
 
-export interface CreateModleFunctionArgs<Schema extends SchemaDefinition<any, boolean>> {
-  /** Context tag for query operations */
-  QueryCtx: QueryCtxTag<DataModelFromSchemaDefinition<Schema>>
-  /** Context tag for mutation operations */
-  MutationCtx: MutationCtxTag<DataModelFromSchemaDefinition<Schema>>
-  schema: Schema
-}
-
 export function createModelFunction<Schema extends SchemaDefinition<any, boolean>>({
   QueryCtx,
   MutationCtx,
   schema,
-}: CreateModleFunctionArgs<Schema>) {
+}: {
+  QueryCtx: QueryCtxTag<DataModelFromSchemaDefinition<Schema>>
+  MutationCtx: MutationCtxTag<DataModelFromSchemaDefinition<Schema>>
+  schema: Schema
+}) {
   type DataModel = DataModelFromSchemaDefinition<Schema>
   type TableNames = TableNamesInDataModel<DataModel>
   type Doc<TableName extends TableNames> = DocumentByName<DataModel, TableName>
@@ -115,10 +111,12 @@ export function createModelFunction<Schema extends SchemaDefinition<any, boolean
       description:
         "A schema representing a Convex document with optional the Convex system fields (_id, _creationTime, etc.)",
     }) as any as S.Schema<
-      Output & {
-        readonly _id?: GenericId<TableName> | undefined
-        readonly _creationTime?: number | undefined
-      },
+      Prettify<
+        Output & {
+          readonly _id?: GenericId<TableName> | undefined
+          readonly _creationTime?: number | undefined
+        }
+      >,
       WithOptionalSystemFields<Doc<TableName>>
     >
 
@@ -129,7 +127,7 @@ export function createModelFunction<Schema extends SchemaDefinition<any, boolean
       title: `${tableName} document`,
       description: "A schema representing a Convex document",
     }) as any as S.Schema<
-      Output & {readonly _id: GenericId<TableName>; readonly _creationTime: number},
+      Prettify<Output & {readonly _id: GenericId<TableName>; readonly _creationTime: number}>,
       Doc<TableName>
     >
 
@@ -154,8 +152,7 @@ export function createModelFunction<Schema extends SchemaDefinition<any, boolean
         const {db} = yield* QueryCtx
         return yield* pipe(
           db.normalizeId(tableName, docId),
-          E.map(Option.fromNullable),
-          E.flatMap(OptionSucceedOrFail(() => new InvalidDocIdError({tableName, value: docId}))),
+          E.andThen(fromNullableOrFail(() => new InvalidDocIdError({tableName, value: docId}))),
         )
       },
     )
@@ -361,8 +358,7 @@ export function createModelFunction<Schema extends SchemaDefinition<any, boolean
       const {db} = yield* QueryCtx
       return yield* pipe(
         db.get(docId),
-        E.map(Option.fromNullable),
-        E.flatMap(OptionSucceedOrFail(() => new DocNotFoundError({tableName, metadata: {docId}}))),
+        E.andThen(fromNullableOrFail(() => new DocNotFoundError({tableName, metadata: {docId}}))),
         E.map(S.decodeSync(Document)),
       )
     })

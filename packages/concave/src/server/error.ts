@@ -42,7 +42,7 @@ export class DocNotFoundError extends Data.TaggedError("DocNotFoundError")<{
  *   .pipe(E.mapError(() => new DocNotUniqueError()))
  * ```
  */
-export class DocNotUniqueError extends Data.TaggedError("NotUniqueDocError") {}
+export class DocNotUniqueError extends Data.TaggedError("DocNotUniqueError") {}
 
 /**
  * Error thrown when an ID string is invalid for the given table.

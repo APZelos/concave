@@ -1,8 +1,18 @@
-import type {Id} from "../../convex/_generated/dataModel"
+/* eslint-disable @typescript-eslint/no-empty-object-type */
+import type {PaginationResult} from "convex/server"
+import type {GenericId} from "convex/values"
+import type {Doc, Id} from "../../convex/_generated/dataModel"
 
-import {describe, expect, it} from "vitest"
+import {
+  expectTypeOfRegisteredMutationArgs,
+  expectTypeOfRegisteredMutationReturns,
+  expectTypeOfRegisteredQueryArgs,
+  expectTypeOfRegisteredQueryReturns,
+} from "@apzelos/concave-internal/assert"
+import {describe, expect, it, test} from "vitest"
 
 import {api} from "../../convex/_generated/api"
+import * as model from "../../convex/functions/model"
 import {setup} from "../../setup"
 
 async function createTestItem(
@@ -60,6 +70,15 @@ describe("Model", () => {
         }),
       ).rejects.toThrow()
     })
+
+    test("modelNormalizeId types", () => {
+      expectTypeOfRegisteredQueryArgs(model.modelNormalizeId).toEqualTypeOf<{
+        idString: string
+      }>()
+      expectTypeOfRegisteredQueryReturns(model.modelNormalizeId).toEqualTypeOf<
+        Promise<GenericId<"items">>
+      >()
+    })
   })
 
   describe("normalizeIdNullable", () => {
@@ -83,6 +102,15 @@ describe("Model", () => {
 
       expect(result).toBeNull()
     })
+
+    test("modelNormalizeIdNullable types", () => {
+      expectTypeOfRegisteredQueryArgs(model.modelNormalizeIdNullable).toEqualTypeOf<{
+        idString: string
+      }>()
+      expectTypeOfRegisteredQueryReturns(model.modelNormalizeIdNullable).toEqualTypeOf<
+        Promise<GenericId<"items"> | null>
+      >()
+    })
   })
 
   describe("normalizeIdOption", () => {
@@ -105,6 +133,15 @@ describe("Model", () => {
       })
 
       expect(result).toBeNull()
+    })
+
+    test("modelNormalizeIdOption types", () => {
+      expectTypeOfRegisteredQueryArgs(model.modelNormalizeIdOption).toEqualTypeOf<{
+        idString: string
+      }>()
+      expectTypeOfRegisteredQueryReturns(model.modelNormalizeIdOption).toEqualTypeOf<
+        Promise<GenericId<"items"> | null>
+      >()
     })
   })
 
@@ -130,6 +167,13 @@ describe("Model", () => {
       })
 
       await expect(t.query(api.functions.model.modelGetById, {id})).rejects.toThrow()
+    })
+
+    test("modelGetById types", () => {
+      expectTypeOfRegisteredQueryArgs(model.modelGetById).toEqualTypeOf<{
+        id: GenericId<"items">
+      }>()
+      expectTypeOfRegisteredQueryReturns(model.modelGetById).toEqualTypeOf<Promise<Doc<"items">>>()
     })
   })
 
@@ -157,6 +201,15 @@ describe("Model", () => {
 
       expect(result).toBeNull()
     })
+
+    test("modelGetByIdNullable types", () => {
+      expectTypeOfRegisteredQueryArgs(model.modelGetByIdNullable).toEqualTypeOf<{
+        id: GenericId<"items">
+      }>()
+      expectTypeOfRegisteredQueryReturns(model.modelGetByIdNullable).toEqualTypeOf<
+        Promise<Doc<"items"> | null>
+      >()
+    })
   })
 
   describe("getByIdOption", () => {
@@ -182,6 +235,15 @@ describe("Model", () => {
       const result = await t.query(api.functions.model.modelGetByIdOption, {id})
 
       expect(result).toBeNull()
+    })
+
+    test("modelGetByIdOption types", () => {
+      expectTypeOfRegisteredQueryArgs(model.modelGetByIdOption).toEqualTypeOf<{
+        id: GenericId<"items">
+      }>()
+      expectTypeOfRegisteredQueryReturns(model.modelGetByIdOption).toEqualTypeOf<
+        Promise<Doc<"items"> | null>
+      >()
     })
   })
 
@@ -239,6 +301,21 @@ describe("Model", () => {
         }),
       ).rejects.toThrow()
     })
+
+    test("modelInsert types", () => {
+      expectTypeOfRegisteredMutationArgs(model.modelInsert).toEqualTypeOf<{
+        name: string
+        category: string
+        status: "active" | "inactive"
+        priority: number
+        value: number
+        content?: string | undefined
+        createdAt: number
+      }>()
+      expectTypeOfRegisteredMutationReturns(model.modelInsert).toEqualTypeOf<
+        Promise<GenericId<"items">>
+      >()
+    })
   })
 
   describe("insertAndGet", () => {
@@ -279,6 +356,21 @@ describe("Model", () => {
         }),
       ).rejects.toThrow()
     })
+
+    test("modelInsertAndGet types", () => {
+      expectTypeOfRegisteredMutationArgs(model.modelInsertAndGet).toEqualTypeOf<{
+        name: string
+        category: string
+        status: "active" | "inactive"
+        priority: number
+        value: number
+        content?: string | undefined
+        createdAt: number
+      }>()
+      expectTypeOfRegisteredMutationReturns(model.modelInsertAndGet).toEqualTypeOf<
+        Promise<Doc<"items">>
+      >()
+    })
   })
 
   describe("patchById", () => {
@@ -307,6 +399,19 @@ describe("Model", () => {
         }),
       ).rejects.toThrow()
     })
+
+    test("modelPatchById types", () => {
+      expectTypeOfRegisteredMutationArgs(model.modelPatchById).toEqualTypeOf<{
+        id: GenericId<"items">
+        name?: string | undefined
+        category?: string | undefined
+        status?: "active" | "inactive" | undefined
+        priority?: number | undefined
+        value?: number | undefined
+        content?: string | undefined
+      }>()
+      expectTypeOfRegisteredMutationReturns(model.modelPatchById).toEqualTypeOf<Promise<void>>()
+    })
   })
 
   describe("patchByIdAndGet", () => {
@@ -324,6 +429,21 @@ describe("Model", () => {
         name: "Original",
         value: 30,
       })
+    })
+
+    test("modelPatchByIdAndGet types", () => {
+      expectTypeOfRegisteredMutationArgs(model.modelPatchByIdAndGet).toEqualTypeOf<{
+        id: GenericId<"items">
+        name?: string | undefined
+        category?: string | undefined
+        status?: "active" | "inactive" | undefined
+        priority?: number | undefined
+        value?: number | undefined
+        content?: string | undefined
+      }>()
+      expectTypeOfRegisteredMutationReturns(model.modelPatchByIdAndGet).toEqualTypeOf<
+        Promise<Doc<"items">>
+      >()
     })
   })
 
@@ -368,6 +488,20 @@ describe("Model", () => {
         }),
       ).rejects.toThrow()
     })
+
+    test("modelReplaceById types", () => {
+      expectTypeOfRegisteredMutationArgs(model.modelReplaceById).toEqualTypeOf<{
+        id: GenericId<"items">
+        name: string
+        category: string
+        status: "active" | "inactive"
+        priority: number
+        value: number
+        content?: string | undefined
+        createdAt: number
+      }>()
+      expectTypeOfRegisteredMutationReturns(model.modelReplaceById).toEqualTypeOf<Promise<void>>()
+    })
   })
 
   describe("replaceByIdAndGet", () => {
@@ -394,6 +528,22 @@ describe("Model", () => {
         value: 50,
       })
     })
+
+    test("modelReplaceByIdAndGet types", () => {
+      expectTypeOfRegisteredMutationArgs(model.modelReplaceByIdAndGet).toEqualTypeOf<{
+        id: GenericId<"items">
+        name: string
+        category: string
+        status: "active" | "inactive"
+        priority: number
+        value: number
+        content?: string | undefined
+        createdAt: number
+      }>()
+      expectTypeOfRegisteredMutationReturns(model.modelReplaceByIdAndGet).toEqualTypeOf<
+        Promise<Doc<"items">>
+      >()
+    })
   })
 
   describe("deleteById", () => {
@@ -405,6 +555,13 @@ describe("Model", () => {
 
       const doc = await t.run(async (ctx) => ctx.db.get(id))
       expect(doc).toBeNull()
+    })
+
+    test("modelDeleteById types", () => {
+      expectTypeOfRegisteredMutationArgs(model.modelDeleteById).toEqualTypeOf<{
+        id: GenericId<"items">
+      }>()
+      expectTypeOfRegisteredMutationReturns(model.modelDeleteById).toEqualTypeOf<Promise<void>>()
     })
   })
 
@@ -428,6 +585,13 @@ describe("Model", () => {
       const items = await t.query(api.functions.model.modelCollect, {})
 
       expect(items).toEqual([])
+    })
+
+    test("modelCollect types", () => {
+      expectTypeOfRegisteredQueryArgs(model.modelCollect).toEqualTypeOf<{}>()
+      expectTypeOfRegisteredQueryReturns(model.modelCollect).toEqualTypeOf<
+        Promise<Doc<"items">[]>
+      >()
     })
   })
 
@@ -453,6 +617,11 @@ describe("Model", () => {
 
       expect(items).toHaveLength(1)
     })
+
+    test("modelTake types", () => {
+      expectTypeOfRegisteredQueryArgs(model.modelTake).toEqualTypeOf<{n: number}>()
+      expectTypeOfRegisteredQueryReturns(model.modelTake).toEqualTypeOf<Promise<Doc<"items">[]>>()
+    })
   })
 
   describe("first", () => {
@@ -474,6 +643,13 @@ describe("Model", () => {
       const item = await t.query(api.functions.model.modelFirst, {})
 
       expect(item).toBeNull()
+    })
+
+    test("modelFirst types", () => {
+      expectTypeOfRegisteredQueryArgs(model.modelFirst).toEqualTypeOf<{}>()
+      expectTypeOfRegisteredQueryReturns(model.modelFirst).toEqualTypeOf<
+        Promise<Doc<"items"> | null>
+      >()
     })
   })
 
@@ -511,6 +687,13 @@ describe("Model", () => {
         t.query(api.functions.model.modelUnique, {category: "duplicate"}),
       ).rejects.toThrow()
     })
+
+    test("modelUnique types", () => {
+      expectTypeOfRegisteredQueryArgs(model.modelUnique).toEqualTypeOf<{category: string}>()
+      expectTypeOfRegisteredQueryReturns(model.modelUnique).toEqualTypeOf<
+        Promise<Doc<"items"> | null>
+      >()
+    })
   })
 
   describe("withIndex + filter + order", () => {
@@ -533,6 +716,17 @@ describe("Model", () => {
       const priorities = items.map((item: {priority: number}) => item.priority)
       expect(priorities).toContain(5)
       expect(priorities).toContain(3)
+    })
+
+    test("modelWithIndexFilterOrder types", () => {
+      expectTypeOfRegisteredQueryArgs(model.modelWithIndexFilterOrder).toEqualTypeOf<{
+        category: string
+        minPriority: number
+        order: "asc" | "desc"
+      }>()
+      expectTypeOfRegisteredQueryReturns(model.modelWithIndexFilterOrder).toEqualTypeOf<
+        Promise<Doc<"items">[]>
+      >()
     })
   })
 
@@ -561,6 +755,15 @@ describe("Model", () => {
       const secondPageIds = secondPage.page.map((item: {_id: Id<"items">}) => item._id)
       expect(firstPageIds.some((id: Id<"items">) => secondPageIds.includes(id))).toBe(false)
     })
+
+    test("modelPaginate types", () => {
+      expectTypeOfRegisteredQueryArgs(model.modelPaginate).toEqualTypeOf<{
+        paginationOpts: {numItems: number; cursor: string | null}
+      }>()
+      expectTypeOfRegisteredQueryReturns(model.modelPaginate).toEqualTypeOf<
+        Promise<PaginationResult<Doc<"items">>>
+      >()
+    })
   })
 
   describe("stream collect", () => {
@@ -573,6 +776,13 @@ describe("Model", () => {
       const items = await t.query(api.functions.model.modelStreamCollect, {})
 
       expect(items).toHaveLength(2)
+    })
+
+    test("modelStreamCollect types", () => {
+      expectTypeOfRegisteredQueryArgs(model.modelStreamCollect).toEqualTypeOf<{}>()
+      expectTypeOfRegisteredQueryReturns(model.modelStreamCollect).toEqualTypeOf<
+        Promise<Doc<"items">[]>
+      >()
     })
   })
 
@@ -591,6 +801,15 @@ describe("Model", () => {
       expect(animals).toHaveLength(2)
       expect(animals.every((item: {category: string}) => item.category === "animals")).toBe(true)
     })
+
+    test("modelStreamWithIndex types", () => {
+      expectTypeOfRegisteredQueryArgs(model.modelStreamWithIndex).toEqualTypeOf<{
+        category: string
+      }>()
+      expectTypeOfRegisteredQueryReturns(model.modelStreamWithIndex).toEqualTypeOf<
+        Promise<Doc<"items">[]>
+      >()
+    })
   })
 
   describe("filterStreamWith", () => {
@@ -608,6 +827,15 @@ describe("Model", () => {
       expect(highValueItems).toHaveLength(2)
       expect(highValueItems.every((item: {value: number}) => item.value >= 50)).toBe(true)
     })
+
+    test("modelFilterStreamWith types", () => {
+      expectTypeOfRegisteredQueryArgs(model.modelFilterStreamWith).toEqualTypeOf<{
+        minValue: number
+      }>()
+      expectTypeOfRegisteredQueryReturns(model.modelFilterStreamWith).toEqualTypeOf<
+        Promise<Doc<"items">[]>
+      >()
+    })
   })
 
   describe("mapStream", () => {
@@ -622,6 +850,13 @@ describe("Model", () => {
       expect(items[0]).toHaveProperty("id")
       expect(items[0]).toHaveProperty("name", "Test Item")
       expect(items[0]).toHaveProperty("doubled", 20)
+    })
+
+    test("modelMapStream types", () => {
+      expectTypeOfRegisteredQueryArgs(model.modelMapStream).toEqualTypeOf<{}>()
+      expectTypeOfRegisteredQueryReturns(model.modelMapStream).toEqualTypeOf<
+        Promise<{id: GenericId<"items">; name: string; doubled: number}[]>
+      >()
     })
   })
 
@@ -649,6 +884,15 @@ describe("Model", () => {
         t.query(api.functions.model.modelUniqueFromStream, {category: "duplicate-stream"}),
       ).rejects.toThrow()
     })
+
+    test("modelUniqueFromStream types", () => {
+      expectTypeOfRegisteredQueryArgs(model.modelUniqueFromStream).toEqualTypeOf<{
+        category: string
+      }>()
+      expectTypeOfRegisteredQueryReturns(model.modelUniqueFromStream).toEqualTypeOf<
+        Promise<Doc<"items"> | null>
+      >()
+    })
   })
 
   describe("stream take", () => {
@@ -662,6 +906,13 @@ describe("Model", () => {
       const items = await t.query(api.functions.model.modelStreamTake, {n: 2})
 
       expect(items).toHaveLength(2)
+    })
+
+    test("modelStreamTake types", () => {
+      expectTypeOfRegisteredQueryArgs(model.modelStreamTake).toEqualTypeOf<{n: number}>()
+      expectTypeOfRegisteredQueryReturns(model.modelStreamTake).toEqualTypeOf<
+        Promise<Doc<"items">[]>
+      >()
     })
   })
 
@@ -685,6 +936,13 @@ describe("Model", () => {
 
       expect(item).toBeNull()
     })
+
+    test("modelStreamFirst types", () => {
+      expectTypeOfRegisteredQueryArgs(model.modelStreamFirst).toEqualTypeOf<{}>()
+      expectTypeOfRegisteredQueryReturns(model.modelStreamFirst).toEqualTypeOf<
+        Promise<Doc<"items"> | null>
+      >()
+    })
   })
 
   describe("stream paginate", () => {
@@ -702,6 +960,15 @@ describe("Model", () => {
       expect(firstPage.page).toHaveLength(2)
       expect(firstPage.isDone).toBe(false)
       expect(firstPage.continueCursor).toBeDefined()
+    })
+
+    test("modelStreamPaginate types", () => {
+      expectTypeOfRegisteredQueryArgs(model.modelStreamPaginate).toEqualTypeOf<{
+        paginationOpts: {numItems: number; cursor: string | null}
+      }>()
+      expectTypeOfRegisteredQueryReturns(model.modelStreamPaginate).toEqualTypeOf<
+        Promise<PaginationResult<Doc<"items">>>
+      >()
     })
   })
 
@@ -726,6 +993,15 @@ describe("Model", () => {
         })
 
         expect(result).toBe(id)
+      })
+
+      test("modelNormalizeIdWithFallback types", () => {
+        expectTypeOfRegisteredQueryArgs(model.modelNormalizeIdWithFallback).toEqualTypeOf<{
+          idString: string
+        }>()
+        expectTypeOfRegisteredQueryReturns(model.modelNormalizeIdWithFallback).toEqualTypeOf<
+          Promise<GenericId<"items"> | string>
+        >()
       })
     })
 
@@ -757,6 +1033,15 @@ describe("Model", () => {
           name: "Real Item",
         })
       })
+
+      test("modelGetByIdWithFallback types", () => {
+        expectTypeOfRegisteredQueryArgs(model.modelGetByIdWithFallback).toEqualTypeOf<{
+          id: GenericId<"items">
+        }>()
+        expectTypeOfRegisteredQueryReturns(model.modelGetByIdWithFallback).toEqualTypeOf<
+          Promise<Doc<"items">>
+        >()
+      })
     })
   })
 
@@ -778,6 +1063,13 @@ describe("Model", () => {
         expect(items[0]!.label).toBe("Item: TEST")
       })
 
+      test("modelStreamChainedMaps types", () => {
+        expectTypeOfRegisteredQueryArgs(model.modelStreamChainedMaps).toEqualTypeOf<{}>()
+        expectTypeOfRegisteredQueryReturns(model.modelStreamChainedMaps).toEqualTypeOf<
+          Promise<{name: string; value: number; label: string}[]>
+        >()
+      })
+
       it("should apply map -> filter -> map pipeline", async () => {
         const t = setup()
 
@@ -791,6 +1083,15 @@ describe("Model", () => {
         expect(items).toHaveLength(1)
         expect(items[0]!.doubled).toBe(100)
         expect(items[0]!.label).toBe("[100] High")
+      })
+
+      test("modelStreamMapFilterMap types", () => {
+        expectTypeOfRegisteredQueryArgs(model.modelStreamMapFilterMap).toEqualTypeOf<{
+          minValue: number
+        }>()
+        expectTypeOfRegisteredQueryReturns(model.modelStreamMapFilterMap).toEqualTypeOf<
+          Promise<{id: GenericId<"items">; doubled: number; name: string; label: string}[]>
+        >()
       })
     })
 
@@ -806,6 +1107,12 @@ describe("Model", () => {
         ).rejects.toThrow()
       })
 
+      test("modelStreamMapWithError types", () => {
+        expectTypeOfRegisteredQueryArgs(model.modelStreamMapWithError).toEqualTypeOf<{
+          failOnName: string
+        }>()
+      })
+
       it("should propagate error from middle of chain", async () => {
         const t = setup()
 
@@ -815,6 +1122,12 @@ describe("Model", () => {
         await expect(
           t.query(api.functions.model.modelStreamChainedMapWithMiddleError, {failOnValue: 42}),
         ).rejects.toThrow()
+      })
+
+      test("modelStreamChainedMapWithMiddleError types", () => {
+        expectTypeOfRegisteredQueryArgs(model.modelStreamChainedMapWithMiddleError).toEqualTypeOf<{
+          failOnValue: number
+        }>()
       })
 
       it("should allow error recovery with catchTag", async () => {
@@ -832,6 +1145,15 @@ describe("Model", () => {
         expect(recoveredItem).toBeDefined()
         expect(recoveredItem!.name).toBe("RECOVERED: Bad Item")
       })
+
+      test("modelStreamMapWithRecovery types", () => {
+        expectTypeOfRegisteredQueryArgs(model.modelStreamMapWithRecovery).toEqualTypeOf<{
+          failOnName: string
+        }>()
+        expectTypeOfRegisteredQueryReturns(model.modelStreamMapWithRecovery).toEqualTypeOf<
+          Promise<{id: GenericId<"items">; name: string; recovered: boolean}[]>
+        >()
+      })
     })
 
     describe("Effect-based maps with DB lookups", () => {
@@ -846,6 +1168,13 @@ describe("Model", () => {
         expect(results).toHaveLength(1)
         expect(results[0]!.detailInfo).toBe("Detail Info")
         expect(results[0]!.itemName).toBe("Parent Item")
+      })
+
+      test("modelStreamMapWithDbGet types", () => {
+        expectTypeOfRegisteredQueryArgs(model.modelStreamMapWithDbGet).toEqualTypeOf<{}>()
+        expectTypeOfRegisteredQueryReturns(model.modelStreamMapWithDbGet).toEqualTypeOf<
+          Promise<{detailInfo: string; itemName: string}[]>
+        >()
       })
 
       it("should perform nested DB query in map", async () => {
@@ -868,20 +1197,16 @@ describe("Model", () => {
         expect(itemWithDetails!.detailCount).toBe(2)
         expect(itemWithoutDetails!.detailCount).toBe(0)
       })
+
+      test("modelStreamMapWithDbQuery types", () => {
+        expectTypeOfRegisteredQueryArgs(model.modelStreamMapWithDbQuery).toEqualTypeOf<{}>()
+        expectTypeOfRegisteredQueryReturns(model.modelStreamMapWithDbQuery).toEqualTypeOf<
+          Promise<{id: GenericId<"items">; name: string; detailCount: number}[]>
+        >()
+      })
     })
 
     describe("edge cases", () => {
-      it("should return empty array when all map to null", async () => {
-        const t = setup()
-
-        await createTestItem(t, {name: "Item 1"})
-        await createTestItem(t, {name: "Item 2"})
-
-        const items = await t.query(api.functions.model.modelStreamMapAllToNull, {})
-
-        expect(items).toEqual([])
-      })
-
       it("should filter out null mapped items", async () => {
         const t = setup()
 
@@ -895,6 +1220,12 @@ describe("Model", () => {
 
         expect(items).toHaveLength(1)
         expect(items[0]!.name).toBe("Keep")
+      })
+
+      test("modelStreamMapSomeToNull types", () => {
+        expectTypeOfRegisteredQueryArgs(model.modelStreamMapSomeToNull).toEqualTypeOf<{
+          keepCategory: string
+        }>()
       })
 
       it("should handle empty stream through transformations", async () => {

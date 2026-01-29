@@ -1,6 +1,14 @@
-import {describe, expect, it} from "vitest"
+/* eslint-disable @typescript-eslint/no-empty-object-type */
+import type {Doc, Id} from "../../convex/_generated/dataModel"
+
+import {
+  expectTypeOfRegisteredMutationArgs,
+  expectTypeOfRegisteredMutationReturns,
+} from "@apzelos/concave-internal/assert"
+import {describe, expect, it, test} from "vitest"
 
 import {api, internal} from "../../convex/_generated/api"
+import * as mutations from "../../convex/functions/mutations"
 import {setup} from "../../setup"
 
 async function createTestItem(
@@ -49,6 +57,20 @@ describe("Mutations", () => {
         expect(result).toBe("validated mutation return")
         expect(typeof result).toBe("string")
       })
+
+      test("mutationNoArgs types", () => {
+        expectTypeOfRegisteredMutationArgs(mutations.mutationNoArgs).toEqualTypeOf<{}>()
+        expectTypeOfRegisteredMutationReturns(mutations.mutationNoArgs).toEqualTypeOf<
+          Promise<string>
+        >()
+      })
+
+      test("mutationNoArgsWithReturns types", () => {
+        expectTypeOfRegisteredMutationArgs(mutations.mutationNoArgsWithReturns).toEqualTypeOf<{}>()
+        expectTypeOfRegisteredMutationReturns(mutations.mutationNoArgsWithReturns).toEqualTypeOf<
+          Promise<string>
+        >()
+      })
     })
 
     describe("with args", () => {
@@ -81,6 +103,25 @@ describe("Mutations", () => {
 
         expect(result).toEqual({tripled: 30, original: 10})
       })
+
+      test("mutationWithArgs types", () => {
+        expectTypeOfRegisteredMutationArgs(mutations.mutationWithArgs).toEqualTypeOf<{
+          name: string
+          count: number
+        }>()
+        expectTypeOfRegisteredMutationReturns(mutations.mutationWithArgs).toEqualTypeOf<
+          Promise<string>
+        >()
+      })
+
+      test("mutationWithArgsWithReturns types", () => {
+        expectTypeOfRegisteredMutationArgs(mutations.mutationWithArgsWithReturns).toEqualTypeOf<{
+          value: number
+        }>()
+        expectTypeOfRegisteredMutationReturns(mutations.mutationWithArgsWithReturns).toEqualTypeOf<
+          Promise<{tripled: number; original: number}>
+        >()
+      })
     })
   })
 
@@ -105,6 +146,13 @@ describe("Mutations", () => {
         const result = await authedT.mutation(api.functions.mutations.mutationNoAuthRequired, {})
 
         expect(result).toBe("public mutation")
+      })
+
+      test("mutationNoAuthRequired types", () => {
+        expectTypeOfRegisteredMutationArgs(mutations.mutationNoAuthRequired).toEqualTypeOf<{}>()
+        expectTypeOfRegisteredMutationReturns(mutations.mutationNoAuthRequired).toEqualTypeOf<
+          Promise<string>
+        >()
       })
     })
 
@@ -145,6 +193,21 @@ describe("Mutations", () => {
         expect(identity?.tokenIdentifier).toBe("auth-token-456")
         expect(identity?.name).toBe("Auth User")
       })
+
+      test("mutationAuthRequired types", () => {
+        expectTypeOfRegisteredMutationArgs(mutations.mutationAuthRequired).toEqualTypeOf<{}>()
+        expectTypeOfRegisteredMutationReturns(mutations.mutationAuthRequired).toEqualTypeOf<
+          Promise<{tokenIdentifier: string; name: string | undefined}>
+        >()
+      })
+
+      test("mutationGetIdentity types", () => {
+        expectTypeOfRegisteredMutationArgs(mutations.mutationGetIdentity).toEqualTypeOf<{}>()
+        // Use toMatchTypeOf since UserIdentity has many optional fields
+        expectTypeOfRegisteredMutationReturns(mutations.mutationGetIdentity).toMatchTypeOf<
+          Promise<{tokenIdentifier: string} | null>
+        >()
+      })
     })
   })
 
@@ -163,6 +226,18 @@ describe("Mutations", () => {
       await expect(
         t.mutation(api.functions.mutations.mutationThrowsRegularError, {message: "regular error"}),
       ).rejects.toThrow("regular error")
+    })
+
+    test("mutationThrowsTaggedError types", () => {
+      expectTypeOfRegisteredMutationArgs(mutations.mutationThrowsTaggedError).toEqualTypeOf<{
+        message: string
+      }>()
+    })
+
+    test("mutationThrowsRegularError types", () => {
+      expectTypeOfRegisteredMutationArgs(mutations.mutationThrowsRegularError).toEqualTypeOf<{
+        message: string
+      }>()
     })
   })
 
@@ -188,6 +263,24 @@ describe("Mutations", () => {
       // Verify the item was created
       const item = await t.mutation(api.functions.mutations.mutationGet, {id})
       expect(item?.name).toBe("Created via runMutation")
+    })
+
+    test("mutationCallsQuery types", () => {
+      expectTypeOfRegisteredMutationArgs(mutations.mutationCallsQuery).toEqualTypeOf<{
+        value: number
+      }>()
+      expectTypeOfRegisteredMutationReturns(mutations.mutationCallsQuery).toEqualTypeOf<
+        Promise<string>
+      >()
+    })
+
+    test("mutationCallsMutation types", () => {
+      expectTypeOfRegisteredMutationArgs(mutations.mutationCallsMutation).toEqualTypeOf<{
+        name: string
+      }>()
+      expectTypeOfRegisteredMutationReturns(mutations.mutationCallsMutation).toEqualTypeOf<
+        Promise<Id<"items">>
+      >()
     })
   })
 
@@ -216,6 +309,19 @@ describe("Mutations", () => {
         expect(item).toBeDefined()
         expect(item?.content).toBeUndefined()
       })
+
+      test("mutationInsert types", () => {
+        expectTypeOfRegisteredMutationArgs(mutations.mutationInsert).toEqualTypeOf<{
+          name: string
+          category: string
+          status: "active" | "inactive"
+          priority: number
+          content?: string | undefined
+        }>()
+        expectTypeOfRegisteredMutationReturns(mutations.mutationInsert).toEqualTypeOf<
+          Promise<Id<"items">>
+        >()
+      })
     })
 
     describe("get", () => {
@@ -239,6 +345,15 @@ describe("Mutations", () => {
         const item = await t.mutation(api.functions.mutations.mutationGet, {id})
 
         expect(item).toBeNull()
+      })
+
+      test("mutationGet types", () => {
+        expectTypeOfRegisteredMutationArgs(mutations.mutationGet).toEqualTypeOf<{
+          id: Id<"items">
+        }>()
+        expectTypeOfRegisteredMutationReturns(mutations.mutationGet).toEqualTypeOf<
+          Promise<Doc<"items"> | null>
+        >()
       })
     })
 
@@ -295,6 +410,20 @@ describe("Mutations", () => {
         expect(item?.status).toBe("active")
         expect(item?.priority).toBe(5)
       })
+
+      test("mutationPatch types", () => {
+        expectTypeOfRegisteredMutationArgs(mutations.mutationPatch).toEqualTypeOf<{
+          id: Id<"items">
+          name?: string | undefined
+          category?: string | undefined
+          status?: "active" | "inactive" | undefined
+          priority?: number | undefined
+          content?: string | undefined
+        }>()
+        expectTypeOfRegisteredMutationReturns(mutations.mutationPatch).toEqualTypeOf<
+          Promise<void>
+        >()
+      })
     })
 
     describe("replace", () => {
@@ -345,6 +474,21 @@ describe("Mutations", () => {
         expect(replaced?._id).toBe(original?._id)
         expect(replaced?._creationTime).toBe(original?._creationTime)
       })
+
+      test("mutationReplace types", () => {
+        expectTypeOfRegisteredMutationArgs(mutations.mutationReplace).toEqualTypeOf<{
+          id: Id<"items">
+          name: string
+          category: string
+          status: "active" | "inactive"
+          priority: number
+          content?: string | undefined
+          createdAt: number
+        }>()
+        expectTypeOfRegisteredMutationReturns(mutations.mutationReplace).toEqualTypeOf<
+          Promise<void>
+        >()
+      })
     })
 
     describe("delete", () => {
@@ -367,6 +511,15 @@ describe("Mutations", () => {
 
         // Deleting again should throw (Convex behavior)
         await expect(t.mutation(api.functions.mutations.mutationDelete, {id})).rejects.toThrow()
+      })
+
+      test("mutationDelete types", () => {
+        expectTypeOfRegisteredMutationArgs(mutations.mutationDelete).toEqualTypeOf<{
+          id: Id<"items">
+        }>()
+        expectTypeOfRegisteredMutationReturns(mutations.mutationDelete).toEqualTypeOf<
+          Promise<void>
+        >()
       })
     })
 
@@ -391,6 +544,15 @@ describe("Mutations", () => {
         })
 
         expect(normalized).toBeNull()
+      })
+
+      test("mutationNormalizeId types", () => {
+        expectTypeOfRegisteredMutationArgs(mutations.mutationNormalizeId).toEqualTypeOf<{
+          idString: string
+        }>()
+        expectTypeOfRegisteredMutationReturns(mutations.mutationNormalizeId).toEqualTypeOf<
+          Promise<Id<"items"> | null>
+        >()
       })
     })
   })
@@ -421,6 +583,22 @@ describe("Mutations", () => {
 
       expect(result).toBe("internal mutation: 21")
     })
+
+    test("internalMutationNoArgs types", () => {
+      expectTypeOfRegisteredMutationArgs(mutations.internalMutationNoArgs).toEqualTypeOf<{}>()
+      expectTypeOfRegisteredMutationReturns(mutations.internalMutationNoArgs).toEqualTypeOf<
+        Promise<string>
+      >()
+    })
+
+    test("internalMutationWithArgs types", () => {
+      expectTypeOfRegisteredMutationArgs(mutations.internalMutationWithArgs).toEqualTypeOf<{
+        value: number
+      }>()
+      expectTypeOfRegisteredMutationReturns(mutations.internalMutationWithArgs).toEqualTypeOf<
+        Promise<string>
+      >()
+    })
   })
 
   describe("Schema Transformations", () => {
@@ -447,6 +625,25 @@ describe("Mutations", () => {
         const item = await t.mutation(api.functions.mutations.mutationGet, {id})
         expect(item?.createdAt).toBe(new Date(isoDate).getTime())
       })
+
+      test("mutationWithNumberFromString types", () => {
+        expectTypeOfRegisteredMutationArgs(mutations.mutationWithNumberFromString).toEqualTypeOf<{
+          value: string
+        }>()
+        expectTypeOfRegisteredMutationReturns(mutations.mutationWithNumberFromString).toEqualTypeOf<
+          Promise<string>
+        >()
+      })
+
+      test("mutationWithDateTransformation types", () => {
+        expectTypeOfRegisteredMutationArgs(mutations.mutationWithDateTransformation).toEqualTypeOf<{
+          name: string
+          createdAtString: string
+        }>()
+        expectTypeOfRegisteredMutationReturns(
+          mutations.mutationWithDateTransformation,
+        ).toEqualTypeOf<Promise<Id<"items">>>()
+      })
     })
 
     describe("returns transformations", () => {
@@ -459,6 +656,15 @@ describe("Mutations", () => {
 
         expect(typeof result).toBe("number")
         expect(result).toBe(42)
+      })
+
+      test("mutationReturnsNumber types", () => {
+        expectTypeOfRegisteredMutationArgs(mutations.mutationReturnsNumber).toEqualTypeOf<{
+          value: number
+        }>()
+        expectTypeOfRegisteredMutationReturns(mutations.mutationReturnsNumber).toEqualTypeOf<
+          Promise<number>
+        >()
       })
     })
   })

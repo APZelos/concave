@@ -52,10 +52,13 @@ importers:
         version: link:../../packages/concave
       '@apzelos/concave-helpers':
         specifier: workspace:*
-        version: link:../../packages/helpers
+        version: link:../../packages/concave-helpers
+      '@apzelos/concave-internal':
+        specifier: workspace:*
+        version: link:../../packages/concave-internal
       '@apzelos/concave-model':
         specifier: workspace:*
-        version: link:../../packages/model
+        version: link:../../packages/concave-model
       '@edge-runtime/vm':
         specifier: ^5.0.0
         version: 5.0.0
@@ -91,7 +94,7 @@ importers:
     dependencies:
       '@apzelos/concave-internal':
         specifier: workspace:*
-        version: link:../internal
+        version: link:../concave-internal
     devDependencies:
       '@effect/vitest':
         specifier: ^0.25.0
@@ -118,14 +121,14 @@ importers:
         specifier: ^3.0.0
         version: 3.2.4(@edge-runtime/vm@5.0.0)
 
-  packages/helpers:
+  packages/concave-helpers:
     dependencies:
       '@apzelos/concave':
         specifier: workspace:*
         version: link:../concave
       '@apzelos/concave-internal':
         specifier: workspace:*
-        version: link:../internal
+        version: link:../concave-internal
     devDependencies:
       '@effect/vitest':
         specifier: ^0.25.0
@@ -149,7 +152,7 @@ importers:
         specifier: ^3.0.0
         version: 3.2.4(@edge-runtime/vm@5.0.0)
 
-  packages/internal:
+  packages/concave-internal:
     devDependencies:
       '@effect/vitest':
         specifier: ^0.25.0
@@ -161,17 +164,17 @@ importers:
         specifier: ^3.19.0
         version: 3.19.14
 
-  packages/model:
+  packages/concave-model:
     dependencies:
       '@apzelos/concave':
         specifier: workspace:*
         version: link:../concave
       '@apzelos/concave-helpers':
         specifier: workspace:*
-        version: link:../helpers
+        version: link:../concave-helpers
       '@apzelos/concave-internal':
         specifier: workspace:*
-        version: link:../internal
+        version: link:../concave-internal
     devDependencies:
       '@effect/vitest':
         specifier: ^0.25.0

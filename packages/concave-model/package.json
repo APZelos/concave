@@ -1,21 +1,13 @@
 {
-  "name": "@apzelos/concave-helpers",
+  "name": "@apzelos/concave-model",
   "version": "1.0.0-alpha.2",
-  "description": "Stream and filter helpers for Concave",
+  "description": "Schema-based model generation for Concave",
   "type": "module",
   "sideEffects": false,
   "exports": {
-    "./server/customFunctions": {
-      "types": "./dist/server/customFunctions.d.ts",
-      "import": "./dist/server/customFunctions.js"
-    },
-    "./server/filter": {
-      "types": "./dist/server/filter.d.ts",
-      "import": "./dist/server/filter.js"
-    },
-    "./server/stream": {
-      "types": "./dist/server/stream.d.ts",
-      "import": "./dist/server/stream.js"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
     },
     "./testing": {
       "types": "./dist/testing/index.d.ts",
@@ -37,21 +29,22 @@
   "keywords": [
     "convex",
     "effect",
-    "stream",
-    "helpers"
+    "model",
+    "schema"
   ],
   "author": "apzelos",
   "license": "ISC",
   "repository": {
     "type": "git",
     "url": "https://github.com/APZelos/concave.git",
-    "directory": "packages/helpers"
+    "directory": "packages/concave-model"
   },
   "publishConfig": {
     "provenance": true
   },
   "dependencies": {
     "@apzelos/concave": "workspace:*",
+    "@apzelos/concave-helpers": "workspace:*",
     "@apzelos/concave-internal": "workspace:*"
   },
   "peerDependencies": {

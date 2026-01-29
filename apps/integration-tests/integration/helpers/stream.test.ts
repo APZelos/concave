@@ -1,8 +1,16 @@
-import type {Id} from "../../convex/_generated/dataModel"
+/* eslint-disable @typescript-eslint/no-empty-object-type */
+import type {PaginationResult} from "convex/server"
+import type {GenericId} from "convex/values"
+import type {Doc, Id} from "../../convex/_generated/dataModel"
 
-import {describe, expect, it} from "vitest"
+import {
+  expectTypeOfRegisteredQueryArgs,
+  expectTypeOfRegisteredQueryReturns,
+} from "@apzelos/concave-internal/assert"
+import {describe, expect, it, test} from "vitest"
 
 import {api} from "../../convex/_generated/api"
+import * as stream from "../../convex/functions/stream"
 import {setup} from "../../setup"
 
 async function createTestItem(
@@ -59,6 +67,13 @@ describe("Stream Queries", () => {
 
       expect(items).toEqual([])
     })
+
+    test("streamFullTableScan types", () => {
+      expectTypeOfRegisteredQueryArgs(stream.streamFullTableScan).toEqualTypeOf<{}>()
+      expectTypeOfRegisteredQueryReturns(stream.streamFullTableScan).toEqualTypeOf<
+        Promise<Doc<"items">[]>
+      >()
+    })
   })
 
   describe("withIndex", () => {
@@ -88,6 +103,13 @@ describe("Stream Queries", () => {
 
       expect(items).toEqual([])
     })
+
+    test("streamWithIndex types", () => {
+      expectTypeOfRegisteredQueryArgs(stream.streamWithIndex).toEqualTypeOf<{category: string}>()
+      expectTypeOfRegisteredQueryReturns(stream.streamWithIndex).toEqualTypeOf<
+        Promise<Doc<"items">[]>
+      >()
+    })
   })
 
   describe("compound index", () => {
@@ -106,6 +128,16 @@ describe("Stream Queries", () => {
       expect(items).toHaveLength(1)
       expect(items[0]!.category).toBe("tech")
       expect(items[0]!.status).toBe("active")
+    })
+
+    test("streamWithCompoundIndex types", () => {
+      expectTypeOfRegisteredQueryArgs(stream.streamWithCompoundIndex).toEqualTypeOf<{
+        category: string
+        status: "active" | "inactive"
+      }>()
+      expectTypeOfRegisteredQueryReturns(stream.streamWithCompoundIndex).toEqualTypeOf<
+        Promise<Doc<"items">[]>
+      >()
     })
   })
 
@@ -133,6 +165,20 @@ describe("Stream Queries", () => {
       expect(items.length).toBeGreaterThanOrEqual(2)
       expect(items[0]!._creationTime).toBeGreaterThanOrEqual(items[1]!._creationTime)
     })
+
+    test("streamOrderAsc types", () => {
+      expectTypeOfRegisteredQueryArgs(stream.streamOrderAsc).toEqualTypeOf<{}>()
+      expectTypeOfRegisteredQueryReturns(stream.streamOrderAsc).toEqualTypeOf<
+        Promise<Doc<"items">[]>
+      >()
+    })
+
+    test("streamOrderDesc types", () => {
+      expectTypeOfRegisteredQueryArgs(stream.streamOrderDesc).toEqualTypeOf<{}>()
+      expectTypeOfRegisteredQueryReturns(stream.streamOrderDesc).toEqualTypeOf<
+        Promise<Doc<"items">[]>
+      >()
+    })
   })
 
   describe("collect", () => {
@@ -145,6 +191,13 @@ describe("Stream Queries", () => {
       const items = await t.query(api.functions.stream.streamCollect, {})
 
       expect(items).toHaveLength(2)
+    })
+
+    test("streamCollect types", () => {
+      expectTypeOfRegisteredQueryArgs(stream.streamCollect).toEqualTypeOf<{}>()
+      expectTypeOfRegisteredQueryReturns(stream.streamCollect).toEqualTypeOf<
+        Promise<Doc<"items">[]>
+      >()
     })
   })
 
@@ -170,6 +223,11 @@ describe("Stream Queries", () => {
 
       expect(items).toHaveLength(1)
     })
+
+    test("streamTake types", () => {
+      expectTypeOfRegisteredQueryArgs(stream.streamTake).toEqualTypeOf<{n: number}>()
+      expectTypeOfRegisteredQueryReturns(stream.streamTake).toEqualTypeOf<Promise<Doc<"items">[]>>()
+    })
   })
 
   describe("first", () => {
@@ -191,6 +249,13 @@ describe("Stream Queries", () => {
       const item = await t.query(api.functions.stream.streamFirst, {})
 
       expect(item).toBeNull()
+    })
+
+    test("streamFirst types", () => {
+      expectTypeOfRegisteredQueryArgs(stream.streamFirst).toEqualTypeOf<{}>()
+      expectTypeOfRegisteredQueryReturns(stream.streamFirst).toEqualTypeOf<
+        Promise<Doc<"items"> | null>
+      >()
     })
   })
 
@@ -228,6 +293,13 @@ describe("Stream Queries", () => {
         t.query(api.functions.stream.streamUnique, {category: "duplicate"}),
       ).rejects.toThrow()
     })
+
+    test("streamUnique types", () => {
+      expectTypeOfRegisteredQueryArgs(stream.streamUnique).toEqualTypeOf<{category: string}>()
+      expectTypeOfRegisteredQueryReturns(stream.streamUnique).toEqualTypeOf<
+        Promise<Doc<"items"> | null>
+      >()
+    })
   })
 
   describe("filterWith", () => {
@@ -261,6 +333,22 @@ describe("Stream Queries", () => {
       expect(items).toHaveLength(1)
       expect(items[0]!.name).toBe("Item with detail")
     })
+
+    test("streamFilterWith types", () => {
+      expectTypeOfRegisteredQueryArgs(stream.streamFilterWith).toEqualTypeOf<{minValue: number}>()
+      expectTypeOfRegisteredQueryReturns(stream.streamFilterWith).toEqualTypeOf<
+        Promise<Doc<"items">[]>
+      >()
+    })
+
+    test("streamFilterWithDbLookup types", () => {
+      expectTypeOfRegisteredQueryArgs(stream.streamFilterWithDbLookup).toEqualTypeOf<{
+        requiredDetailInfo: string
+      }>()
+      expectTypeOfRegisteredQueryReturns(stream.streamFilterWithDbLookup).toEqualTypeOf<
+        Promise<Doc<"items">[]>
+      >()
+    })
   })
 
   describe("map", () => {
@@ -290,6 +378,22 @@ describe("Stream Queries", () => {
       expect(items).toHaveLength(1)
       expect(items[0]!.name).toBe("Keep")
     })
+
+    test("streamMap types", () => {
+      expectTypeOfRegisteredQueryArgs(stream.streamMap).toEqualTypeOf<{}>()
+      expectTypeOfRegisteredQueryReturns(stream.streamMap).toEqualTypeOf<
+        Promise<{id: GenericId<"items">; name: string; doubled: number}[]>
+      >()
+    })
+
+    test("streamMapWithNull types", () => {
+      expectTypeOfRegisteredQueryArgs(stream.streamMapWithNull).toEqualTypeOf<{
+        filterCategory: string
+      }>()
+      expectTypeOfRegisteredQueryReturns(stream.streamMapWithNull).toEqualTypeOf<
+        Promise<{id: GenericId<"items">; name: string}[]>
+      >()
+    })
   })
 
   describe("flatMap", () => {
@@ -308,6 +412,13 @@ describe("Stream Queries", () => {
       expect(details).toHaveLength(3)
       expect(details.every((d: {info: string}) => d.info.startsWith("Detail"))).toBe(true)
     })
+
+    test("streamFlatMap types", () => {
+      expectTypeOfRegisteredQueryArgs(stream.streamFlatMap).toEqualTypeOf<{}>()
+      expectTypeOfRegisteredQueryReturns(stream.streamFlatMap).toEqualTypeOf<
+        Promise<Doc<"details">[]>
+      >()
+    })
   })
 
   describe("distinct", () => {
@@ -324,6 +435,13 @@ describe("Stream Queries", () => {
       const categories = items.map((item: {category: string}) => item.category)
       expect(categories).toContain("animals")
       expect(categories).toContain("vehicles")
+    })
+
+    test("streamDistinct types", () => {
+      expectTypeOfRegisteredQueryArgs(stream.streamDistinct).toEqualTypeOf<{}>()
+      expectTypeOfRegisteredQueryReturns(stream.streamDistinct).toEqualTypeOf<
+        Promise<Doc<"items">[]>
+      >()
     })
   })
 
@@ -352,6 +470,15 @@ describe("Stream Queries", () => {
       const secondPageIds = secondPage.page.map((item: {_id: string}) => item._id)
       expect(firstPageIds.some((id: string) => secondPageIds.includes(id))).toBe(false)
     })
+
+    test("streamPaginate types", () => {
+      expectTypeOfRegisteredQueryArgs(stream.streamPaginate).toEqualTypeOf<{
+        paginationOpts: {numItems: number; cursor: string | null}
+      }>()
+      expectTypeOfRegisteredQueryReturns(stream.streamPaginate).toEqualTypeOf<
+        Promise<PaginationResult<Doc<"items">>>
+      >()
+    })
   })
 
   describe("mergedStream", () => {
@@ -372,6 +499,13 @@ describe("Stream Queries", () => {
       expect(categories).toContain("vehicles")
       expect(categories).not.toContain("other")
     })
+
+    test("streamMerged types", () => {
+      expectTypeOfRegisteredQueryArgs(stream.streamMerged).toEqualTypeOf<{categories: string[]}>()
+      expectTypeOfRegisteredQueryReturns(stream.streamMerged).toEqualTypeOf<
+        Promise<Doc<"items">[]>
+      >()
+    })
   })
 
   describe("value index range", () => {
@@ -389,6 +523,16 @@ describe("Stream Queries", () => {
 
       expect(items).toHaveLength(1)
       expect(items[0]!.name).toBe("Mid")
+    })
+
+    test("streamWithValueIndex types", () => {
+      expectTypeOfRegisteredQueryArgs(stream.streamWithValueIndex).toEqualTypeOf<{
+        minValue: number
+        maxValue: number
+      }>()
+      expectTypeOfRegisteredQueryReturns(stream.streamWithValueIndex).toEqualTypeOf<
+        Promise<Doc<"items">[]>
+      >()
     })
   })
 
@@ -423,6 +567,22 @@ describe("Stream Queries", () => {
         expect(items).toHaveLength(1)
         expect(items[0]!.doubled).toBe(100)
         expect(items[0]!.label).toBe("[100] High")
+      })
+
+      test("streamChainedMaps types", () => {
+        expectTypeOfRegisteredQueryArgs(stream.streamChainedMaps).toEqualTypeOf<{}>()
+        expectTypeOfRegisteredQueryReturns(stream.streamChainedMaps).toEqualTypeOf<
+          Promise<{name: string; value: number; label: string}[]>
+        >()
+      })
+
+      test("streamMapFilterMap types", () => {
+        expectTypeOfRegisteredQueryArgs(stream.streamMapFilterMap).toEqualTypeOf<{
+          minValue: number
+        }>()
+        expectTypeOfRegisteredQueryReturns(stream.streamMapFilterMap).toEqualTypeOf<
+          Promise<{id: GenericId<"items">; doubled: number; name: string; label: string}[]>
+        >()
       })
     })
 
@@ -464,6 +624,27 @@ describe("Stream Queries", () => {
         expect(recoveredItem).toBeDefined()
         expect(recoveredItem!.name).toBe("RECOVERED: Bad Item")
       })
+
+      test("streamMapWithError types", () => {
+        expectTypeOfRegisteredQueryArgs(stream.streamMapWithError).toEqualTypeOf<{
+          failOnName: string
+        }>()
+      })
+
+      test("streamChainedMapWithMiddleError types", () => {
+        expectTypeOfRegisteredQueryArgs(stream.streamChainedMapWithMiddleError).toEqualTypeOf<{
+          failOnValue: number
+        }>()
+      })
+
+      test("streamMapWithRecovery types", () => {
+        expectTypeOfRegisteredQueryArgs(stream.streamMapWithRecovery).toEqualTypeOf<{
+          failOnName: string
+        }>()
+        expectTypeOfRegisteredQueryReturns(stream.streamMapWithRecovery).toEqualTypeOf<
+          Promise<{id: GenericId<"items">; name: string; recovered: boolean}[]>
+        >()
+      })
     })
 
     describe("Effect-based maps", () => {
@@ -499,6 +680,20 @@ describe("Stream Queries", () => {
         )
         expect(itemWithDetails!.detailCount).toBe(2)
         expect(itemWithoutDetails!.detailCount).toBe(0)
+      })
+
+      test("streamMapWithDbGet types", () => {
+        expectTypeOfRegisteredQueryArgs(stream.streamMapWithDbGet).toEqualTypeOf<{}>()
+        expectTypeOfRegisteredQueryReturns(stream.streamMapWithDbGet).toEqualTypeOf<
+          Promise<{detailInfo: string; itemName: string}[]>
+        >()
+      })
+
+      test("streamMapWithDbQuery types", () => {
+        expectTypeOfRegisteredQueryArgs(stream.streamMapWithDbQuery).toEqualTypeOf<{}>()
+        expectTypeOfRegisteredQueryReturns(stream.streamMapWithDbQuery).toEqualTypeOf<
+          Promise<{id: GenericId<"items">; name: string; detailCount: number}[]>
+        >()
       })
     })
 
@@ -543,6 +738,29 @@ describe("Stream Queries", () => {
         expect(items[0]).toHaveProperty("value", 10)
         expect(items[0]).toHaveProperty("doubled", 20)
       })
+
+      test("streamPipeWithMapHelper types", () => {
+        expectTypeOfRegisteredQueryArgs(stream.streamPipeWithMapHelper).toEqualTypeOf<{}>()
+        expectTypeOfRegisteredQueryReturns(stream.streamPipeWithMapHelper).toEqualTypeOf<
+          Promise<{id: GenericId<"items">; upperName: string}[]>
+        >()
+      })
+
+      test("streamPipeWithCombinedHelpers types", () => {
+        expectTypeOfRegisteredQueryArgs(stream.streamPipeWithCombinedHelpers).toEqualTypeOf<{
+          minValue: number
+        }>()
+        expectTypeOfRegisteredQueryReturns(stream.streamPipeWithCombinedHelpers).toEqualTypeOf<
+          Promise<{id: GenericId<"items">; name: string; value: number}[]>
+        >()
+      })
+
+      test("streamPipeWithChainedMapHelpers types", () => {
+        expectTypeOfRegisteredQueryArgs(stream.streamPipeWithChainedMapHelpers).toEqualTypeOf<{}>()
+        expectTypeOfRegisteredQueryReturns(stream.streamPipeWithChainedMapHelpers).toEqualTypeOf<
+          Promise<{name: string; value: number; doubled: number}[]>
+        >()
+      })
     })
 
     describe("edge cases", () => {
@@ -578,6 +796,19 @@ describe("Stream Queries", () => {
         const items = await t.query(api.functions.stream.streamChainedMaps, {})
 
         expect(items).toEqual([])
+      })
+
+      test("streamMapAllToNull types", () => {
+        expectTypeOfRegisteredQueryArgs(stream.streamMapAllToNull).toEqualTypeOf<{}>()
+      })
+
+      test("streamMapSomeToNull types", () => {
+        expectTypeOfRegisteredQueryArgs(stream.streamMapSomeToNull).toEqualTypeOf<{
+          keepCategory: string
+        }>()
+        expectTypeOfRegisteredQueryReturns(stream.streamMapSomeToNull).toEqualTypeOf<
+          Promise<{id: GenericId<"items">; name: string}[]>
+        >()
       })
     })
   })
